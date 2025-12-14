@@ -1,24 +1,27 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple Voxel Builder</title>
+<title>MC Voxel Builder</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Simple Voxel Builder</h1>
+<h1>MC Voxel Builder</h1>
 
 <div id="toolbar">
-    <button id="exportBtn">Export JSON</button>
+    <input type="file" id="objInput" accept=".obj">
+    <button id="voxelizeBtn">Voxelize OBJ</button>
+    <button id="exportGeoBtn">Export Bedrock GEO</button>
+    <button id="exportPngBtn">Export Texture PNG</button>
 </div>
 
 <canvas id="canvas"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/OBJLoader.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
