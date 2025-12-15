@@ -2,7 +2,11 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.m
 import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/OBJLoader.js';
 import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/FBXLoader.js';
+import { exportVoxelsToOBJ, downloadOBJ } from "./export/obj_export.js";
+import { exportVoxelsToFBX, downloadFBX } from "./export/fbx_export.js";
+import { generateTextureAtlas, downloadTexture } from "./export/texture_export.js";
 
+// ---------- Scene Setup ----------
 let scene, camera, renderer, controls;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
@@ -21,7 +25,7 @@ const statusEl = document.getElementById("status");
 
 function setStatus(msg){ statusEl.textContent = msg; }
 
-// ---------------- INIT ----------------
+// ---------- Initialization ----------
 init();
 animate();
 
@@ -56,7 +60,7 @@ function init(){
     addVoxel(0,0,0);
 }
 
-// ---------------- RENDER ----------------
+// ---------- Render Loop ----------
 function animate(){
     requestAnimationFrame(animate);
     controls.update();
@@ -68,7 +72,7 @@ function onResize(){
     renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
 }
 
-// ---------------- GRID ----------------
+// ---------- Voxel Grid Management ----------
 function key(x,y,z){ return `${x},${y},${z}`; }
 
 function addVoxel(x,y,z,color=currentColor){
@@ -99,7 +103,7 @@ function clearVoxels(){
     setStatus("Cleared all voxels.");
 }
 
-// ---------------- INTERACTION ----------------
+// ---------- Interaction ----------
 function onPointerDown(event){
     const rect=canvas.getBoundingClientRect();
     mouse.x=((event.clientX-rect.left)/rect.width)*2-1;
@@ -125,10 +129,10 @@ function onPointerDown(event){
     }
 }
 
-// ---------------- CREATE SPHERE ----------------
+// ---------- Create Sphere ----------
 function createVoxelSphere(){
     clearVoxels();
-    const radius = 4; // adjustable
+    const radius = 4;
     setStatus("Creating voxel sphere...");
     for(let x=-radius;x<=radius;x++){
         for(let y=-radius;y<=radius;y++){
@@ -142,7 +146,7 @@ function createVoxelSphere(){
     setStatus("Voxel sphere created.");
 }
 
-// ---------------- MODEL IMPORT ----------------
+// ---------- Model Import ----------
 function loadModel(event){
     const file = event.target.files[0];
     if(!file) return;
@@ -151,12 +155,12 @@ function loadModel(event){
     reader.onload = e=>{
         const content = e.target.result;
         try{
-            let loader, object;
+            let object;
             if(file.name.endsWith(".obj")){
-                loader = new OBJLoader();
+                const loader = new OBJLoader();
                 object = loader.parse(content);
             } else if(file.name.endsWith(".fbx")){
-                loader = new FBXLoader();
+                const loader = new FBXLoader();
                 object = loader.parse(content);
             } else {
                 setStatus("Unsupported file type.");
@@ -174,7 +178,7 @@ function loadModel(event){
     else reader.readAsText(file);
 }
 
-// ---------------- VOXELIZATION ----------------
+// ---------- Voxelization ----------
 function voxelizeMesh(object){
     clearVoxels();
     object.updateMatrixWorld(true);
@@ -206,14 +210,29 @@ function voxelizeMesh(object){
     setStatus("Voxelization complete.");
 }
 
-// ---------------- EXPORT ----------------
+// ---------- Export ----------
 function exportVoxelData(){
     const voxels=[...voxelGrid.values()].map(v=>v.userData);
+
+    // JSON for Minecraft
     const blob = new Blob([JSON.stringify(voxels,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
     a.href=url;
     a.download="voxels.json";
     a.click();
-    setStatus("Voxel data exported.");
+
+    // OBJ Export
+    const objText = exportVoxelsToOBJ(voxels);
+    downloadOBJ(objText);
+
+    // FBX Export
+    const fbxArrayBuffer = exportVoxelsToFBX(voxels);
+    downloadFBX(fbxArrayBuffer);
+
+    // Texture
+    const atlas = generateTextureAtlas(voxels);
+    downloadTexture(atlas.canvas);
+
+    setStatus("Voxel data, OBJ, FBX, and texture exported.");
 }
