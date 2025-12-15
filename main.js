@@ -23,6 +23,11 @@ const objInput = document.getElementById("objInput");
 const voxelSizeInput = document.getElementById("voxelSizeInput");
 const clearBtn = document.getElementById("clearBtn");
 const exportGeoBtn = document.getElementById("exportGeoBtn");
+const statusEl = document.getElementById("status");
+
+function setStatus(msg) {
+    statusEl.textContent = msg;
+}
 
 // ---------------- INIT ----------------
 init();
@@ -106,6 +111,7 @@ function removeVoxel(x, y, z) {
 function clearVoxels() {
     voxelGrid.forEach(v => scene.remove(v));
     voxelGrid.clear();
+    setStatus("Cleared all voxels.");
 }
 
 // ---------------- INTERACTION ----------------
@@ -139,15 +145,19 @@ function loadOBJ(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    setStatus("Loading OBJ...");
+
     const reader = new FileReader();
     reader.onload = e => {
         try {
             const loader = new OBJLoader();
             const obj = loader.parse(e.target.result);
-            scene.add(obj); // optional temporary render for debugging
+
+            setStatus("OBJ loaded. Voxelizing...");
             voxelizeMesh(obj);
         } catch(err) {
             console.error("OBJ parsing failed:", err);
+            setStatus("OBJ parsing failed.");
         }
     };
     reader.readAsText(file);
@@ -164,6 +174,12 @@ function voxelizeMesh(object) {
 
     const inv = new THREE.Matrix4().copy(object.matrixWorld).invert();
     const ray = new THREE.Raycaster();
+
+    let total = Math.ceil((max.x - min.x + 1) / voxelSize) *
+                Math.ceil((max.y - min.y + 1) / voxelSize) *
+                Math.ceil((max.z - min.z + 1) / voxelSize);
+
+    let count = 0;
 
     for (let x = min.x; x <= max.x; x += voxelSize) {
         for (let y = min.y; y <= max.y; y += voxelSize) {
@@ -184,13 +200,23 @@ function voxelizeMesh(object) {
                         Math.floor(z / voxelSize)
                     );
                 }
+
+                count++;
+                if (count % 50 === 0) {
+                    let pct = Math.floor((count / total) * 100);
+                    setStatus(`Voxelizing... ${pct}%`);
+                }
             }
         }
     }
+
+    setStatus("Voxelization complete.");
 }
 
 // ---------------- EXPORTS ----------------
 exportGeoBtn.addEventListener("click", () => {
+    setStatus("Generating Bedrock assets...");
+
     const voxels = [...voxelGrid.values()].map(v => ({
         x: v.userData.x,
         y: v.userData.y,
@@ -209,7 +235,8 @@ exportGeoBtn.addEventListener("click", () => {
     // Entities
     const res = generateResourceEntity();
     const beh = generateBehaviorEntity();
-
     downloadJSON(res, "voxel.entity.json");
     downloadJSON(beh, "voxel.behavior.json");
+
+    setStatus("Bedrock assets generated successfully.");
 });
