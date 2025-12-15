@@ -1,40 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voxel Builder</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>MC Voxel Builder</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <canvas id="viewport"></canvas>
 
-<h1>Voxel Builder</h1>
+  <div id="ui">
+    <input type="file" id="fileInput" accept=".obj" />
+    <button id="createSphere">Create Sphere</button>
+    <button id="exportObj">Export OBJ</button>
+    <pre id="terminal">ready</pre>
+  </div>
 
-<div id="toolbar">
-    <input type="color" id="colorPicker" value="#55ff55">
-    <input type="number" id="voxelSizeInput" value="1" min="0.1" max="5" step="0.1">
-    <button id="newSphereBtn">New Sphere</button>
-    <input type="file" id="modelInput">
-    <button id="clearBtn">Clear</button>
-    <button id="exportBtn">Export</button>
-</div>
-
-<canvas id="canvas"></canvas>
-<div id="status">Ready</div>
-
-<!-- Local Three.js and loaders -->
-<script src="three/three.min.js"></script>
-<script src="three/OrbitControls.js"></script>
-<script src="three/OBJLoader.js"></script>
-<script src="three/FBXLoader.js"></script>
-
-<!-- Export scripts -->
-<script src="export/obj_export.js"></script>
-<script src="export/fbx_export.js"></script>
-<script src="export/texture_export.js"></script>
-
-<!-- Main logic -->
-<script src="main.js"></script>
-
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
