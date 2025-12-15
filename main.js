@@ -149,15 +149,21 @@ function loadOBJ(event) {
 
     const reader = new FileReader();
     reader.onload = e => {
+        const content = e.target.result;
+        console.log("OBJ file size:", content.length);
+        console.log("OBJ content preview:", content.slice(0, 200));
+
         try {
             const loader = new OBJLoader();
-            const obj = loader.parse(e.target.result);
+            const obj = loader.parse(content);
+            console.log("Parsed OBJ:", obj);
 
+            scene.add(obj); // temporary render for debugging
             setStatus("OBJ loaded. Voxelizing...");
             voxelizeMesh(obj);
         } catch(err) {
             console.error("OBJ parsing failed:", err);
-            setStatus("OBJ parsing failed.");
+            setStatus("OBJ parsing failed. Check console.");
         }
     };
     reader.readAsText(file);
@@ -224,15 +230,12 @@ exportGeoBtn.addEventListener("click", () => {
         color: v.userData.color
     }));
 
-    // Geometry
     const geometry = buildBedrockGeometry(voxels, { name: "geometry.voxel_model" });
     downloadJSON(geometry, "voxel.geo.json");
 
-    // Texture
     const atlas = generateTextureAtlas(voxels);
     downloadTexture(atlas.canvas, "voxel.png");
 
-    // Entities
     const res = generateResourceEntity();
     const beh = generateBehaviorEntity();
     downloadJSON(res, "voxel.entity.json");
