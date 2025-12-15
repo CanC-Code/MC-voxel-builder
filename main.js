@@ -6,7 +6,7 @@ import { exportVoxelsToOBJ, downloadOBJ } from "./export/obj_export.js";
 import { exportVoxelsToFBX, downloadFBX } from "./export/fbx_export.js";
 import { generateTextureAtlas, downloadTexture } from "./export/texture_export.js";
 
-// ---------- Scene Setup ----------
+// ---------- Scene & State ----------
 let scene, camera, renderer, controls;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
@@ -30,23 +30,31 @@ init();
 animate();
 
 function init(){
+    // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f0f0);
+    scene.background = new THREE.Color(0x202020);
 
-    camera = new THREE.PerspectiveCamera(70, canvas.clientWidth/canvas.clientHeight, 0.1, 1000);
+    // Camera
+    camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
     camera.position.set(12,12,12);
+    camera.lookAt(0,0,0);
 
+    // Renderer
     renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    renderer.setSize(window.innerWidth*0.9, window.innerHeight*0.6);
 
+    // Controls
     controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+    controls.target.set(0,0,0);
+    controls.update();
 
-    scene.add(new THREE.AmbientLight(0xffffff,0.4));
-    const light = new THREE.DirectionalLight(0xffffff,1);
-    light.position.set(10,20,10);
+    // Lights
+    scene.add(new THREE.AmbientLight(0xffffff,0.6));
+    const light = new THREE.DirectionalLight(0xffffff,0.8);
+    light.position.set(20,40,20);
     scene.add(light);
 
+    // Event listeners
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("resize", onResize);
 
@@ -57,7 +65,8 @@ function init(){
     modelInput.addEventListener("change",loadModel);
     exportBtn.addEventListener("click",exportVoxelData);
 
-    addVoxel(0,0,0);
+    // Add a default voxel for testing
+    addVoxel(0,0,0,currentColor);
 }
 
 // ---------- Render Loop ----------
@@ -66,13 +75,14 @@ function animate(){
     controls.update();
     renderer.render(scene,camera);
 }
+
 function onResize(){
     camera.aspect=canvas.clientWidth/canvas.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
 }
 
-// ---------- Voxel Grid Management ----------
+// ---------- Voxel Grid ----------
 function key(x,y,z){ return `${x},${y},${z}`; }
 
 function addVoxel(x,y,z,color=currentColor){
@@ -90,6 +100,7 @@ function addVoxel(x,y,z,color=currentColor){
     voxelGrid.set(k,mesh);
     scene.add(mesh);
 }
+
 function removeVoxel(x,y,z){
     const k=key(x,y,z);
     const mesh=voxelGrid.get(k);
@@ -97,6 +108,7 @@ function removeVoxel(x,y,z){
     scene.remove(mesh);
     voxelGrid.delete(k);
 }
+
 function clearVoxels(){
     voxelGrid.forEach(v=>scene.remove(v));
     voxelGrid.clear();
@@ -129,7 +141,7 @@ function onPointerDown(event){
     }
 }
 
-// ---------- Create Sphere ----------
+// ---------- Sphere Creation ----------
 function createVoxelSphere(){
     clearVoxels();
     const radius = 4;
