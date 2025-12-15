@@ -1,4 +1,3 @@
-// ---------- Scene & State ----------
 let scene, camera, renderer, controls;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
@@ -17,36 +16,29 @@ const statusEl = document.getElementById("status");
 
 function setStatus(msg){ statusEl.textContent = msg; }
 
-// ---------- Initialization ----------
 init();
 animate();
 
 function init(){
-    // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202020);
 
-    // Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
     camera.position.set(12,12,12);
     camera.lookAt(0,0,0);
 
-    // Renderer
     renderer = new THREE.WebGLRenderer({canvas, antialias:true});
     renderer.setSize(window.innerWidth*0.9, window.innerHeight*0.6);
 
-    // Controls
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0,0,0);
     controls.update();
 
-    // Lights
     scene.add(new THREE.AmbientLight(0xffffff,0.6));
     const light = new THREE.DirectionalLight(0xffffff,0.8);
     light.position.set(20,40,20);
     scene.add(light);
 
-    // Event listeners
     renderer.domElement.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("resize", onResize);
 
@@ -57,11 +49,9 @@ function init(){
     modelInput.addEventListener("change",loadModel);
     exportBtn.addEventListener("click",exportVoxelData);
 
-    // Add default voxel
     addVoxel(0,0,0,currentColor);
 }
 
-// ---------- Render Loop ----------
 function animate(){
     requestAnimationFrame(animate);
     controls.update();
@@ -74,7 +64,6 @@ function onResize(){
     renderer.setSize(canvas.clientWidth,canvas.clientHeight,false);
 }
 
-// ---------- Voxel Grid ----------
 function key(x,y,z){ return `${x},${y},${z}`; }
 
 function addVoxel(x,y,z,color=currentColor){
@@ -107,7 +96,6 @@ function clearVoxels(){
     setStatus("Cleared all voxels.");
 }
 
-// ---------- Interaction ----------
 function onPointerDown(event){
     const rect=canvas.getBoundingClientRect();
     mouse.x=((event.clientX-rect.left)/rect.width)*2-1;
@@ -133,7 +121,6 @@ function onPointerDown(event){
     }
 }
 
-// ---------- Sphere Creation ----------
 function createVoxelSphere(){
     clearVoxels();
     const radius = 4;
@@ -150,7 +137,6 @@ function createVoxelSphere(){
     setStatus("Voxel sphere created.");
 }
 
-// ---------- Model Import ----------
 function loadModel(event){
     const file = event.target.files[0];
     if(!file) return;
@@ -182,7 +168,6 @@ function loadModel(event){
     else reader.readAsText(file);
 }
 
-// ---------- Voxelization ----------
 function voxelizeMesh(object){
     clearVoxels();
     object.updateMatrixWorld(true);
@@ -214,11 +199,10 @@ function voxelizeMesh(object){
     setStatus("Voxelization complete.");
 }
 
-// ---------- Export ----------
 function exportVoxelData(){
     const voxels=[...voxelGrid.values()].map(v=>v.userData);
 
-    // JSON for Minecraft
+    // JSON
     const blob = new Blob([JSON.stringify(voxels,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
@@ -226,11 +210,11 @@ function exportVoxelData(){
     a.download="voxels.json";
     a.click();
 
-    // OBJ Export
+    // OBJ
     const objText = exportVoxelsToOBJ(voxels);
     downloadOBJ(objText);
 
-    // FBX Export
+    // FBX
     const fbxArrayBuffer = exportVoxelsToFBX(voxels);
     downloadFBX(fbxArrayBuffer);
 
