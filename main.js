@@ -1,11 +1,14 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from './three/examples/jsm/loaders/OBJLoader.js';
+import { MeshBVH, acceleratedRaycast } from './three-mesh-bvh.js';
+
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer, controls;
 let currentModel = null;
 let voxelGrid = {};
-let voxelSize = 0.05; // adjustable
+let voxelSize = 0.05;
 let skeleton = {};
 
 function init() {
@@ -26,9 +29,9 @@ function init() {
     scene.add(new THREE.DirectionalLight(0xffffff, 1));
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-    // OBJ Input
+    // OBJ input
     const objInput = document.getElementById('objInput');
-    objInput.addEventListener('change', (e)=>{
+    objInput.addEventListener('change', e => {
         const file = e.target.files[0];
         if(!file) return;
         const reader = new FileReader();
@@ -40,7 +43,7 @@ function init() {
 
             if(currentModel) scene.remove(currentModel);
 
-            // Scale and center
+            // Normalize scale & center
             const box = new THREE.Box3().setFromObject(object);
             const size = box.getSize(new THREE.Vector3()).length();
             const scale = 2 / size;
@@ -68,16 +71,25 @@ function init() {
     document.getElementById('toolbar').appendChild(voxelLabel);
     voxelInput.addEventListener('change', ()=> voxelSize=parseFloat(voxelInput.value));
 
-    // Convert to voxels button
+    // Convert Button
     const convertBtn = document.createElement('button');
     convertBtn.innerText='Convert to Voxels';
     document.getElementById('toolbar').appendChild(convertBtn);
     convertBtn.addEventListener('click', async ()=>{
         if(!currentModel){ status.innerText='No model loaded!'; return; }
-        status.innerText='Voxelizing...';
+        status.innerText='Building BVH...';
         voxelGrid={};
         skeleton={};
-        await voxelizeModel(currentModel, voxelSize, status);
+
+        // Flatten all meshes in currentModel
+        const meshes = [];
+        currentModel.traverse(child=>{
+            if(child.isMesh) meshes.push(child);
+        });
+        meshes.forEach(m=>MeshBVH.computeBoundsTree(m.geometry));
+
+        status.innerText='Voxelizing (SDF)...';
+        await sdfVoxelize(meshes, voxelSize, status);
         assignSkeleton();
         status.innerText=`Voxelization complete. Voxels: ${Object.keys(voxelGrid).length}`;
     });
@@ -106,33 +118,44 @@ function init() {
     });
 }
 
-// Simple voxelization using bounding box + point-inside-raycasting (SDF placeholder)
-async function voxelizeModel(mesh, size, status){
-    const bbox = new THREE.Box3().setFromObject(mesh);
-    const min = bbox.min.clone();
-    const max = bbox.max.clone();
-    const step = size;
+// True SDF voxelization
+async function sdfVoxelize(meshes, step, status){
+    const bbox = new THREE.Box3();
+    meshes.forEach(m=>bbox.expandByObject(m));
+    const min = bbox.min.clone(), max = bbox.max.clone();
 
-    const total = Math.ceil((max.x-min.x)/step)*Math.ceil((max.y-min.y)/step)*Math.ceil((max.z-min.z)/step);
-    let processed = 0;
+    const nx = Math.ceil((max.x-min.x)/step);
+    const ny = Math.ceil((max.y-min.y)/step);
+    const nz = Math.ceil((max.z-min.z)/step);
+    let processed = 0, total = nx*ny*nz;
 
-    for(let x=min.x;x<=max.x;x+=step){
-        for(let y=min.y;y<=max.y;y+=step){
-            for(let z=min.z;z<=max.z;z+=step){
-                const point = new THREE.Vector3(x+step/2, y+step/2, z+step/2);
-                if(pointInsideMesh(point, mesh)){
-                    const key=`${x.toFixed(3)}_${y.toFixed(3)}_${z.toFixed(3)}`;
-                    const voxel=new THREE.Mesh(
-                        new THREE.BoxGeometry(step, step, step),
-                        new THREE.MeshStandardMaterial({color:sampleColor(point, mesh)})
-                    );
+    for(let i=0;i<nx;i++){
+        for(let j=0;j<ny;j++){
+            for(let k=0;k<nz;k++){
+                const px = min.x + (i+0.5)*step;
+                const py = min.y + (j+0.5)*step;
+                const pz = min.z + (k+0.5)*step;
+                const point = new THREE.Vector3(px,py,pz);
+
+                // check SDF distance to all meshes
+                let inside = false;
+                for(const m of meshes){
+                    const dist = m.geometry.boundsTree.closestPointToPoint(point, {closestPoint:new THREE.Vector3()});
+                    // SDF approximation: if closest point < step/2 consider inside
+                    if(point.distanceTo(dist.closestPoint) <= step/2){ inside=true; break; }
+                }
+
+                if(inside){
+                    const key=`${px.toFixed(3)}_${py.toFixed(3)}_${pz.toFixed(3)}`;
+                    const voxel=new THREE.Mesh(new THREE.BoxGeometry(step,step,step), new THREE.MeshStandardMaterial({color:0x00ff00}));
                     voxel.position.copy(point);
                     scene.add(voxel);
                     voxelGrid[key]=voxel;
                 }
+
                 processed++;
                 if(processed%500===0){
-                    status.innerText=`Voxelizing... ${Math.floor(processed/total*100)}%`;
+                    status.innerText=`Voxelizing SDF... ${Math.floor(processed/total*100)}%`;
                     await new Promise(r=>setTimeout(r,0));
                 }
             }
@@ -140,43 +163,30 @@ async function voxelizeModel(mesh, size, status){
     }
 }
 
-// Very simple point-in-mesh check via raycasting (placeholder for SDF)
-function pointInsideMesh(point, mesh){
-    const raycaster = new THREE.Raycaster();
-    raycaster.set(point,new THREE.Vector3(1,0,0));
-    const intersects=raycaster.intersectObject(mesh,true);
-    return intersects.length%2===1;
-}
-
-// Placeholder color sampling (can later read UV/vertex colors)
-function sampleColor(point, mesh){ return 0x00ff00; }
-
-// Synthetic skeleton assignment
+// Assign bones using bounding box slices
 function assignSkeleton(){
     if(Object.keys(voxelGrid).length===0) return;
-    // Compute bounding box
     const bbox = new THREE.Box3();
-    for(const key in voxelGrid) bbox.expandByPoint(voxelGrid[key].position);
-
+    Object.values(voxelGrid).forEach(v=>bbox.expandByPoint(v.position));
     const min=bbox.min, max=bbox.max;
-    const yHeight=max.y-min.y;
-    // simple humanoid bones
+    const h = max.y-min.y;
+
     skeleton={
-        head:{position:[0, max.y-0.15*yHeight,0], children:['torso']},
-        torso:{position:[0, min.y+0.5*yHeight,0], children:['left_arm','right_arm','left_leg','right_leg']},
-        left_arm:{position:[min.x+0.1*(max.x-min.x), min.y+0.65*yHeight,0], children:[]},
-        right_arm:{position:[max.x-0.1*(max.x-min.x), min.y+0.65*yHeight,0], children:[]},
-        left_leg:{position:[min.x+0.15*(max.x-min.x), min.y+0.25*yHeight,0], children:[]},
-        right_leg:{position:[max.x-0.15*(max.x-min.x), min.y+0.25*yHeight,0], children:[]}
+        head:{position:[0,max.y-0.15*h,0], children:['torso']},
+        torso:{position:[0,min.y+0.5*h,0], children:['left_arm','right_arm','left_leg','right_leg']},
+        left_arm:{position:[min.x+0.1*(max.x-min.x), min.y+0.65*h,0], children:[]},
+        right_arm:{position:[max.x-0.1*(max.x-min.x), min.y+0.65*h,0], children:[]},
+        left_leg:{position:[min.x+0.15*(max.x-min.x), min.y+0.25*h,0], children:[]},
+        right_leg:{position:[max.x-0.15*(max.x-min.x), min.y+0.25*h,0], children:[]}
     };
 
-    // assign bone IDs
     for(const key in voxelGrid){
-        const voxel=voxelGrid[key];
-        const y=voxel.position.y;
-        if(y>min.y+0.85*yHeight) voxel.bone='head';
-        else if(y>min.y+0.65*yHeight) voxel.bone='torso';
-        else voxel.bone='legs';
+        const v = voxelGrid[key];
+        const y = v.position.y;
+        if(y>min.y+0.85*h) v.bone='head';
+        else if(y>min.y+0.65*h) v.bone='torso';
+        else if(y<min.y+0.35*h) v.bone='legs';
+        else v.bone='torso';
     }
 }
 
