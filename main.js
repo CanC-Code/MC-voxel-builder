@@ -1,8 +1,9 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { OBJLoader } from './OBJLoader.js';
+import { OBJLoader } from './three/OBJLoader.js';
 import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
 
+// Enable BVH raycasting
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer, controls;
@@ -15,18 +16,25 @@ function init() {
     const canvas = document.getElementById('canvas');
     const status = document.getElementById('status');
 
+    // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
 
+    // Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
     camera.position.set(3,3,3);
 
+    // Renderer
     renderer = new THREE.WebGLRenderer({canvas, antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
 
+    // Controls
     controls = new OrbitControls(camera, renderer.domElement);
 
-    scene.add(new THREE.DirectionalLight(0xffffff, 1));
+    // Lights
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(10,10,10);
+    scene.add(dirLight);
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
     // OBJ input
@@ -58,11 +66,8 @@ function init() {
         reader.readAsText(file);
     });
 
-    // Convert Button
-    const convertBtn = document.createElement('button');
-    convertBtn.innerText='Convert to Voxels';
-    document.getElementById('toolbar').appendChild(convertBtn);
-    convertBtn.addEventListener('click', async ()=>{
+    // Convert button
+    document.getElementById('convertBtn').addEventListener('click', async () => {
         if(!currentModel){ status.innerText='No model loaded!'; return; }
         status.innerText='Building BVH...';
         voxelGrid={};
@@ -104,7 +109,7 @@ function init() {
     });
 }
 
-// True SDF voxelization
+// SDF voxelization
 async function sdfVoxelize(meshes, step, status){
     const bbox = new THREE.Box3();
     meshes.forEach(m=>bbox.expandByObject(m));
@@ -147,7 +152,7 @@ async function sdfVoxelize(meshes, step, status){
     }
 }
 
-// Assign bones using bounding box slices
+// Assign basic skeleton
 function assignSkeleton(){
     if(Object.keys(voxelGrid).length===0) return;
     const bbox = new THREE.Box3();
