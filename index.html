@@ -19,6 +19,16 @@
 <canvas id="canvas"></canvas>
 <div id="status" style="margin-top:10px;">Ready</div>
 
+<!-- IMPORTANT: import map MUST come before any module scripts -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "./three/three.module.js"
+  }
+}
+</script>
+
+<!-- Your app entry -->
 <script type="module" src="main.js"></script>
 
 </body>
