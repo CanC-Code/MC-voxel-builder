@@ -4,37 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MC Voxel Builder</title>
-
 <link rel="stylesheet" href="style.css">
-
 </head>
 <body>
 
-<h1>MC Voxel Builder</h1>
+<h1>Minecraft Voxel Builder</h1>
 
 <div id="toolbar">
     <input type="file" id="objInput" accept=".obj">
-    <label>
-        Voxel Size
-        <input type="number" id="voxelSizeInput" value="1" step="0.25" min="0.25">
-    </label>
+    <label for="voxelSizeInput">Voxel Size:</label>
+    <input type="number" id="voxelSizeInput" min="0.1" max="5" step="0.1" value="1">
     <button id="clearBtn">Clear</button>
-    <button id="exportGeoBtn">Export Bedrock Geometry</button>
+    <button id="exportGeoBtn">Export Bedrock Assets</button>
 </div>
 
 <canvas id="canvas"></canvas>
 
-<!-- THREE CORE -->
+<!-- Three.js + OBJLoader + OrbitControls -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-
-<!-- CONTROLS -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
-
-<!-- LOADERS -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/loaders/OBJLoader.js"></script>
 
-<!-- APP -->
-<script src="main.js"></script>
-
+<!-- Main JS module -->
+<script type="module" src="main.js"></script>
 </body>
 </html>
