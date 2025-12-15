@@ -1,3 +1,8 @@
+// ---------------- IMPORT MODULES ----------------
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/OBJLoader.js';
+
 import { buildBedrockGeometry } from "./export/bedrock_geometry.js";
 import { generateTextureAtlas, downloadTexture } from "./export/texture_export.js";
 import {
@@ -6,12 +11,12 @@ import {
     downloadJSON
 } from "./export/entity_export.js";
 
+// ---------------- VARIABLES ----------------
 let scene, camera, renderer, controls;
 let raycaster = new THREE.Raycaster();
 let mouse = new THREE.Vector2();
-
 let voxelSize = 1;
-let voxelGrid = new Map(); // key -> mesh
+let voxelGrid = new Map();
 
 const canvas = document.getElementById("canvas");
 const objInput = document.getElementById("objInput");
@@ -19,27 +24,21 @@ const voxelSizeInput = document.getElementById("voxelSizeInput");
 const clearBtn = document.getElementById("clearBtn");
 const exportGeoBtn = document.getElementById("exportGeoBtn");
 
+// ---------------- INIT ----------------
 init();
 animate();
-
-/* ---------------- INIT ---------------- */
 
 function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
 
-    camera = new THREE.PerspectiveCamera(
-        70,
-        canvas.clientWidth / canvas.clientHeight,
-        0.1,
-        1000
-    );
+    camera = new THREE.PerspectiveCamera(70, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
     camera.position.set(12, 12, 12);
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
@@ -60,8 +59,7 @@ function init() {
     addVoxel(0, 0, 0);
 }
 
-/* ---------------- RENDER ---------------- */
-
+// ---------------- RENDER ----------------
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -76,11 +74,8 @@ function onResize() {
     renderer.setSize(w, h, false);
 }
 
-/* ---------------- GRID ---------------- */
-
-function key(x, y, z) {
-    return `${x},${y},${z}`;
-}
+// ---------------- GRID ----------------
+function key(x, y, z) { return `${x},${y},${z}`; }
 
 function addVoxel(x, y, z, color = "#55ff55") {
     const k = key(x, y, z);
@@ -95,9 +90,7 @@ function addVoxel(x, y, z, color = "#55ff55") {
         y * voxelSize + voxelSize / 2,
         z * voxelSize + voxelSize / 2
     );
-
     mesh.userData = { x, y, z, color };
-
     voxelGrid.set(k, mesh);
     scene.add(mesh);
 }
@@ -115,8 +108,7 @@ function clearVoxels() {
     voxelGrid.clear();
 }
 
-/* ---------------- INTERACTION ---------------- */
-
+// ---------------- INTERACTION ----------------
 function onPointerDown(event) {
     const rect = canvas.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -142,23 +134,26 @@ function onPointerDown(event) {
     }
 }
 
-/* ---------------- OBJ IMPORT ---------------- */
-
+// ---------------- OBJ IMPORT ----------------
 function loadOBJ(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = e => {
-        const loader = new THREE.OBJLoader();
-        const obj = loader.parse(e.target.result);
-        voxelizeMesh(obj);
+        try {
+            const loader = new OBJLoader();
+            const obj = loader.parse(e.target.result);
+            scene.add(obj); // optional temporary render for debugging
+            voxelizeMesh(obj);
+        } catch(err) {
+            console.error("OBJ parsing failed:", err);
+        }
     };
     reader.readAsText(file);
 }
 
-/* ---------------- VOXELIZATION ---------------- */
-
+// ---------------- VOXELIZATION ----------------
 function voxelizeMesh(object) {
     clearVoxels();
     object.updateMatrixWorld(true);
@@ -194,8 +189,7 @@ function voxelizeMesh(object) {
     }
 }
 
-/* ---------------- EXPORTS ---------------- */
-
+// ---------------- EXPORTS ----------------
 exportGeoBtn.addEventListener("click", () => {
     const voxels = [...voxelGrid.values()].map(v => ({
         x: v.userData.x,
@@ -205,9 +199,7 @@ exportGeoBtn.addEventListener("click", () => {
     }));
 
     // Geometry
-    const geometry = buildBedrockGeometry(voxels, {
-        name: "geometry.voxel_model"
-    });
+    const geometry = buildBedrockGeometry(voxels, { name: "geometry.voxel_model" });
     downloadJSON(geometry, "voxel.geo.json");
 
     // Texture
