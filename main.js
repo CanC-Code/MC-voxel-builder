@@ -3,6 +3,7 @@ import { OrbitControls } from './three/OrbitControls.js';
 import { OBJLoader } from './three/OBJLoader.js';
 import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
 
+// Enable BVH accelerated raycasting
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer, controls;
