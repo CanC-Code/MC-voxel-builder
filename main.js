@@ -1,9 +1,8 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { OBJLoader } from './OBJLoader.js';
+import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
 
-// Use the UMD BVH global
-const { MeshBVH, acceleratedRaycast } = window.MeshBVHLib;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer, controls;
