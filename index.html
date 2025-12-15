@@ -2,12 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MC Voxel Builder</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+<h1>MC Voxel Builder</h1>
+
+<div id="toolbar">
+  <input type="file" id="objInput" accept=".obj" />
+  <button id="exportBtn">Export JSON</button>
+</div>
+
 <canvas id="canvas"></canvas>
+<div id="status">ready</div>
 
 <script type="importmap">
 {
