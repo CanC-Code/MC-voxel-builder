@@ -1,11 +1,3 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/controls/OrbitControls.js';
-import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/OBJLoader.js';
-import { FBXLoader } from 'https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/loaders/FBXLoader.js';
-import { exportVoxelsToOBJ, downloadOBJ } from "./export/obj_export.js";
-import { exportVoxelsToFBX, downloadFBX } from "./export/fbx_export.js";
-import { generateTextureAtlas, downloadTexture } from "./export/texture_export.js";
-
 // ---------- Scene & State ----------
 let scene, camera, renderer, controls;
 let raycaster = new THREE.Raycaster();
@@ -44,7 +36,7 @@ function init(){
     renderer.setSize(window.innerWidth*0.9, window.innerHeight*0.6);
 
     // Controls
-    controls = new OrbitControls(camera, renderer.domElement);
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(0,0,0);
     controls.update();
 
@@ -65,7 +57,7 @@ function init(){
     modelInput.addEventListener("change",loadModel);
     exportBtn.addEventListener("click",exportVoxelData);
 
-    // Add a default voxel for testing
+    // Add default voxel
     addVoxel(0,0,0,currentColor);
 }
 
@@ -169,10 +161,10 @@ function loadModel(event){
         try{
             let object;
             if(file.name.endsWith(".obj")){
-                const loader = new OBJLoader();
+                const loader = new THREE.OBJLoader();
                 object = loader.parse(content);
             } else if(file.name.endsWith(".fbx")){
-                const loader = new FBXLoader();
+                const loader = new THREE.FBXLoader();
                 object = loader.parse(content);
             } else {
                 setStatus("Unsupported file type.");
