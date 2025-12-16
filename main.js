@@ -4,7 +4,6 @@ import { OBJLoader } from './three/OBJLoader.js';
 import { FBXLoader } from './three/FBXLoader.js';
 import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
 
-// Enable BVH accelerated raycasting
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer, controls;
@@ -41,10 +40,14 @@ function init() {
         exportVoxels();
     };
 
+    document.getElementById('cubeBtn').onclick = () => createPrimitive('cube');
+    document.getElementById('sphereBtn').onclick = () => createPrimitive('sphere');
+
     // OBJ input
     document.getElementById('objInput').addEventListener('change', e => {
         const file = e.target.files[0];
         if(!file) return;
+
         const reader = new FileReader();
         reader.onload = function(ev){
             status.innerText = 'Loading OBJ...';
@@ -56,28 +59,26 @@ function init() {
         reader.readAsText(file);
     });
 
-    // Window resize
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Initial cube
+    // Start with cube
     createPrimitive('cube');
 }
 
 function loadMesh(obj) {
     if(currentMesh) scene.remove(currentMesh);
 
-    const group = new THREE.Group();
+    let group = new THREE.Group();
     let bbox = new THREE.Box3();
 
     obj.traverse(child => {
         if(child.isMesh) {
             child.geometry.computeBoundingBox();
-            bbox.expandByPoint(child.geometry.boundingBox.min);
-            bbox.expandByPoint(child.geometry.boundingBox.max);
+            bbox.expandByObject(child);
             group.add(child);
         }
     });
@@ -110,12 +111,11 @@ function createPrimitive(type) {
 }
 
 function voxelizeMesh(mesh) {
-    // Placeholder: replace with proper voxelization
+    // Placeholder for actual voxelization
     console.log('Voxelizing mesh:', mesh);
-    // Iterate over all child meshes
     mesh.traverse(child => {
         if(child.isMesh) {
-            // Here you would implement voxelization per geometry
+            // Implement per-mesh voxelization here
         }
     });
 }
