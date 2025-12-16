@@ -1,94 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MC Voxel Builder</title>
-
+  <link rel="stylesheet" href="style.css">
   <style>
     body {
+      font-family: sans-serif;
       margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #f2f2f2;
+      padding: 0;
       display: flex;
       flex-direction: column;
-      align-items: stretch;
+      align-items: center;
+      touch-action: none; /* prevent default pinch/scroll for sculpt */
     }
 
     h1 {
-      text-align: center;
-      margin: 8px 0;
-      font-size: 18px;
+      margin-top: 10px;
     }
 
     #toolbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      padding: 8px;
+      gap: 8px;
+      padding: 10px;
+      background: #eee;
       justify-content: center;
-      background: #ddd;
     }
 
-    button {
-      padding: 10px 14px;
+    button, input {
+      padding: 8px 12px;
       font-size: 14px;
-      border: none;
       border-radius: 6px;
-      background: #444;
-      color: white;
+      border: 1px solid #aaa;
     }
 
-    button.active {
-      background: #0077ff;
-    }
-
-    label {
-      font-size: 12px;
-      margin: 0 4px;
-    }
-
-    input[type="range"] {
-      width: 120px;
-    }
-
-    #canvas {
-      width: 100vw;
-      height: 65vh;
+    canvas {
+      width: 90vw;
+      height: 60vh;
+      border: 1px solid #ccc;
       touch-action: none;
-      display: block;
-      background: #e0e0e0;
     }
 
     #status {
       padding: 8px;
-      font-size: 13px;
-      text-align: center;
-      background: #eee;
+      font-size: 14px;
     }
   </style>
 </head>
-
 <body>
-  <h1>MC Voxel Builder</h1>
 
-  <div id="toolbar">
-    <button id="cubeBtn">Cube</button>
-    <button id="sphereBtn">Sphere</button>
+<h1>MC Voxel Builder</h1>
 
-    <button id="inflateBtn" class="active">Inflate</button>
-    <button id="deflateBtn">Deflate</button>
+<div id="toolbar">
+  <!-- Primitive / model controls -->
+  <button id="newCube">New Cube</button>
+  <button id="newSphere">New Sphere</button>
+  <input type="file" id="modelInput" accept=".glb,.gltf">
 
-    <label>Size</label>
-    <input id="brushSize" type="range" min="0.1" max="1.5" step="0.1" value="0.5">
+  <!-- Voxelization / export controls -->
+  <button id="convertBtn">Convert to Voxels</button>
+  <button id="exportBtn">Export GLB</button>
 
-    <label>Strength</label>
-    <input id="brushStrength" type="range" min="0.01" max="0.5" step="0.01" value="0.15">
-  </div>
+  <!-- Sculpt / manipulation placeholders -->
+  <button id="paintBtn">Paint</button>
+  <button id="scaleBtn">Scale</button>
+  <button id="moveBtn">Move</button>
+</div>
 
-  <canvas id="canvas"></canvas>
-  <div id="status">Ready</div>
+<canvas id="canvas"></canvas>
+<div id="status">Ready</div>
 
-  <script type="module" src="main.js"></script>
+<!-- Main application script -->
+<script type="module" src="main.js"></script>
+
 </body>
 </html>
