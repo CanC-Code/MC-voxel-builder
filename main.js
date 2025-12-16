@@ -1,15 +1,9 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { OBJLoader } from './three/OBJLoader.js';
-import { FBXLoader } from './three/FBXLoader.js';
-import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
-
-THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer, controls;
-let currentMesh = null;
-let voxelGrid = {};
-let voxelSize = 0.05;
+let currentObject = null;
 
 function init() {
     const canvas = document.getElementById('canvas');
@@ -18,115 +12,136 @@ function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
 
-    camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
     camera.position.set(3, 3, 3);
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(10, 10, 10);
-    scene.add(dirLight);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    // Lighting (critical for OBJ visibility)
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
-    // Toolbar buttons
-    document.getElementById('convertBtn').onclick = () => {
-        if(currentMesh) voxelizeMesh(currentMesh);
-    };
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 10, 7);
+    scene.add(dir);
 
-    document.getElementById('exportBtn').onclick = () => {
-        exportVoxels();
-    };
-
-    document.getElementById('cubeBtn').onclick = () => createPrimitive('cube');
-    document.getElementById('sphereBtn').onclick = () => createPrimitive('sphere');
-
-    // OBJ input
-    document.getElementById('objInput').addEventListener('change', e => {
-        const file = e.target.files[0];
-        if(!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(ev){
-            status.innerText = 'Loading OBJ...';
-            const loader = new OBJLoader();
-            const obj = loader.parse(ev.target.result);
-            loadMesh(obj);
-            status.innerText = 'OBJ loaded!';
-        };
-        reader.readAsText(file);
-    });
-
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // Start with cube
+    // Default cube (proof of life)
     createPrimitive('cube');
+
+    // OBJ loader
+    const objInput = document.getElementById('objInput');
+    if (objInput) {
+        objInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            status.textContent = 'Loading OBJ…';
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                const loader = new OBJLoader();
+                const obj = loader.parse(reader.result);
+                loadObject(obj);
+                status.textContent = 'OBJ loaded';
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    // Convert button (stub)
+    const convertBtn = document.getElementById('convertBtn');
+    if (convertBtn) {
+        convertBtn.onclick = () => {
+            if (!currentObject) return;
+            console.log('Voxelization placeholder');
+            status.textContent = 'Voxelization not yet implemented';
+        };
+    }
+
+    // Export button
+    const exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.onclick = () => {
+            const data = {
+                voxels: [],
+                skeleton: {}
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {
+                type: 'application/json'
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'scene.json';
+            a.click();
+        };
+    }
+
+    window.addEventListener('resize', onResize);
 }
 
-function loadMesh(obj) {
-    if(currentMesh) scene.remove(currentMesh);
+function createPrimitive(type) {
+    if (currentObject) scene.remove(currentObject);
 
-    let group = new THREE.Group();
-    let bbox = new THREE.Box3();
+    let geometry;
+    const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
+
+    if (type === 'sphere') {
+        geometry = new THREE.SphereGeometry(1, 32, 32);
+    } else {
+        geometry = new THREE.BoxGeometry(1, 1, 1);
+    }
+
+    currentObject = new THREE.Mesh(geometry, material);
+    scene.add(currentObject);
+}
+
+function loadObject(obj) {
+    if (currentObject) scene.remove(currentObject);
+
+    const group = new THREE.Group();
+    const box = new THREE.Box3();
 
     obj.traverse(child => {
-        if(child.isMesh) {
-            child.geometry.computeBoundingBox();
-            bbox.expandByObject(child);
+        if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({
+                color: 0xcccccc
+            });
+            box.expandByObject(child);
             group.add(child);
         }
     });
 
-    if(group.children.length === 0) return;
+    if (group.children.length === 0) {
+        console.warn('OBJ contained no meshes');
+        return;
+    }
 
-    const size = bbox.getSize(new THREE.Vector3()).length();
+    const size = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+
     const scale = 2 / size;
-    const center = bbox.getCenter(new THREE.Vector3());
-
-    group.scale.set(scale, scale, scale);
+    group.scale.setScalar(scale);
     group.position.sub(center.multiplyScalar(scale));
 
     scene.add(group);
-    currentMesh = group;
+    currentObject = group;
 }
 
-function createPrimitive(type) {
-    if(currentMesh) scene.remove(currentMesh);
-
-    let geometry;
-    let material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
-
-    if(type === 'cube') geometry = new THREE.BoxGeometry(1,1,1);
-    else if(type === 'sphere') geometry = new THREE.SphereGeometry(1,32,32);
-    else return;
-
-    currentMesh = new THREE.Mesh(geometry, material);
-    scene.add(currentMesh);
-}
-
-function voxelizeMesh(mesh) {
-    // Placeholder for actual voxelization
-    console.log('Voxelizing mesh:', mesh);
-    mesh.traverse(child => {
-        if(child.isMesh) {
-            // Implement per-mesh voxelization here
-        }
-    });
-}
-
-function exportVoxels() {
-    const data = JSON.stringify({ voxels: voxelGrid, skeleton: {} }, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'scene.json';
-    a.click();
+function onResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function animate() {
