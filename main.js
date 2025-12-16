@@ -12,7 +12,7 @@ function setStatus(msg) {
   console.log('Status:', msg);
 }
 
-/* ---------------- SCENE SETUP ---------------- */
+/* ---------------- SCENE ---------------- */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeeee);
 scene.add(new THREE.AxesHelper(3));
@@ -25,32 +25,28 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 
-/* ---------------- CONTROLS ---------------- */
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.target.set(0, 0, 0);
 controls.update();
 
-/* ---------------- LIGHTING ---------------- */
 scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
 dirLight.position.set(10, 15, 10);
 dirLight.castShadow = true;
 scene.add(dirLight);
 
-/* ---------------- CURRENT MODEL ---------------- */
-let currentObject = null;
+/* ---------------- BASE MODEL ---------------- */
+let baseObject = null;
 
-function removeCurrentObject() {
-  if (currentObject) {
-    scene.remove(currentObject);
-    disposeHierarchy(currentObject);
-    currentObject = null;
+function removeBaseObject() {
+  if (baseObject) {
+    scene.remove(baseObject);
+    disposeHierarchy(baseObject);
+    baseObject = null;
   }
 }
 
-// Dispose geometries/materials to prevent memory leaks
 function disposeHierarchy(node) {
   node.traverse(child => {
     if (child.geometry) child.geometry.dispose();
@@ -64,81 +60,60 @@ function disposeHierarchy(node) {
   });
 }
 
-function placeObject(object) {
-  removeCurrentObject();
+function setupBaseObject(object) {
+  removeBaseObject();
 
-  const meshes = [];
-  object.traverse(child => {
-    if (child.isMesh && child.geometry.attributes.position && child.geometry.attributes.position.count > 3) {
-      meshes.push(child);
-    }
-  });
-
-  if (meshes.length === 0) {
-    setStatus('Error: No valid geometry found in model');
-    return;
-  }
-
-  // Apply material and shadows
-  meshes.forEach(mesh => {
-    mesh.geometry.computeVertexNormals();
-    mesh.material = new THREE.MeshStandardMaterial({
-      color: 0x7799ff,
-      metalness: 0.1,
-      roughness: 0.8,
-      side: THREE.DoubleSide
-    });
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-  });
-
-  // Center and scale
-  scene.add(object);
+  // Center
   const box = new THREE.Box3().setFromObject(object);
-  scene.remove(object);
-
   const size = box.getSize(new THREE.Vector3());
-  if (size.length() < 0.0001) {
-    setStatus('Error: Model has zero size (degenerate)');
-    return;
-  }
-
   const center = box.getCenter(new THREE.Vector3());
   object.position.sub(center);
 
+  // Scale to fit view
   const maxDim = Math.max(size.x, size.y, size.z);
-  const targetSize = 4;
-  const scale = targetSize / maxDim;
+  const scale = 4 / maxDim;
   object.scale.setScalar(scale);
 
-  scene.add(object);
-  currentObject = object;
+  // Apply material & shadows
+  object.traverse(child => {
+    if (child.isMesh) {
+      child.material = new THREE.MeshStandardMaterial({
+        color: 0x7799ff,
+        metalness: 0.1,
+        roughness: 0.8,
+        side: THREE.DoubleSide
+      });
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
 
+  scene.add(object);
+  baseObject = object;
   controls.target.set(0, 0, 0);
   controls.reset();
   controls.update();
 
-  const totalVerts = meshes.reduce((sum, m) => sum + m.geometry.attributes.position.count, 0);
-  setStatus(`Loaded: ${meshes.length} mesh(s), ${totalVerts} vertices`);
+  const verts = object.isMesh
+    ? object.geometry.attributes.position.count
+    : object.children.reduce((sum, c) => sum + (c.geometry?.attributes.position.count || 0), 0);
+
+  setStatus(`Base model ready: ${verts} vertices`);
 }
 
 /* ---------------- PRIMITIVES ---------------- */
 function createCube() {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
-  const mesh = new THREE.Mesh(geometry, material);
-  placeObject(mesh);
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  setupBaseObject(new THREE.Mesh(geo));
 }
 
 function createSphere() {
-  const geometry = new THREE.SphereGeometry(0.8, 32, 24);
-  const material = new THREE.MeshStandardMaterial({ color: 0xaa8844 });
-  const mesh = new THREE.Mesh(geometry, material);
-  placeObject(mesh);
+  const geo = new THREE.SphereGeometry(0.8, 32, 24);
+  setupBaseObject(new THREE.Mesh(geo));
 }
 
 /* ---------------- MODEL LOADING ---------------- */
-document.getElementById('objInput').addEventListener('change', (e) => {
+document.getElementById('modelInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -150,13 +125,13 @@ document.getElementById('objInput').addEventListener('change', (e) => {
     const loader = new GLTFLoader();
     loader.load(
       url,
-      (gltf) => {
-        placeObject(gltf.scene);
+      gltf => {
+        setupBaseObject(gltf.scene);
         URL.revokeObjectURL(url);
       },
       undefined,
-      (err) => {
-        setStatus('Failed to load GLTF');
+      err => {
+        setStatus('Failed to load model');
         console.error(err);
         URL.revokeObjectURL(url);
       }
@@ -171,17 +146,16 @@ document.getElementById('objInput').addEventListener('change', (e) => {
 document.getElementById('newCube').onclick = createCube;
 document.getElementById('newSphere').onclick = createSphere;
 
-// Export non-voxelized GLB
 document.getElementById('exportBtn').onclick = () => {
-  if (!currentObject) {
+  if (!baseObject) {
     setStatus('No object to export');
     return;
   }
   setStatus('Exporting GLB...');
   const exporter = new GLTFExporter();
   exporter.parse(
-    currentObject,
-    (gltf) => {
+    baseObject,
+    gltf => {
       const blob = new Blob([gltf], { type: 'model/gltf-binary' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -193,9 +167,8 @@ document.getElementById('exportBtn').onclick = () => {
   );
 };
 
-// Voxelized export (stub)
 document.getElementById('convertBtn').onclick = () => {
-  if (!currentObject) {
+  if (!baseObject) {
     setStatus('No object to voxelize');
     return;
   }
@@ -206,7 +179,7 @@ document.getElementById('paintBtn').onclick = () => setStatus('Paint mode: Comin
 document.getElementById('scaleBtn').onclick = () => setStatus('Scale tool: Coming soon');
 document.getElementById('moveBtn').onclick = () => setStatus('Move tool: Coming soon');
 
-/* ---------------- ANIMATION LOOP ---------------- */
+/* ---------------- ANIMATION ---------------- */
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -223,4 +196,4 @@ window.addEventListener('resize', () => {
 
 /* ---------------- INITIALIZE ---------------- */
 createCube();
-setStatus('Ready – Load a GLTF/GLB or create a primitive');
+setStatus('Ready – Create a base model or load a GLTF/GLB');
