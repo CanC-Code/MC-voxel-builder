@@ -1,6 +1,7 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFLoader } from './three/GLTFLoader.js';
+import { GLTFExporter } from './three/GLTFExporter.js';
 
 /* ---------------- DOM ELEMENTS ---------------- */
 const canvas = document.getElementById('canvas');
@@ -14,8 +15,6 @@ function setStatus(msg) {
 /* ---------------- SCENE SETUP ---------------- */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeeee);
-
-// Axes helper
 scene.add(new THREE.AxesHelper(3));
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -93,7 +92,7 @@ function placeObject(object) {
     mesh.receiveShadow = true;
   });
 
-  // Temporarily add to scene to compute bounding box
+  // Center and scale
   scene.add(object);
   const box = new THREE.Box3().setFromObject(object);
   scene.remove(object);
@@ -105,9 +104,8 @@ function placeObject(object) {
   }
 
   const center = box.getCenter(new THREE.Vector3());
-
-  // Center and scale
   object.position.sub(center);
+
   const maxDim = Math.max(size.x, size.y, size.z);
   const targetSize = 4;
   const scale = targetSize / maxDim;
@@ -180,7 +178,7 @@ document.getElementById('exportBtn').onclick = () => {
     return;
   }
   setStatus('Exporting GLB...');
-  const exporter = new THREE.GLTFExporter();
+  const exporter = new GLTFExporter();
   exporter.parse(
     currentObject,
     (gltf) => {
