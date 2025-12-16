@@ -1,1463 +1,4663 @@
+import {
+	AnimationClip,
+	Bone,
+	Box3,
+	BufferAttribute,
+	BufferGeometry,
+	ClampToEdgeWrapping,
+	Color,
+	ColorManagement,
+	DirectionalLight,
+	DoubleSide,
+	FileLoader,
+	FrontSide,
+	Group,
+	ImageBitmapLoader,
+	InstancedMesh,
+	InterleavedBuffer,
+	InterleavedBufferAttribute,
+	Interpolant,
+	InterpolateDiscrete,
+	InterpolateLinear,
+	Line,
+	LineBasicMaterial,
+	LineLoop,
+	LineSegments,
+	LinearFilter,
+	LinearMipmapLinearFilter,
+	LinearMipmapNearestFilter,
+	LinearSRGBColorSpace,
+	Loader,
+	LoaderUtils,
+	Material,
+	MathUtils,
+	Matrix4,
+	Mesh,
+	MeshBasicMaterial,
+	MeshPhysicalMaterial,
+	MeshStandardMaterial,
+	MirroredRepeatWrapping,
+	NearestFilter,
+	NearestMipmapLinearFilter,
+	NearestMipmapNearestFilter,
+	NumberKeyframeTrack,
+	Object3D,
+	OrthographicCamera,
+	PerspectiveCamera,
+	PointLight,
+	Points,
+	PointsMaterial,
+	PropertyBinding,
+	Quaternion,
+	QuaternionKeyframeTrack,
+	RepeatWrapping,
+	Skeleton,
+	SkinnedMesh,
+	Sphere,
+	SpotLight,
+	Texture,
+	TextureLoader,
+	TriangleFanDrawMode,
+	TriangleStripDrawMode,
+	Vector2,
+	Vector3,
+	VectorKeyframeTrack,
+	SRGBColorSpace,
+	InstancedBufferAttribute
+} from 'three';
+import { toTrianglesDrawMode } from '../utils/BufferGeometryUtils.js';
 
+class GLTFLoader extends Loader {
 
+	constructor( manager ) {
 
+		super( manager );
 
+		this.dracoLoader = null;
+		this.ktx2Loader = null;
+		this.meshoptDecoder = null;
 
+		this.pluginCallbacks = [];
 
-<!DOCTYPE html>
-<html
-  lang="en"
-  
-  data-color-mode="auto" data-light-theme="light" data-dark-theme="dark"
-  data-a11y-animated-images="system" data-a11y-link-underlines="true"
-  
-  >
-
-
-
-
-  <head>
-    <meta charset="utf-8">
-  <link rel="dns-prefetch" href="https://github.githubassets.com">
-  <link rel="dns-prefetch" href="https://avatars.githubusercontent.com">
-  <link rel="dns-prefetch" href="https://github-cloud.s3.amazonaws.com">
-  <link rel="dns-prefetch" href="https://user-images.githubusercontent.com/">
-  <link rel="preconnect" href="https://github.githubassets.com" crossorigin>
-  <link rel="preconnect" href="https://avatars.githubusercontent.com">
-
-  
-
-
-  <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/light-dac525bbd821.css" /><link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/light_high_contrast-56ccf4057897.css" /><link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/dark-784387e86ac0.css" /><link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/dark_high_contrast-79bd5fd84a86.css" /><link data-color-theme="light" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/light-dac525bbd821.css" /><link data-color-theme="light_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/light_high_contrast-56ccf4057897.css" /><link data-color-theme="light_colorblind" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/light_colorblind-0e24752a7d2b.css" /><link data-color-theme="light_colorblind_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/light_colorblind_high_contrast-412af2517363.css" /><link data-color-theme="light_tritanopia" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/light_tritanopia-6186e83663dc.css" /><link data-color-theme="light_tritanopia_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/light_tritanopia_high_contrast-9d33c7aea2e7.css" /><link data-color-theme="dark" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark-784387e86ac0.css" /><link data-color-theme="dark_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_high_contrast-79bd5fd84a86.css" /><link data-color-theme="dark_colorblind" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_colorblind-75db11311555.css" /><link data-color-theme="dark_colorblind_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_colorblind_high_contrast-f2c1045899a2.css" /><link data-color-theme="dark_tritanopia" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_tritanopia-f46d293c6ff3.css" /><link data-color-theme="dark_tritanopia_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_tritanopia_high_contrast-e4b5684db29d.css" /><link data-color-theme="dark_dimmed" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_dimmed-72c58078e707.css" /><link data-color-theme="dark_dimmed_high_contrast" crossorigin="anonymous" media="all" rel="stylesheet" data-href="https://github.githubassets.com/assets/dark_dimmed_high_contrast-956cb5dfcb85.css" />
-
-  <style type="text/css">
-    :root {
-      --tab-size-preference: 4;
-    }
-
-    pre, code {
-      tab-size: var(--tab-size-preference);
-    }
-  </style>
-
-    <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-primitives-c37d781e2da5.css" />
-    <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-8bf3328b2828.css" />
-    <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/global-df4c2156a48b.css" />
-    <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/github-a1fee4f2c8f2.css" />
-  <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/repository-5d735668c600.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/code-9c9b8dc61e74.css" />
-
-  
-
-  <script type="application/json" id="client-env">{"locale":"en","featureFlags":["a11y_status_checks_ruleset","actions_custom_images_public_preview_visibility","actions_custom_images_storage_billing_ui_visibility","actions_enable_snapshot_keyword","actions_image_version_event","allow_react_navs_in_turbo","alternate_user_config_repo","api_insights_show_missing_data_banner","arianotify_comprehensive_migration","arianotify_partial_migration","client_version_header","codespaces_prebuild_region_target_update","coding_agent_model_selection","contentful_lp_footnotes","copilot_3p_agent_info","copilot_agent_cli_public_preview","copilot_agent_sessions_alive_updates","copilot_agent_task_list_v2","copilot_agent_tasks_btn_code_nav","copilot_agent_tasks_btn_code_view","copilot_agent_tasks_btn_code_view_lines","copilot_agent_tasks_btn_repo","copilot_api_agentic_issue_marshal_yaml","copilot_api_draft_issue_reference_with_project_id","copilot_api_github_draft_update_issue_skill","copilot_chat_agents_empty_state","copilot_chat_attach_multiple_images","copilot_chat_clear_model_selection_for_default_change","copilot_chat_file_redirect","copilot_chat_input_commands","copilot_chat_opening_thread_switch","copilot_chat_reduce_quota_checks","copilot_chat_search_bar_redirect","copilot_chat_selection_attachments","copilot_chat_vision_in_claude","copilot_chat_vision_preview_gate","copilot_coding_agent_task_response","copilot_custom_copilots","copilot_custom_copilots_feature_preview","copilot_duplicate_thread","copilot_extensions_hide_in_dotcom_chat","copilot_extensions_removal_on_marketplace","copilot_features_raycast_logo","copilot_file_block_ref_matching","copilot_ftp_hyperspace_upgrade_prompt","copilot_icebreakers_experiment_dashboard","copilot_icebreakers_experiment_hyperspace","copilot_immersive_generate_thread_name_async","copilot_immersive_job_result_preview","copilot_immersive_structured_model_picker","copilot_immersive_task_hyperlinking","copilot_immersive_task_within_chat_thread","copilot_linkable_file_paths","copilot_org_policy_page_focus_mode","copilot_security_alert_assignee_options","copilot_share_active_subthread","copilot_spaces_as_attachments","copilot_spaces_code_view","copilot_spaces_ga","copilot_spaces_individual_policies_ga","copilot_spaces_public_access_to_user_owned_spaces","copilot_spaces_read_access_to_user_owned_spaces","copilot_spaces_report_abuse","copilot_spark_empty_state","copilot_spark_handle_nil_friendly_name","copilot_spark_loading_webgl","copilot_stable_conversation_view","copilot_swe_agent_progress_commands","copilot_swe_agent_use_subagents","copilot_unconfigured_is_inherited","dashboard_universe_2025_feedback_dialog","direct_to_salesforce","dom_node_counts","dotcom_chat_client_side_skills","enterprise_ai_controls","failbot_report_error_react_apps_on_page","fetch_graphql_improved_error_serialization","flex_cta_groups_mvp","global_nav_react_feature_preview","hyperspace_2025_logged_out_batch_1","hyperspace_nudges_universe25_post_event","initial_per_page_pagination_updates","issue_fields_global_search","issue_fields_report_usage","issue_fields_timeline_events","issues_expanded_file_types","issues_lazy_load_comment_box_suggestions","issues_react_bots_timeline_pagination","issues_react_chrome_container_query_fix","issues_react_client_side_caching_analytics","issues_react_prohibit_title_fallback","issues_report_sidebar_interactions","issues_sticky_sidebar","item_picker_assignee_tsq_migration","item_picker_project_tsq_migration","lifecycle_label_name_updates","link_contact_sales_swp_marketo","marketing_pages_search_explore_provider","memex_default_issue_create_repository","memex_grouped_by_edit_route","memex_mwl_filter_field_delimiter","mission_control_use_body_html","new_traffic_page_banner","open_agent_session_in_vscode_insiders","open_agent_session_in_vscode_stable","projects_assignee_max_limit","react_compiler_diff_lines","react_custom_partial_router","react_fetch_graphql_ignore_expected_errors","render_user_display_name","repos_insights_remove_new_url","ruleset_deletion_confirmation","sample_network_conn_type","scheduled_reminders_updated_limits","site_calculator_actions_2025","site_features_copilot_universe","site_homepage_collaborate_video","site_homepage_contentful","site_homepage_eyebrow_banner","site_homepage_universe_animations","site_msbuild_webgl_hero","spark_force_push_after_checkout","spark_improve_image_upload","spark_suggestions_reconciliation","swe_agent_member_requests","viewscreen_sandbox","webp_support","workbench_store_readonly"],"copilotApiOverrideUrl":"https://api.githubcopilot.com"}</script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/high-contrast-cookie-ff2c933fbe48.js"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/wp-runtime-66508dd33446.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/913-ca2305638c53.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/6488-de87864e6818.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/environment-e45d98ed3f9e.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/69676-3e4d0020216a.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/43784-4652ae97a661.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/4712-6fc930a63a4b.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/81028-5b8c5e07a4fa.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/74911-6a311b93ee8e.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/91853-2ed22fb46437.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/78143-31968346cf4c.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/52430-2f44a4a36933.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/github-elements-4877027ad5a6.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/element-registry-2a9e0e444061.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/react-lib-760965ba27bb.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/react-core-bcbb2eb505fd.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/28546-ee41c9313871.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/17688-a9e16fb5ed13.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/2869-a4ba8f17edb3.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/70191-5122bf27bf3e.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/7332-5ea4ccf72018.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/3561-5983d983527e.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/24077-adc459723b71.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/51519-785d6417d5e8.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/67310-41f6def2eebb.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/96384-750ef5263abe.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/19718-676a65610616.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/behaviors-18ffeabb35a0.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/48011-1f20a5c80dd7.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/notifications-global-54f7f2032e0d.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/31615-236504c8966f.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/14155-057507a094ce.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/code-menu-fa1d4025778b.js" defer="defer"></script>
-  
-  <script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/primer-react-815713ed994b.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/octicons-react-a215e6ee021a.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/31475-5e512a21dfc3.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/48775-3cc79d2cd30e.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/42892-341e79a04903.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/23832-db66abd83e08.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/99418-9d4961969e0d.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/33915-05ba9b3edc31.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/96537-8e29101f7d81.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/51220-ec5733320b36.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/14439-a1591d60e882.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/59403-2d4e3c04c240.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/9288-621251ac3c7f.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/25407-0bcfbb5d10a7.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/40771-59ea440d9694.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/66990-9c7310043c38.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/29665-96a2ad6dd82d.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/6623-49cffd543783.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/3774-2e28d2808999.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/69087-3000a5320fb1.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/36584-f9bac491d6d1.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/29806-1944f1cad77b.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/97221-2993727ece58.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/react-code-view-889a84a4af63.js" defer="defer"></script>
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.8ab8a4727d5240df9a3a.module.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/react-code-view.04eaa83910e6b1ee3958.module.css" />
+		this.register( function ( parser ) {
 
-  <script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/57972-c6e0fbe00c45.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/notifications-subscriptions-menu-d002081209f2.js" defer="defer"></script>
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.8ab8a4727d5240df9a3a.module.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/notifications-subscriptions-menu.933100a30c03fd4e8ae4.module.css" />
+			return new GLTFMaterialsClearcoatExtension( parser );
 
+		} );
 
-  <title>three.js/examples/jsm/loaders/GLTFLoader.js at r159 · mrdoob/three.js · GitHub</title>
+		this.register( function ( parser ) {
 
+			return new GLTFTextureBasisUExtension( parser );
 
+		} );
 
-  <meta name="route-pattern" content="/:user_id/:repository/blob/*name(/*path)" data-turbo-transient>
-  <meta name="route-controller" content="blob" data-turbo-transient>
-  <meta name="route-action" content="show" data-turbo-transient>
-  <meta name="fetch-nonce" content="v2:6d50dbae-2bb1-dafc-c69c-b490a58554ea">
+		this.register( function ( parser ) {
 
-    
-  <meta name="current-catalog-service-hash" content="f3abb0cc802f3d7b95fc8762b94bdcb13bf39634c40c357301c4aa1d67a256fb">
+			return new GLTFTextureWebPExtension( parser );
 
+		} );
 
-  <meta name="request-id" content="2A99:369D1:360FC0:4AD065:6941A04E" data-pjax-transient="true"/><meta name="html-safe-nonce" content="504b61e05c0ceae356f4a3cf0d0a9369cf1d77104ae0a07f6349d9e2df0fc167" data-pjax-transient="true"/><meta name="visitor-payload" content="eyJyZWZlcnJlciI6IiIsInJlcXVlc3RfaWQiOiIyQTk5OjM2OUQxOjM2MEZDMDo0QUQwNjU6Njk0MUEwNEUiLCJ2aXNpdG9yX2lkIjoiMzM0NDU0MDExODA0NzM2NzI0NiIsInJlZ2lvbl9lZGdlIjoiaWFkIiwicmVnaW9uX3JlbmRlciI6ImlhZCJ9" data-pjax-transient="true"/><meta name="visitor-hmac" content="c4dc5ecf801ddaf014a442055f1be3fa3974439138d5b6e187abf94f69dd571b" data-pjax-transient="true"/>
+		this.register( function ( parser ) {
 
+			return new GLTFTextureAVIFExtension( parser );
 
-    <meta name="hovercard-subject-tag" content="repository:576201" data-turbo-transient>
+		} );
 
+		this.register( function ( parser ) {
 
-  <meta name="github-keyboard-shortcuts" content="repository,source-code,file-tree,copilot" data-turbo-transient="true" />
-  
+			return new GLTFMaterialsSheenExtension( parser );
 
-  <meta name="selected-link" value="repo_source" data-turbo-transient>
-  <link rel="assets" href="https://github.githubassets.com/">
+		} );
 
-    <meta name="google-site-verification" content="Apib7-x98H0j5cPqHWwSMm6dNU4GmODRoqxLiDzdx9I">
+		this.register( function ( parser ) {
 
-<meta name="octolytics-url" content="https://collector.github.com/github/collect" />
+			return new GLTFMaterialsTransmissionExtension( parser );
 
-  <meta name="analytics-location" content="/&lt;user-name&gt;/&lt;repo-name&gt;/blob/show" data-turbo-transient="true" />
+		} );
 
-  
+		this.register( function ( parser ) {
 
+			return new GLTFMaterialsVolumeExtension( parser );
 
+		} );
 
+		this.register( function ( parser ) {
 
-    <meta name="user-login" content="">
+			return new GLTFMaterialsIorExtension( parser );
 
-  
+		} );
 
-    <meta name="viewport" content="width=device-width">
+		this.register( function ( parser ) {
 
-    
+			return new GLTFMaterialsEmissiveStrengthExtension( parser );
 
-      <meta name="description" content="JavaScript 3D Library. Contribute to mrdoob/three.js development by creating an account on GitHub.">
+		} );
 
-      <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="GitHub">
+		this.register( function ( parser ) {
 
-    <link rel="fluid-icon" href="https://github.com/fluidicon.png" title="GitHub">
-    <meta property="fb:app_id" content="1401488693436528">
-    <meta name="apple-itunes-app" content="app-id=1477376905, app-argument=https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js" />
+			return new GLTFMaterialsSpecularExtension( parser );
 
-      <meta name="twitter:image" content="https://repository-images.githubusercontent.com/576201/6c52fa00-6238-11eb-8763-f36f6e226bba" /><meta name="twitter:site" content="@github" /><meta name="twitter:card" content="summary_large_image" /><meta name="twitter:title" content="three.js/examples/jsm/loaders/GLTFLoader.js at r159 · mrdoob/three.js" /><meta name="twitter:description" content="JavaScript 3D Library. Contribute to mrdoob/three.js development by creating an account on GitHub." />
-  <meta property="og:image" content="https://repository-images.githubusercontent.com/576201/6c52fa00-6238-11eb-8763-f36f6e226bba" /><meta property="og:image:alt" content="JavaScript 3D Library. Contribute to mrdoob/three.js development by creating an account on GitHub." /><meta property="og:site_name" content="GitHub" /><meta property="og:type" content="object" /><meta property="og:title" content="three.js/examples/jsm/loaders/GLTFLoader.js at r159 · mrdoob/three.js" /><meta property="og:url" content="https://github.com/mrdoob/three.js/blob/r159/examples/jsm/loaders/GLTFLoader.js" /><meta property="og:description" content="JavaScript 3D Library. Contribute to mrdoob/three.js development by creating an account on GitHub." />
-  
+		} );
 
+		this.register( function ( parser ) {
 
+			return new GLTFMaterialsIridescenceExtension( parser );
 
+		} );
 
-      <meta name="hostname" content="github.com">
+		this.register( function ( parser ) {
 
+			return new GLTFMaterialsAnisotropyExtension( parser );
 
+		} );
 
-        <meta name="expected-hostname" content="github.com">
+		this.register( function ( parser ) {
 
+			return new GLTFMaterialsBumpExtension( parser );
 
-  <meta http-equiv="x-pjax-version" content="c39592ae0a6e3692911e3e736f5497d59625985ebcea31c3475168b3d243508f" data-turbo-track="reload">
-  <meta http-equiv="x-pjax-csp-version" content="21a43568025709b66240454fc92d4f09335a96863f8ab1c46b4a07f6a5b67102" data-turbo-track="reload">
-  <meta http-equiv="x-pjax-css-version" content="14ac05a353824c670ee6b4daed38e87224fa358a9a07b3cba99ca61afd9ecc79" data-turbo-track="reload">
-  <meta http-equiv="x-pjax-js-version" content="2c05275c4b59f9d721c7555b6caac49c09a5f1e1fe9b9e4f1f8dd676f94581f4" data-turbo-track="reload">
+		} );
 
-  <meta name="turbo-cache-control" content="no-preview" data-turbo-transient="">
+		this.register( function ( parser ) {
 
-      <meta name="turbo-cache-control" content="no-cache" data-turbo-transient>
+			return new GLTFLightsExtension( parser );
 
-    <meta data-hydrostats="publish">
+		} );
 
-  <meta name="go-import" content="github.com/mrdoob/three.js git https://github.com/mrdoob/three.js.git">
+		this.register( function ( parser ) {
 
-  <meta name="octolytics-dimension-user_id" content="97088" /><meta name="octolytics-dimension-user_login" content="mrdoob" /><meta name="octolytics-dimension-repository_id" content="576201" /><meta name="octolytics-dimension-repository_nwo" content="mrdoob/three.js" /><meta name="octolytics-dimension-repository_public" content="true" /><meta name="octolytics-dimension-repository_is_fork" content="false" /><meta name="octolytics-dimension-repository_network_root_id" content="576201" /><meta name="octolytics-dimension-repository_network_root_nwo" content="mrdoob/three.js" />
+			return new GLTFMeshoptCompression( parser );
 
+		} );
 
+		this.register( function ( parser ) {
 
-    
+			return new GLTFMeshGpuInstancing( parser );
 
-    <meta name="turbo-body-classes" content="logged-out env-production page-responsive">
-  <meta name="disable-turbo" content="false">
+		} );
 
+	}
 
-  <meta name="browser-stats-url" content="https://api.github.com/_private/browser/stats">
+	load( url, onLoad, onProgress, onError ) {
 
-  <meta name="browser-errors-url" content="https://api.github.com/_private/browser/errors">
+		const scope = this;
 
-  <meta name="release" content="b2582765b1c30c3fbb52461d8ffda563c03e7896">
-  <meta name="ui-target" content="full">
+		let resourcePath;
 
-  <link rel="mask-icon" href="https://github.githubassets.com/assets/pinned-octocat-093da3e6fa40.svg" color="#000000">
-  <link rel="alternate icon" class="js-site-favicon" type="image/png" href="https://github.githubassets.com/favicons/favicon.png">
-  <link rel="icon" class="js-site-favicon" type="image/svg+xml" href="https://github.githubassets.com/favicons/favicon.svg" data-base-href="https://github.githubassets.com/favicons/favicon">
+		if ( this.resourcePath !== '' ) {
 
-<meta name="theme-color" content="#1e2327">
-<meta name="color-scheme" content="light dark" />
+			resourcePath = this.resourcePath;
 
+		} else if ( this.path !== '' ) {
 
-  <link rel="manifest" href="/manifest.json" crossOrigin="use-credentials">
+			// If a base path is set, resources will be relative paths from that plus the relative path of the gltf file
+			// Example  path = 'https://my-cnd-server.com/', url = 'assets/models/model.gltf'
+			// resourcePath = 'https://my-cnd-server.com/assets/models/'
+			// referenced resource 'model.bin' will be loaded from 'https://my-cnd-server.com/assets/models/model.bin'
+			// referenced resource '../textures/texture.png' will be loaded from 'https://my-cnd-server.com/assets/textures/texture.png'
+			const relativeUrl = LoaderUtils.extractUrlBase( url );
+			resourcePath = LoaderUtils.resolveURL( relativeUrl, this.path );
 
-  </head>
+		} else {
 
-  <body class="logged-out env-production page-responsive" style="word-wrap: break-word;" >
-    <div data-turbo-body class="logged-out env-production page-responsive" style="word-wrap: break-word;" >
-      <div id="__primerPortalRoot__" role="region" style="z-index: 1000; position: absolute; width: 100%;" data-turbo-permanent></div>
-      
+			resourcePath = LoaderUtils.extractUrlBase( url );
 
+		}
 
+		// Tells the LoadingManager to track an extra item, which resolves after
+		// the model is fully loaded. This means the count of items loaded will
+		// be incorrect, but ensures manager.onLoad() does not fire early.
+		this.manager.itemStart( url );
 
-    <div class="position-relative header-wrapper js-header-wrapper ">
-      <a href="#start-of-content" data-skip-target-assigned="false" class="px-2 py-4 color-bg-accent-emphasis color-fg-on-emphasis show-on-focus js-skip-to-content">Skip to content</a>
+		const _onError = function ( e ) {
 
-      <span data-view-component="true" class="progress-pjax-loader Progress position-fixed width-full">
-    <span style="width: 0%;" data-view-component="true" class="Progress-item progress-pjax-loader-bar left-0 top-0 color-bg-accent-emphasis"></span>
-</span>      
-      
-      <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.8ab8a4727d5240df9a3a.module.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/keyboard-shortcuts-dialog.29aaeaafa90f007c6f61.module.css" />
+			if ( onError ) {
 
-<react-partial
-  partial-name="keyboard-shortcuts-dialog"
-  data-ssr="false"
-  data-attempted-ssr="false"
-  data-react-profiling="false"
->
-  
-  <script type="application/json" data-target="react-partial.embeddedData">{"props":{"docsUrl":"https://docs.github.com/get-started/accessibility/keyboard-shortcuts"}}</script>
-  <div data-target="react-partial.reactRoot"></div>
-</react-partial>
+				onError( e );
 
+			} else {
 
+				console.error( e );
 
+			}
 
+			scope.manager.itemError( url );
+			scope.manager.itemEnd( url );
 
-      
+		};
 
-          
+		const loader = new FileLoader( this.manager );
 
-              
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/43862-5c4df3ba1119.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/85110-f7be2f54525a.js" defer="defer"></script>
-<script crossorigin="anonymous" type="application/javascript" src="https://github.githubassets.com/assets/sessions-36ef208f2f57.js" defer="defer"></script>
+		loader.setPath( this.path );
+		loader.setResponseType( 'arraybuffer' );
+		loader.setRequestHeader( this.requestHeader );
+		loader.setWithCredentials( this.withCredentials );
 
-<header class="HeaderMktg header-logged-out js-details-container js-header Details f4 py-3" role="banner" data-is-top="true" data-color-mode=light data-light-theme=light data-dark-theme=dark>
-  <h2 class="sr-only">Navigation Menu</h2>
+		loader.load( url, function ( data ) {
 
-  <button type="button" class="HeaderMktg-backdrop d-lg-none border-0 position-fixed top-0 left-0 width-full height-full js-details-target" aria-label="Toggle navigation">
-    <span class="d-none">Toggle navigation</span>
-  </button>
+			try {
 
-  <div class="d-flex flex-column flex-lg-row flex-items-center px-3 px-md-4 px-lg-5 height-full position-relative z-1">
-    <div class="d-flex flex-justify-between flex-items-center width-full width-lg-auto">
-      <div class="flex-1">
-        <button aria-label="Toggle navigation" aria-expanded="false" type="button" data-view-component="true" class="js-details-target js-nav-padding-recalculate js-header-menu-toggle Button--link Button--medium Button d-lg-none color-fg-inherit p-1">  <span class="Button-content">
-    <span class="Button-label"><div class="HeaderMenu-toggle-bar rounded my-1"></div>
-            <div class="HeaderMenu-toggle-bar rounded my-1"></div>
-            <div class="HeaderMenu-toggle-bar rounded my-1"></div></span>
-  </span>
-</button>
-      </div>
+				scope.parse( data, resourcePath, function ( gltf ) {
 
-      <a class="mr-lg-3 color-fg-inherit flex-order-2 js-prevent-focus-on-mobile-nav"
-        href="/"
-        aria-label="Homepage"
-        data-analytics-event="{&quot;category&quot;:&quot;Marketing nav&quot;,&quot;action&quot;:&quot;click to go to homepage&quot;,&quot;label&quot;:&quot;ref_page:Marketing;ref_cta:Logomark;ref_loc:Header&quot;}">
-        <svg height="32" aria-hidden="true" viewBox="0 0 24 24" version="1.1" width="32" data-view-component="true" class="octicon octicon-mark-github">
-    <path d="M12 1C5.923 1 1 5.923 1 12c0 4.867 3.149 8.979 7.521 10.436.55.096.756-.233.756-.522 0-.262-.013-1.128-.013-2.049-2.764.509-3.479-.674-3.699-1.292-.124-.317-.66-1.293-1.127-1.554-.385-.207-.936-.715-.014-.729.866-.014 1.485.797 1.691 1.128.99 1.663 2.571 1.196 3.204.907.096-.715.385-1.196.701-1.471-2.448-.275-5.005-1.224-5.005-5.432 0-1.196.426-2.186 1.128-2.956-.111-.275-.496-1.402.11-2.915 0 0 .921-.288 3.024 1.128a10.193 10.193 0 0 1 2.75-.371c.936 0 1.871.123 2.75.371 2.104-1.43 3.025-1.128 3.025-1.128.605 1.513.221 2.64.111 2.915.701.77 1.127 1.747 1.127 2.956 0 4.222-2.571 5.157-5.019 5.432.399.344.743 1.004.743 2.035 0 1.471-.014 2.654-.014 3.025 0 .289.206.632.756.522C19.851 20.979 23 16.854 23 12c0-6.077-4.922-11-11-11Z"></path>
-</svg>
-      </a>
+					onLoad( gltf );
 
-      <div class="d-flex flex-1 flex-order-2 text-right d-lg-none gap-2 flex-justify-end">
-          <a
-            href="/login?return_to=https%3A%2F%2Fgithub.com%2Fmrdoob%2Fthree.js%2Fblob%2Fr159%2Fexamples%252Fjsm%252Floaders%252FGLTFLoader.js"
-            class="HeaderMenu-link HeaderMenu-button d-inline-flex f5 no-underline border color-border-default rounded-2 px-2 py-1 color-fg-inherit js-prevent-focus-on-mobile-nav"
-            data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="6f8e11b985298611653073e8bee5fd2e442a82d7ed426a37e60ba835a55aed1a"
-            data-analytics-event="{&quot;category&quot;:&quot;Marketing nav&quot;,&quot;action&quot;:&quot;click to Sign in&quot;,&quot;label&quot;:&quot;ref_page:Marketing;ref_cta:Sign in;ref_loc:Header&quot;}"
-          >
-            Sign in
-          </a>
-              <div class="AppHeader-appearanceSettings">
-    <react-partial-anchor>
-      <button data-target="react-partial-anchor.anchor" id="icon-button-ac676f4a-2160-463f-8089-9b3245186725" aria-labelledby="tooltip-4652de06-103b-474b-97da-b2603196d1c7" type="button" disabled="disabled" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium AppHeader-button HeaderMenu-link border cursor-wait">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-sliders Button-visual">
-    <path d="M15 2.75a.75.75 0 0 1-.75.75h-4a.75.75 0 0 1 0-1.5h4a.75.75 0 0 1 .75.75Zm-8.5.75v1.25a.75.75 0 0 0 1.5 0v-4a.75.75 0 0 0-1.5 0V2H1.75a.75.75 0 0 0 0 1.5H6.5Zm1.25 5.25a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 0 0 1.5h6ZM15 8a.75.75 0 0 1-.75.75H11.5V10a.75.75 0 1 1-1.5 0V6a.75.75 0 0 1 1.5 0v1.25h2.75A.75.75 0 0 1 15 8Zm-9 5.25v-2a.75.75 0 0 0-1.5 0v1.25H1.75a.75.75 0 0 0 0 1.5H4.5v1.25a.75.75 0 0 0 1.5 0v-2Zm9 0a.75.75 0 0 1-.75.75h-6a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"></path>
-</svg>
-</button><tool-tip id="tooltip-4652de06-103b-474b-97da-b2603196d1c7" for="icon-button-ac676f4a-2160-463f-8089-9b3245186725" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Appearance settings</tool-tip>
+					scope.manager.itemEnd( url );
 
-      <template data-target="react-partial-anchor.template">
-        <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.8ab8a4727d5240df9a3a.module.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/appearance-settings.753d458774a2f782559b.module.css" />
+				}, _onError );
 
-<react-partial
-  partial-name="appearance-settings"
-  data-ssr="false"
-  data-attempted-ssr="false"
-  data-react-profiling="false"
->
-  
-  <script type="application/json" data-target="react-partial.embeddedData">{"props":{}}</script>
-  <div data-target="react-partial.reactRoot"></div>
-</react-partial>
+			} catch ( e ) {
 
+				_onError( e );
 
-      </template>
-    </react-partial-anchor>
-  </div>
+			}
 
-      </div>
-    </div>
+		}, onProgress, _onError );
 
+	}
 
-    <div class="HeaderMenu js-header-menu height-fit position-lg-relative d-lg-flex flex-column flex-auto top-0">
-      <div class="HeaderMenu-wrapper d-flex flex-column flex-self-start flex-lg-row flex-auto rounded rounded-lg-0">
-            <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.8ab8a4727d5240df9a3a.module.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/marketing-navigation.8284bdfe1ee4804a58c1.module.css" />
+	setDRACOLoader( dracoLoader ) {
 
-<react-partial
-  partial-name="marketing-navigation"
-  data-ssr="true"
-  data-attempted-ssr="true"
-  data-react-profiling="false"
->
-  
-  <script type="application/json" data-target="react-partial.embeddedData">{"props":{"should_use_dotcom_links":true}}</script>
-  <div data-target="react-partial.reactRoot"><nav class="MarketingNavigation-module__nav--jA9Zq" aria-label="Global"><ul class="MarketingNavigation-module__list--r_vr2"><li><div class="NavDropdown-module__container--bmXM2 js-details-container js-header-menu-item"><button type="button" class="NavDropdown-module__button--Hq9UR js-details-target" aria-expanded="false">Platform<svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavDropdown-module__buttonIcon--SR0Ke" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></button><div class="NavDropdown-module__dropdown--Ig57Y"><ul class="NavDropdown-module__list--RwSSK"><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">AI CODE CREATION</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/features/copilot" data-analytics-event="{&quot;action&quot;:&quot;github_copilot&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_copilot_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-copilot NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M23.922 16.992c-.861 1.495-5.859 5.023-11.922 5.023-6.063 0-11.061-3.528-11.922-5.023A.641.641 0 0 1 0 16.736v-2.869a.841.841 0 0 1 .053-.22c.372-.935 1.347-2.292 2.605-2.656.167-.429.414-1.055.644-1.517a10.195 10.195 0 0 1-.052-1.086c0-1.331.282-2.499 1.132-3.368.397-.406.89-.717 1.474-.952 1.399-1.136 3.392-2.093 6.122-2.093 2.731 0 4.767.957 6.166 2.093.584.235 1.077.546 1.474.952.85.869 1.132 2.037 1.132 3.368 0 .368-.014.733-.052 1.086.23.462.477 1.088.644 1.517 1.258.364 2.233 1.721 2.605 2.656a.832.832 0 0 1 .053.22v2.869a.641.641 0 0 1-.078.256ZM12.172 11h-.344a4.323 4.323 0 0 1-.355.508C10.703 12.455 9.555 13 7.965 13c-1.725 0-2.989-.359-3.782-1.259a2.005 2.005 0 0 1-.085-.104L4 11.741v6.585c1.435.779 4.514 2.179 8 2.179 3.486 0 6.565-1.4 8-2.179v-6.585l-.098-.104s-.033.045-.085.104c-.793.9-2.057 1.259-3.782 1.259-1.59 0-2.738-.545-3.508-1.492a4.323 4.323 0 0 1-.355-.508h-.016.016Zm.641-2.935c.136 1.057.403 1.913.878 2.497.442.544 1.134.938 2.344.938 1.573 0 2.292-.337 2.657-.751.384-.435.558-1.15.558-2.361 0-1.14-.243-1.847-.705-2.319-.477-.488-1.319-.862-2.824-1.025-1.487-.161-2.192.138-2.533.529-.269.307-.437.808-.438 1.578v.021c0 .265.021.562.063.893Zm-1.626 0c.042-.331.063-.628.063-.894v-.02c-.001-.77-.169-1.271-.438-1.578-.341-.391-1.046-.69-2.533-.529-1.505.163-2.347.537-2.824 1.025-.462.472-.705 1.179-.705 2.319 0 1.211.175 1.926.558 2.361.365.414 1.084.751 2.657.751 1.21 0 1.902-.394 2.344-.938.475-.584.742-1.44.878-2.497Z"></path><path d="M14.5 14.25a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Zm-5 0a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Z"></path></svg><span class="NavLink-module__title--xw3ok">GitHub Copilot</span><span class="NavLink-module__subtitle--qC15H">Write better code with AI</span></div></a></li><li><a href="https://github.com/features/spark" data-analytics-event="{&quot;action&quot;:&quot;github_spark&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_spark_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-sparkle-fill NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M11.296 1.924c.24-.656 1.168-.656 1.408 0l.717 1.958a11.25 11.25 0 0 0 6.697 6.697l1.958.717c.657.24.657 1.168 0 1.408l-1.958.717a11.25 11.25 0 0 0-6.697 6.697l-.717 1.958c-.24.657-1.168.657-1.408 0l-.717-1.958a11.25 11.25 0 0 0-6.697-6.697l-1.958-.717c-.656-.24-.656-1.168 0-1.408l1.958-.717a11.25 11.25 0 0 0 6.697-6.697l.717-1.958Z"></path></svg><span class="NavLink-module__title--xw3ok">GitHub Spark</span><span class="NavLink-module__subtitle--qC15H">Build and deploy intelligent apps</span></div></a></li><li><a href="https://github.com/features/models" data-analytics-event="{&quot;action&quot;:&quot;github_models&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_models_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-ai-model NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M19.375 8.5a3.25 3.25 0 1 1-3.163 4h-3a3.252 3.252 0 0 1-4.443 2.509L7.214 17.76a3.25 3.25 0 1 1-1.342-.674l1.672-2.957A3.238 3.238 0 0 1 6.75 12c0-.907.371-1.727.97-2.316L6.117 6.846A3.253 3.253 0 0 1 1.875 3.75a3.25 3.25 0 1 1 5.526 2.32l1.603 2.836A3.25 3.25 0 0 1 13.093 11h3.119a3.252 3.252 0 0 1 3.163-2.5ZM10 10.25a1.75 1.75 0 1 0-.001 3.499A1.75 1.75 0 0 0 10 10.25ZM5.125 2a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5Zm12.5 9.75a1.75 1.75 0 1 0 3.5 0 1.75 1.75 0 0 0-3.5 0Zm-14.25 8.5a1.75 1.75 0 1 0 3.501-.001 1.75 1.75 0 0 0-3.501.001Z"></path></svg><span class="NavLink-module__title--xw3ok">GitHub Models</span><span class="NavLink-module__subtitle--qC15H">Manage and compare prompts</span></div></a></li><li><a href="https://github.com/mcp" data-analytics-event="{&quot;action&quot;:&quot;mcp_registry&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;mcp_registry_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-mcp NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M9.795 1.694a4.287 4.287 0 0 1 6.061 0 4.28 4.28 0 0 1 1.181 3.819 4.282 4.282 0 0 1 3.819 1.181 4.287 4.287 0 0 1 0 6.061l-6.793 6.793a.249.249 0 0 0 0 .353l2.617 2.618a.75.75 0 1 1-1.061 1.061l-2.617-2.618a1.75 1.75 0 0 1 0-2.475l6.793-6.793a2.785 2.785 0 1 0-3.939-3.939l-5.9 5.9a.734.734 0 0 1-.249.165.749.749 0 0 1-.812-1.225l5.9-5.901a2.785 2.785 0 1 0-3.939-3.939L2.931 10.68A.75.75 0 1 1 1.87 9.619l7.925-7.925Z"></path><path d="M12.42 4.069a.752.752 0 0 1 1.061 0 .752.752 0 0 1 0 1.061L7.33 11.28a2.788 2.788 0 0 0 0 3.94 2.788 2.788 0 0 0 3.94 0l6.15-6.151a.752.752 0 0 1 1.061 0 .752.752 0 0 1 0 1.061l-6.151 6.15a4.285 4.285 0 1 1-6.06-6.06l6.15-6.151Z"></path></svg><span class="NavLink-module__title--xw3ok">MCP Registry<sup class="NavLink-module__label--MrIhm">New</sup></span><span class="NavLink-module__subtitle--qC15H">Integrate external tools</span></div></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">DEVELOPER WORKFLOWS</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/features/actions" data-analytics-event="{&quot;action&quot;:&quot;actions&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;actions_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-workflow NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M1 3a2 2 0 0 1 2-2h6.5a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2H7v4.063C7 16.355 7.644 17 8.438 17H12.5v-2.5a2 2 0 0 1 2-2H21a2 2 0 0 1 2 2V21a2 2 0 0 1-2 2h-6.5a2 2 0 0 1-2-2v-2.5H8.437A2.939 2.939 0 0 1 5.5 15.562V11.5H3a2 2 0 0 1-2-2Zm2-.5a.5.5 0 0 0-.5.5v6.5a.5.5 0 0 0 .5.5h6.5a.5.5 0 0 0 .5-.5V3a.5.5 0 0 0-.5-.5ZM14.5 14a.5.5 0 0 0-.5.5V21a.5.5 0 0 0 .5.5H21a.5.5 0 0 0 .5-.5v-6.5a.5.5 0 0 0-.5-.5Z"></path></svg><span class="NavLink-module__title--xw3ok">Actions</span><span class="NavLink-module__subtitle--qC15H">Automate any workflow</span></div></a></li><li><a href="https://github.com/features/codespaces" data-analytics-event="{&quot;action&quot;:&quot;codespaces&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;codespaces_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-codespaces NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.5 3.75C3.5 2.784 4.284 2 5.25 2h13.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 18.75 13H5.25a1.75 1.75 0 0 1-1.75-1.75Zm-2 12c0-.966.784-1.75 1.75-1.75h17.5c.966 0 1.75.784 1.75 1.75v4a1.75 1.75 0 0 1-1.75 1.75H3.25a1.75 1.75 0 0 1-1.75-1.75ZM5.25 3.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h13.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Zm-2 12a.25.25 0 0 0-.25.25v4c0 .138.112.25.25.25h17.5a.25.25 0 0 0 .25-.25v-4a.25.25 0 0 0-.25-.25Z"></path><path d="M10 17.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75Zm-4 0a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Z"></path></svg><span class="NavLink-module__title--xw3ok">Codespaces</span><span class="NavLink-module__subtitle--qC15H">Instant dev environments</span></div></a></li><li><a href="https://github.com/features/issues" data-analytics-event="{&quot;action&quot;:&quot;issues&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;issues_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-issue-opened NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M12 1c6.075 0 11 4.925 11 11s-4.925 11-11 11S1 18.075 1 12 5.925 1 12 1ZM2.5 12a9.5 9.5 0 0 0 9.5 9.5 9.5 9.5 0 0 0 9.5-9.5A9.5 9.5 0 0 0 12 2.5 9.5 9.5 0 0 0 2.5 12Zm9.5 2a2 2 0 1 1-.001-3.999A2 2 0 0 1 12 14Z"></path></svg><span class="NavLink-module__title--xw3ok">Issues</span><span class="NavLink-module__subtitle--qC15H">Plan and track work</span></div></a></li><li><a href="https://github.com/features/code-review" data-analytics-event="{&quot;action&quot;:&quot;code_review&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;code_review_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-code NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M15.22 4.97a.75.75 0 0 1 1.06 0l6.5 6.5a.75.75 0 0 1 0 1.06l-6.5 6.5a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L21.19 12l-5.97-5.97a.75.75 0 0 1 0-1.06Zm-6.44 0a.75.75 0 0 1 0 1.06L2.81 12l5.97 5.97a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-6.5-6.5a.75.75 0 0 1 0-1.06l6.5-6.5a.75.75 0 0 1 1.06 0Z"></path></svg><span class="NavLink-module__title--xw3ok">Code Review</span><span class="NavLink-module__subtitle--qC15H">Manage code changes</span></div></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">APPLICATION SECURITY</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/security/advanced-security" data-analytics-event="{&quot;action&quot;:&quot;github_advanced_security&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_advanced_security_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-shield-check NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M16.53 9.78a.75.75 0 0 0-1.06-1.06L11 13.19l-1.97-1.97a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l5-5Z"></path><path d="m12.54.637 8.25 2.675A1.75 1.75 0 0 1 22 4.976V10c0 6.19-3.771 10.704-9.401 12.83a1.704 1.704 0 0 1-1.198 0C5.77 20.705 2 16.19 2 10V4.976c0-.758.489-1.43 1.21-1.664L11.46.637a1.748 1.748 0 0 1 1.08 0Zm-.617 1.426-8.25 2.676a.249.249 0 0 0-.173.237V10c0 5.46 3.28 9.483 8.43 11.426a.199.199 0 0 0 .14 0C17.22 19.483 20.5 15.461 20.5 10V4.976a.25.25 0 0 0-.173-.237l-8.25-2.676a.253.253 0 0 0-.154 0Z"></path></svg><span class="NavLink-module__title--xw3ok">GitHub Advanced Security</span><span class="NavLink-module__subtitle--qC15H">Find and fix vulnerabilities</span></div></a></li><li><a href="https://github.com/security/advanced-security/code-security" data-analytics-event="{&quot;action&quot;:&quot;code_security&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;code_security_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-code-square NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M10.3 8.24a.75.75 0 0 1-.04 1.06L7.352 12l2.908 2.7a.75.75 0 1 1-1.02 1.1l-3.5-3.25a.75.75 0 0 1 0-1.1l3.5-3.25a.75.75 0 0 1 1.06.04Zm3.44 1.06a.75.75 0 1 1 1.02-1.1l3.5 3.25a.75.75 0 0 1 0 1.1l-3.5 3.25a.75.75 0 1 1-1.02-1.1l2.908-2.7-2.908-2.7Z"></path><path d="M2 3.75C2 2.784 2.784 2 3.75 2h16.5c.966 0 1.75.784 1.75 1.75v16.5A1.75 1.75 0 0 1 20.25 22H3.75A1.75 1.75 0 0 1 2 20.25Zm1.75-.25a.25.25 0 0 0-.25.25v16.5c0 .138.112.25.25.25h16.5a.25.25 0 0 0 .25-.25V3.75a.25.25 0 0 0-.25-.25Z"></path></svg><span class="NavLink-module__title--xw3ok">Code security</span><span class="NavLink-module__subtitle--qC15H">Secure your code as you build</span></div></a></li><li><a href="https://github.com/security/advanced-security/secret-protection" data-analytics-event="{&quot;action&quot;:&quot;secret_protection&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;secret_protection_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-lock NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6 9V7.25C6 3.845 8.503 1 12 1s6 2.845 6 6.25V9h.5a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-8A2.5 2.5 0 0 1 5.5 9Zm-1.5 2.5v8a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-13a1 1 0 0 0-1 1Zm3-4.25V9h9V7.25c0-2.67-1.922-4.75-4.5-4.75-2.578 0-4.5 2.08-4.5 4.75Z"></path></svg><span class="NavLink-module__title--xw3ok">Secret protection</span><span class="NavLink-module__subtitle--qC15H">Stop leaks before they start</span></div></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n NavGroup-module__hasSeparator--AJeNz"><span class="NavGroup-module__title--TdKyz">EXPLORE</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/why-github" data-analytics-event="{&quot;action&quot;:&quot;why_github&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;why_github_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Why GitHub</span></a></li><li><a href="https://docs.github.com" data-analytics-event="{&quot;action&quot;:&quot;documentation&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;documentation_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Documentation</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://github.blog" data-analytics-event="{&quot;action&quot;:&quot;blog&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;blog_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Blog</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://github.blog/changelog" data-analytics-event="{&quot;action&quot;:&quot;changelog&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;changelog_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Changelog</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://github.com/marketplace" data-analytics-event="{&quot;action&quot;:&quot;marketplace&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;marketplace_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Marketplace</span></a></li></ul></div></li></ul><div class="NavDropdown-module__trailingLinkContainer--MNB5T"><a href="https://github.com/features" data-analytics-event="{&quot;action&quot;:&quot;view_all_features&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;platform&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;view_all_features_link_platform_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">View all features</span><svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavLink-module__arrowIcon--g6Lip" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a></div></div></div></li><li><div class="NavDropdown-module__container--bmXM2 js-details-container js-header-menu-item"><button type="button" class="NavDropdown-module__button--Hq9UR js-details-target" aria-expanded="false">Solutions<svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavDropdown-module__buttonIcon--SR0Ke" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></button><div class="NavDropdown-module__dropdown--Ig57Y"><ul class="NavDropdown-module__list--RwSSK"><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">BY COMPANY SIZE</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/enterprise" data-analytics-event="{&quot;action&quot;:&quot;enterprises&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;enterprises_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Enterprises</span></a></li><li><a href="https://github.com/team" data-analytics-event="{&quot;action&quot;:&quot;small_and_medium_teams&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;small_and_medium_teams_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Small and medium teams</span></a></li><li><a href="https://github.com/enterprise/startups" data-analytics-event="{&quot;action&quot;:&quot;startups&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;startups_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Startups</span></a></li><li><a href="https://github.com/solutions/industry/nonprofits" data-analytics-event="{&quot;action&quot;:&quot;nonprofits&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;nonprofits_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Nonprofits</span></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">BY USE CASE</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/solutions/use-case/app-modernization" data-analytics-event="{&quot;action&quot;:&quot;app_modernization&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;app_modernization_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">App Modernization</span></a></li><li><a href="https://github.com/solutions/use-case/devsecops" data-analytics-event="{&quot;action&quot;:&quot;devsecops&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;devsecops_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">DevSecOps</span></a></li><li><a href="https://github.com/solutions/use-case/devops" data-analytics-event="{&quot;action&quot;:&quot;devops&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;devops_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">DevOps</span></a></li><li><a href="https://github.com/solutions/use-case/ci-cd" data-analytics-event="{&quot;action&quot;:&quot;ci/cd&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;ci/cd_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">CI/CD</span></a></li><li><a href="https://github.com/solutions/use-case" data-analytics-event="{&quot;action&quot;:&quot;view_all_use_cases&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;view_all_use_cases_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">View all use cases</span><svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavLink-module__arrowIcon--g6Lip" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">BY INDUSTRY</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/solutions/industry/healthcare" data-analytics-event="{&quot;action&quot;:&quot;healthcare&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;healthcare_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Healthcare</span></a></li><li><a href="https://github.com/solutions/industry/financial-services" data-analytics-event="{&quot;action&quot;:&quot;financial_services&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;financial_services_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Financial services</span></a></li><li><a href="https://github.com/solutions/industry/manufacturing" data-analytics-event="{&quot;action&quot;:&quot;manufacturing&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;manufacturing_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Manufacturing</span></a></li><li><a href="https://github.com/solutions/industry/government" data-analytics-event="{&quot;action&quot;:&quot;government&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;government_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Government</span></a></li><li><a href="https://github.com/solutions/industry" data-analytics-event="{&quot;action&quot;:&quot;view_all_industries&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;view_all_industries_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">View all industries</span><svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavLink-module__arrowIcon--g6Lip" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a></li></ul></div></li></ul><div class="NavDropdown-module__trailingLinkContainer--MNB5T"><a href="https://github.com/solutions" data-analytics-event="{&quot;action&quot;:&quot;view_all_solutions&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;solutions&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;view_all_solutions_link_solutions_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">View all solutions</span><svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavLink-module__arrowIcon--g6Lip" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a></div></div></div></li><li><div class="NavDropdown-module__container--bmXM2 js-details-container js-header-menu-item"><button type="button" class="NavDropdown-module__button--Hq9UR js-details-target" aria-expanded="false">Resources<svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavDropdown-module__buttonIcon--SR0Ke" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></button><div class="NavDropdown-module__dropdown--Ig57Y"><ul class="NavDropdown-module__list--RwSSK"><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">EXPLORE BY TOPIC</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/resources/articles?topic=ai" data-analytics-event="{&quot;action&quot;:&quot;ai&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;ai_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">AI</span></a></li><li><a href="https://github.com/resources/articles?topic=software-development" data-analytics-event="{&quot;action&quot;:&quot;software_development&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;software_development_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Software Development</span></a></li><li><a href="https://github.com/resources/articles?topic=devops" data-analytics-event="{&quot;action&quot;:&quot;devops&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;devops_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">DevOps</span></a></li><li><a href="https://github.com/resources/articles?topic=security" data-analytics-event="{&quot;action&quot;:&quot;security&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;security_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Security</span></a></li><li><a href="https://github.com/resources/articles" data-analytics-event="{&quot;action&quot;:&quot;view_all_topics&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;view_all_topics_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">View all topics</span><svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavLink-module__arrowIcon--g6Lip" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">EXPLORE BY TYPE</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/customer-stories" data-analytics-event="{&quot;action&quot;:&quot;customer_stories&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;customer_stories_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Customer stories</span></a></li><li><a href="https://github.com/resources/events" data-analytics-event="{&quot;action&quot;:&quot;events__webinars&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;events__webinars_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Events &amp; webinars</span></a></li><li><a href="https://github.com/resources/whitepapers" data-analytics-event="{&quot;action&quot;:&quot;ebooks__reports&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;ebooks__reports_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Ebooks &amp; reports</span></a></li><li><a href="https://github.com/solutions/executive-insights" data-analytics-event="{&quot;action&quot;:&quot;business_insights&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;business_insights_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Business insights</span></a></li><li><a href="https://skills.github.com" data-analytics-event="{&quot;action&quot;:&quot;github_skills&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_skills_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">GitHub Skills</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">SUPPORT &amp; SERVICES</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://docs.github.com" data-analytics-event="{&quot;action&quot;:&quot;documentation&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;documentation_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Documentation</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://support.github.com" data-analytics-event="{&quot;action&quot;:&quot;customer_support&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;customer_support_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Customer support</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://github.com/orgs/community/discussions" data-analytics-event="{&quot;action&quot;:&quot;community_forum&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;community_forum_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Community forum</span></a></li><li><a href="https://github.com/trust-center" data-analytics-event="{&quot;action&quot;:&quot;trust_center&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;trust_center_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Trust center</span></a></li><li><a href="https://github.com/partners" data-analytics-event="{&quot;action&quot;:&quot;partners&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;resources&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;partners_link_resources_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Partners</span></a></li></ul></div></li></ul></div></div></li><li><div class="NavDropdown-module__container--bmXM2 js-details-container js-header-menu-item"><button type="button" class="NavDropdown-module__button--Hq9UR js-details-target" aria-expanded="false">Open Source<svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavDropdown-module__buttonIcon--SR0Ke" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></button><div class="NavDropdown-module__dropdown--Ig57Y"><ul class="NavDropdown-module__list--RwSSK"><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">COMMUNITY</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/sponsors" data-analytics-event="{&quot;action&quot;:&quot;github_sponsors&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_sponsors_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-sponsor-tiers NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M16.004 1.25C18.311 1.25 20 3.128 20 5.75c0 2.292-1.23 4.464-3.295 6.485-.481.47-.98.909-1.482 1.31l.265 1.32 1.375 7.5a.75.75 0 0 1-.982.844l-3.512-1.207a.75.75 0 0 0-.488 0L8.37 23.209a.75.75 0 0 1-.982-.844l1.378-7.512.261-1.309c-.5-.4-1-.838-1.481-1.31C5.479 10.215 4.25 8.043 4.25 5.75c0-2.622 1.689-4.5 3.996-4.5 1.55 0 2.947.752 3.832 1.967l.047.067.047-.067a4.726 4.726 0 0 1 3.612-1.962l.22-.005ZM13.89 14.531c-.418.285-.828.542-1.218.77l-.18.103a.75.75 0 0 1-.734 0l-.071-.04-.46-.272c-.282-.173-.573-.36-.868-.562l-.121.605-1.145 6.239 2.3-.79a2.248 2.248 0 0 1 1.284-.054l.18.053 2.299.79-1.141-6.226-.125-.616ZM16.004 2.75c-1.464 0-2.731.983-3.159 2.459-.209.721-1.231.721-1.44 0-.428-1.476-1.695-2.459-3.16-2.459-1.44 0-2.495 1.173-2.495 3 0 1.811 1.039 3.647 2.844 5.412a19.624 19.624 0 0 0 3.734 2.84l-.019-.011-.184-.111.147-.088a19.81 19.81 0 0 0 3.015-2.278l.37-.352C17.46 9.397 18.5 7.561 18.5 5.75c0-1.827-1.055-3-2.496-3Z"></path></svg><span class="NavLink-module__title--xw3ok">GitHub Sponsors</span><span class="NavLink-module__subtitle--qC15H">Fund open source developers</span></div></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">PROGRAMS</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://securitylab.github.com" data-analytics-event="{&quot;action&quot;:&quot;security_lab&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;security_lab_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Security Lab</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://maintainers.github.com" data-analytics-event="{&quot;action&quot;:&quot;maintainer_community&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;maintainer_community_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Maintainer Community</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li><li><a href="https://github.com/accelerator" data-analytics-event="{&quot;action&quot;:&quot;accelerator&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;accelerator_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Accelerator</span></a></li><li><a href="https://archiveprogram.github.com" data-analytics-event="{&quot;action&quot;:&quot;archive_program&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;archive_program_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB" target="_blank" rel="noreferrer"><span class="NavLink-module__title--xw3ok">Archive Program</span><svg aria-hidden="true" focusable="false" class="octicon octicon-link-external NavLink-module__externalIcon--JurQ9" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">REPOSITORIES</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/topics" data-analytics-event="{&quot;action&quot;:&quot;topics&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;topics_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Topics</span></a></li><li><a href="https://github.com/trending" data-analytics-event="{&quot;action&quot;:&quot;trending&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;trending_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Trending</span></a></li><li><a href="https://github.com/collections" data-analytics-event="{&quot;action&quot;:&quot;collections&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;open_source&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;collections_link_open_source_navbar&quot;}" class="NavLink-module__link--n48VB"><span class="NavLink-module__title--xw3ok">Collections</span></a></li></ul></div></li></ul></div></div></li><li><div class="NavDropdown-module__container--bmXM2 js-details-container js-header-menu-item"><button type="button" class="NavDropdown-module__button--Hq9UR js-details-target" aria-expanded="false">Enterprise<svg aria-hidden="true" focusable="false" class="octicon octicon-chevron-right NavDropdown-module__buttonIcon--SR0Ke" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></button><div class="NavDropdown-module__dropdown--Ig57Y"><ul class="NavDropdown-module__list--RwSSK"><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">ENTERPRISE SOLUTIONS</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/enterprise" data-analytics-event="{&quot;action&quot;:&quot;enterprise_platform&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;enterprise&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;enterprise_platform_link_enterprise_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-stack NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M11.063 1.456a1.749 1.749 0 0 1 1.874 0l8.383 5.316a1.751 1.751 0 0 1 0 2.956l-8.383 5.316a1.749 1.749 0 0 1-1.874 0L2.68 9.728a1.751 1.751 0 0 1 0-2.956Zm1.071 1.267a.25.25 0 0 0-.268 0L3.483 8.039a.25.25 0 0 0 0 .422l8.383 5.316a.25.25 0 0 0 .268 0l8.383-5.316a.25.25 0 0 0 0-.422Z"></path><path d="M1.867 12.324a.75.75 0 0 1 1.035-.232l8.964 5.685a.25.25 0 0 0 .268 0l8.964-5.685a.75.75 0 0 1 .804 1.267l-8.965 5.685a1.749 1.749 0 0 1-1.874 0l-8.965-5.685a.75.75 0 0 1-.231-1.035Z"></path><path d="M1.867 16.324a.75.75 0 0 1 1.035-.232l8.964 5.685a.25.25 0 0 0 .268 0l8.964-5.685a.75.75 0 0 1 .804 1.267l-8.965 5.685a1.749 1.749 0 0 1-1.874 0l-8.965-5.685a.75.75 0 0 1-.231-1.035Z"></path></svg><span class="NavLink-module__title--xw3ok">Enterprise platform</span><span class="NavLink-module__subtitle--qC15H">AI-powered developer platform</span></div></a></li></ul></div></li><li><div class="NavGroup-module__group--T925n"><span class="NavGroup-module__title--TdKyz">AVAILABLE ADD-ONS</span><ul class="NavGroup-module__list--M8eGv"><li><a href="https://github.com/security/advanced-security" data-analytics-event="{&quot;action&quot;:&quot;github_advanced_security&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;enterprise&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;github_advanced_security_link_enterprise_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-shield-check NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M16.53 9.78a.75.75 0 0 0-1.06-1.06L11 13.19l-1.97-1.97a.75.75 0 0 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.06 0l5-5Z"></path><path d="m12.54.637 8.25 2.675A1.75 1.75 0 0 1 22 4.976V10c0 6.19-3.771 10.704-9.401 12.83a1.704 1.704 0 0 1-1.198 0C5.77 20.705 2 16.19 2 10V4.976c0-.758.489-1.43 1.21-1.664L11.46.637a1.748 1.748 0 0 1 1.08 0Zm-.617 1.426-8.25 2.676a.249.249 0 0 0-.173.237V10c0 5.46 3.28 9.483 8.43 11.426a.199.199 0 0 0 .14 0C17.22 19.483 20.5 15.461 20.5 10V4.976a.25.25 0 0 0-.173-.237l-8.25-2.676a.253.253 0 0 0-.154 0Z"></path></svg><span class="NavLink-module__title--xw3ok">GitHub Advanced Security</span><span class="NavLink-module__subtitle--qC15H">Enterprise-grade security features</span></div></a></li><li><a href="https://github.com/features/copilot/copilot-business" data-analytics-event="{&quot;action&quot;:&quot;copilot_for_business&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;enterprise&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;copilot_for_business_link_enterprise_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-copilot NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M23.922 16.992c-.861 1.495-5.859 5.023-11.922 5.023-6.063 0-11.061-3.528-11.922-5.023A.641.641 0 0 1 0 16.736v-2.869a.841.841 0 0 1 .053-.22c.372-.935 1.347-2.292 2.605-2.656.167-.429.414-1.055.644-1.517a10.195 10.195 0 0 1-.052-1.086c0-1.331.282-2.499 1.132-3.368.397-.406.89-.717 1.474-.952 1.399-1.136 3.392-2.093 6.122-2.093 2.731 0 4.767.957 6.166 2.093.584.235 1.077.546 1.474.952.85.869 1.132 2.037 1.132 3.368 0 .368-.014.733-.052 1.086.23.462.477 1.088.644 1.517 1.258.364 2.233 1.721 2.605 2.656a.832.832 0 0 1 .053.22v2.869a.641.641 0 0 1-.078.256ZM12.172 11h-.344a4.323 4.323 0 0 1-.355.508C10.703 12.455 9.555 13 7.965 13c-1.725 0-2.989-.359-3.782-1.259a2.005 2.005 0 0 1-.085-.104L4 11.741v6.585c1.435.779 4.514 2.179 8 2.179 3.486 0 6.565-1.4 8-2.179v-6.585l-.098-.104s-.033.045-.085.104c-.793.9-2.057 1.259-3.782 1.259-1.59 0-2.738-.545-3.508-1.492a4.323 4.323 0 0 1-.355-.508h-.016.016Zm.641-2.935c.136 1.057.403 1.913.878 2.497.442.544 1.134.938 2.344.938 1.573 0 2.292-.337 2.657-.751.384-.435.558-1.15.558-2.361 0-1.14-.243-1.847-.705-2.319-.477-.488-1.319-.862-2.824-1.025-1.487-.161-2.192.138-2.533.529-.269.307-.437.808-.438 1.578v.021c0 .265.021.562.063.893Zm-1.626 0c.042-.331.063-.628.063-.894v-.02c-.001-.77-.169-1.271-.438-1.578-.341-.391-1.046-.69-2.533-.529-1.505.163-2.347.537-2.824 1.025-.462.472-.705 1.179-.705 2.319 0 1.211.175 1.926.558 2.361.365.414 1.084.751 2.657.751 1.21 0 1.902-.394 2.344-.938.475-.584.742-1.44.878-2.497Z"></path><path d="M14.5 14.25a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Zm-5 0a1 1 0 0 1 1 1v2a1 1 0 0 1-2 0v-2a1 1 0 0 1 1-1Z"></path></svg><span class="NavLink-module__title--xw3ok">Copilot for Business</span><span class="NavLink-module__subtitle--qC15H">Enterprise-grade AI features</span></div></a></li><li><a href="https://github.com/premium-support" data-analytics-event="{&quot;action&quot;:&quot;premium_support&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;enterprise&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;premium_support_link_enterprise_navbar&quot;}" class="NavLink-module__link--n48VB"><div class="NavLink-module__text--SdWkb"><svg aria-hidden="true" focusable="false" class="octicon octicon-comment-discussion NavLink-module__icon--h0sw7" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" display="inline-block" overflow="visible" style="vertical-align:text-bottom"><path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0 1 14.25 14H8.061l-2.574 2.573A1.458 1.458 0 0 1 3 15.543V14H1.75A1.75 1.75 0 0 1 0 12.25v-9.5C0 1.784.784 1 1.75 1ZM1.5 2.75v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25Z"></path><path d="M22.5 8.75a.25.25 0 0 0-.25-.25h-3.5a.75.75 0 0 1 0-1.5h3.5c.966 0 1.75.784 1.75 1.75v9.5A1.75 1.75 0 0 1 22.25 20H21v1.543a1.457 1.457 0 0 1-2.487 1.03L15.939 20H10.75A1.75 1.75 0 0 1 9 18.25v-1.465a.75.75 0 0 1 1.5 0v1.465c0 .138.112.25.25.25h5.5a.75.75 0 0 1 .53.22l2.72 2.72v-2.19a.75.75 0 0 1 .75-.75h2a.25.25 0 0 0 .25-.25v-9.5Z"></path></svg><span class="NavLink-module__title--xw3ok">Premium Support</span><span class="NavLink-module__subtitle--qC15H">Enterprise-grade 24/7 support</span></div></a></li></ul></div></li></ul></div></div></li><li><a href="https://github.com/pricing" data-analytics-event="{&quot;action&quot;:&quot;pricing&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;context&quot;:&quot;pricing&quot;,&quot;location&quot;:&quot;navbar&quot;,&quot;label&quot;:&quot;pricing_link_pricing_navbar&quot;}" class="NavLink-module__link--n48VB MarketingNavigation-module__navLink--U9Uuk"><span class="NavLink-module__title--xw3ok">Pricing</span></a></li></ul></nav><script type="application/json" id="__PRIMER_DATA_:R0:__">{"resolvedServerColorMode":"day"}</script></div>
-</react-partial>
+		this.dracoLoader = dracoLoader;
+		return this;
 
+	}
 
+	setDDSLoader() {
 
-        <div class="d-flex flex-column flex-lg-row width-full flex-justify-end flex-lg-items-center text-center mt-3 mt-lg-0 text-lg-left ml-lg-3">
-                
+		throw new Error(
 
+			'THREE.GLTFLoader: "MSFT_texture_dds" no longer supported. Please update to "KHR_texture_basisu".'
 
-<qbsearch-input class="search-input" data-scope="repo:mrdoob/three.js" data-custom-scopes-path="/search/custom_scopes" data-delete-custom-scopes-csrf="_kObu_BIuZqapVnsQ1kQiPGEYl_Ak1-D3JflQRIclq0wdUSRaENxbE5AgaIri0MVyvVhkgmbBjcX92hJU2A8bg" data-max-custom-scopes="10" data-header-redesign-enabled="false" data-initial-value="" data-blackbird-suggestions-path="/search/suggestions" data-jump-to-suggestions-path="/_graphql/GetSuggestedNavigationDestinations" data-current-repository="mrdoob/three.js" data-current-org="" data-current-owner="mrdoob" data-logged-in="false" data-copilot-chat-enabled="false" data-nl-search-enabled="false" data-retain-scroll-position="true">
-  <div
-    class="search-input-container search-with-dialog position-relative d-flex flex-row flex-items-center mr-4 rounded"
-    data-action="click:qbsearch-input#searchInputContainerClicked"
-  >
-      <button
-        type="button"
-        class="header-search-button placeholder  input-button form-control d-flex flex-1 flex-self-stretch flex-items-center no-wrap width-full py-0 pl-2 pr-0 text-left border-0 box-shadow-none"
-        data-target="qbsearch-input.inputButton"
-        aria-label="Search or jump to…"
-        aria-haspopup="dialog"
-        placeholder="Search or jump to..."
-        data-hotkey=s,/
-        autocapitalize="off"
-        data-analytics-event="{&quot;location&quot;:&quot;navbar&quot;,&quot;action&quot;:&quot;searchbar&quot;,&quot;context&quot;:&quot;global&quot;,&quot;tag&quot;:&quot;input&quot;,&quot;label&quot;:&quot;searchbar_input_global_navbar&quot;}"
-        data-action="click:qbsearch-input#handleExpand"
-      >
-        <div class="mr-2 color-fg-muted">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-search">
-    <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"></path>
-</svg>
-        </div>
-        <span class="flex-1" data-target="qbsearch-input.inputButtonText">Search or jump to...</span>
-          <div class="d-flex" data-target="qbsearch-input.hotkeyIndicator">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="20" aria-hidden="true" class="mr-1"><path fill="none" stroke="#979A9C" opacity=".4" d="M3.5.5h12c1.7 0 3 1.3 3 3v13c0 1.7-1.3 3-3 3h-12c-1.7 0-3-1.3-3-3v-13c0-1.7 1.3-3 3-3z"></path><path fill="#979A9C" d="M11.8 6L8 15.1h-.9L10.8 6h1z"></path></svg>
-          </div>
-      </button>
+		);
 
-    <input type="hidden" name="type" class="js-site-search-type-field">
+	}
 
-    
-<div class="Overlay--hidden " data-modal-dialog-overlay>
-  <modal-dialog data-action="close:qbsearch-input#handleClose cancel:qbsearch-input#handleClose" data-target="qbsearch-input.searchSuggestionsDialog" role="dialog" id="search-suggestions-dialog" aria-modal="true" aria-labelledby="search-suggestions-dialog-header" data-view-component="true" class="Overlay Overlay--width-large Overlay--height-auto">
-      <h1 id="search-suggestions-dialog-header" class="sr-only">Search code, repositories, users, issues, pull requests...</h1>
-    <div class="Overlay-body Overlay-body--paddingNone">
-      
-          <div data-view-component="true">        <div class="search-suggestions position-fixed width-full color-shadow-large border color-fg-default color-bg-default overflow-hidden d-flex flex-column query-builder-container"
-          style="border-radius: 12px;"
-          data-target="qbsearch-input.queryBuilderContainer"
-          hidden
-        >
-          <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="query-builder-test-form" action="" accept-charset="UTF-8" method="get">
-  <query-builder data-target="qbsearch-input.queryBuilder" id="query-builder-query-builder-test" data-filter-key=":" data-view-component="true" class="QueryBuilder search-query-builder">
-    <div class="FormControl FormControl--fullWidth">
-      <label id="query-builder-test-label" for="query-builder-test" class="FormControl-label sr-only">
-        Search
-      </label>
-      <div
-        class="QueryBuilder-StyledInput width-fit "
-        data-target="query-builder.styledInput"
-      >
-          <span id="query-builder-test-leadingvisual-wrap" class="FormControl-input-leadingVisualWrap QueryBuilder-leadingVisualWrap">
-            <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-search FormControl-input-leadingVisual">
-    <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"></path>
-</svg>
-          </span>
-        <div data-target="query-builder.styledInputContainer" class="QueryBuilder-StyledInputContainer">
-          <div
-            aria-hidden="true"
-            class="QueryBuilder-StyledInputContent"
-            data-target="query-builder.styledInputContent"
-          ></div>
-          <div class="QueryBuilder-InputWrapper">
-            <div aria-hidden="true" class="QueryBuilder-Sizer" data-target="query-builder.sizer"></div>
-            <input id="query-builder-test" name="query-builder-test" value="" autocomplete="off" type="text" role="combobox" spellcheck="false" aria-expanded="false" aria-describedby="validation-7add55b3-033f-4383-ab46-714923383cb8" data-target="query-builder.input" data-action="
-          input:query-builder#inputChange
-          blur:query-builder#inputBlur
-          keydown:query-builder#inputKeydown
-          focus:query-builder#inputFocus
-        " data-view-component="true" class="FormControl-input QueryBuilder-Input FormControl-medium" />
-          </div>
-        </div>
-          <span class="sr-only" id="query-builder-test-clear">Clear</span>
-          <button role="button" id="query-builder-test-clear-button" aria-labelledby="query-builder-test-clear query-builder-test-label" data-target="query-builder.clearButton" data-action="
-                click:query-builder#clear
-                focus:query-builder#clearButtonFocus
-                blur:query-builder#clearButtonBlur
-              " variant="small" hidden="hidden" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium mr-1 px-2 py-0 d-flex flex-items-center rounded-1 color-fg-muted">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x-circle-fill Button-visual">
-    <path d="M2.343 13.657A8 8 0 1 1 13.658 2.343 8 8 0 0 1 2.343 13.657ZM6.03 4.97a.751.751 0 0 0-1.042.018.751.751 0 0 0-.018 1.042L6.94 8 4.97 9.97a.749.749 0 0 0 .326 1.275.749.749 0 0 0 .734-.215L8 9.06l1.97 1.97a.749.749 0 0 0 1.275-.326.749.749 0 0 0-.215-.734L9.06 8l1.97-1.97a.749.749 0 0 0-.326-1.275.749.749 0 0 0-.734.215L8 6.94Z"></path>
-</svg>
-</button>
-
-      </div>
-      <template id="search-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-search">
-    <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"></path>
-</svg>
-</template>
-
-<template id="code-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-code">
-    <path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-</template>
-
-<template id="file-code-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-file-code">
-    <path d="M4 1.75C4 .784 4.784 0 5.75 0h5.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v8.586A1.75 1.75 0 0 1 14.25 15h-9a.75.75 0 0 1 0-1.5h9a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 10 4.25V1.5H5.75a.25.25 0 0 0-.25.25v2.5a.75.75 0 0 1-1.5 0Zm1.72 4.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.47-1.47-1.47-1.47a.75.75 0 0 1 0-1.06ZM3.28 7.78 1.81 9.25l1.47 1.47a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-2-2a.75.75 0 0 1 0-1.06l2-2a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Zm8.22-6.218V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"></path>
-</svg>
-</template>
-
-<template id="history-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-history">
-    <path d="m.427 1.927 1.215 1.215a8.002 8.002 0 1 1-1.6 5.685.75.75 0 1 1 1.493-.154 6.5 6.5 0 1 0 1.18-4.458l1.358 1.358A.25.25 0 0 1 3.896 6H.25A.25.25 0 0 1 0 5.75V2.104a.25.25 0 0 1 .427-.177ZM7.75 4a.75.75 0 0 1 .75.75v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5A.75.75 0 0 1 7.75 4Z"></path>
-</svg>
-</template>
-
-<template id="repo-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-repo">
-    <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
-</svg>
-</template>
-
-<template id="bookmark-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-bookmark">
-    <path d="M3 2.75C3 1.784 3.784 1 4.75 1h6.5c.966 0 1.75.784 1.75 1.75v11.5a.75.75 0 0 1-1.227.579L8 11.722l-3.773 3.107A.751.751 0 0 1 3 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.91l3.023-2.489a.75.75 0 0 1 .954 0l3.023 2.49V2.75a.25.25 0 0 0-.25-.25Z"></path>
-</svg>
-</template>
-
-<template id="plus-circle-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-plus-circle">
-    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7.25-3.25v2.5h2.5a.75.75 0 0 1 0 1.5h-2.5v2.5a.75.75 0 0 1-1.5 0v-2.5h-2.5a.75.75 0 0 1 0-1.5h2.5v-2.5a.75.75 0 0 1 1.5 0Z"></path>
-</svg>
-</template>
-
-<template id="circle-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-dot-fill">
-    <path d="M8 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"></path>
-</svg>
-</template>
-
-<template id="trash-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-trash">
-    <path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"></path>
-</svg>
-</template>
-
-<template id="team-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-people">
-    <path d="M2 5.5a3.5 3.5 0 1 1 5.898 2.549 5.508 5.508 0 0 1 3.034 4.084.75.75 0 1 1-1.482.235 4 4 0 0 0-7.9 0 .75.75 0 0 1-1.482-.236A5.507 5.507 0 0 1 3.102 8.05 3.493 3.493 0 0 1 2 5.5ZM11 4a3.001 3.001 0 0 1 2.22 5.018 5.01 5.01 0 0 1 2.56 3.012.749.749 0 0 1-.885.954.752.752 0 0 1-.549-.514 3.507 3.507 0 0 0-2.522-2.372.75.75 0 0 1-.574-.73v-.352a.75.75 0 0 1 .416-.672A1.5 1.5 0 0 0 11 5.5.75.75 0 0 1 11 4Zm-5.5-.5a2 2 0 1 0-.001 3.999A2 2 0 0 0 5.5 3.5Z"></path>
-</svg>
-</template>
-
-<template id="project-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-project">
-    <path d="M1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0ZM1.5 1.75v12.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25ZM11.75 3a.75.75 0 0 1 .75.75v7.5a.75.75 0 0 1-1.5 0v-7.5a.75.75 0 0 1 .75-.75Zm-8.25.75a.75.75 0 0 1 1.5 0v5.5a.75.75 0 0 1-1.5 0ZM8 3a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 3Z"></path>
-</svg>
-</template>
-
-<template id="pencil-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-pencil">
-    <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
-</svg>
-</template>
-
-<template id="copilot-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-copilot">
-    <path d="M7.998 15.035c-4.562 0-7.873-2.914-7.998-3.749V9.338c.085-.628.677-1.686 1.588-2.065.013-.07.024-.143.036-.218.029-.183.06-.384.126-.612-.201-.508-.254-1.084-.254-1.656 0-.87.128-1.769.693-2.484.579-.733 1.494-1.124 2.724-1.261 1.206-.134 2.262.034 2.944.765.05.053.096.108.139.165.044-.057.094-.112.143-.165.682-.731 1.738-.899 2.944-.765 1.23.137 2.145.528 2.724 1.261.566.715.693 1.614.693 2.484 0 .572-.053 1.148-.254 1.656.066.228.098.429.126.612.012.076.024.148.037.218.924.385 1.522 1.471 1.591 2.095v1.872c0 .766-3.351 3.795-8.002 3.795Zm0-1.485c2.28 0 4.584-1.11 5.002-1.433V7.862l-.023-.116c-.49.21-1.075.291-1.727.291-1.146 0-2.059-.327-2.71-.991A3.222 3.222 0 0 1 8 6.303a3.24 3.24 0 0 1-.544.743c-.65.664-1.563.991-2.71.991-.652 0-1.236-.081-1.727-.291l-.023.116v4.255c.419.323 2.722 1.433 5.002 1.433ZM6.762 2.83c-.193-.206-.637-.413-1.682-.297-1.019.113-1.479.404-1.713.7-.247.312-.369.789-.369 1.554 0 .793.129 1.171.308 1.371.162.181.519.379 1.442.379.853 0 1.339-.235 1.638-.54.315-.322.527-.827.617-1.553.117-.935-.037-1.395-.241-1.614Zm4.155-.297c-1.044-.116-1.488.091-1.681.297-.204.219-.359.679-.242 1.614.091.726.303 1.231.618 1.553.299.305.784.54 1.638.54.922 0 1.28-.198 1.442-.379.179-.2.308-.578.308-1.371 0-.765-.123-1.242-.37-1.554-.233-.296-.693-.587-1.713-.7Z"></path><path d="M6.25 9.037a.75.75 0 0 1 .75.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 .75-.75Zm4.25.75v1.501a.75.75 0 0 1-1.5 0V9.787a.75.75 0 0 1 1.5 0Z"></path>
-</svg>
-</template>
-
-<template id="copilot-error-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-copilot-error">
-    <path d="M16 11.24c0 .112-.072.274-.21.467L13 9.688V7.862l-.023-.116c-.49.21-1.075.291-1.727.291-.198 0-.388-.009-.571-.029L6.833 5.226a4.01 4.01 0 0 0 .17-.782c.117-.935-.037-1.395-.241-1.614-.193-.206-.637-.413-1.682-.297-.683.076-1.115.231-1.395.415l-1.257-.91c.579-.564 1.413-.877 2.485-.996 1.206-.134 2.262.034 2.944.765.05.053.096.108.139.165.044-.057.094-.112.143-.165.682-.731 1.738-.899 2.944-.765 1.23.137 2.145.528 2.724 1.261.566.715.693 1.614.693 2.484 0 .572-.053 1.148-.254 1.656.066.228.098.429.126.612.012.076.024.148.037.218.924.385 1.522 1.471 1.591 2.095Zm-5.083-8.707c-1.044-.116-1.488.091-1.681.297-.204.219-.359.679-.242 1.614.091.726.303 1.231.618 1.553.299.305.784.54 1.638.54.922 0 1.28-.198 1.442-.379.179-.2.308-.578.308-1.371 0-.765-.123-1.242-.37-1.554-.233-.296-.693-.587-1.713-.7Zm2.511 11.074c-1.393.776-3.272 1.428-5.43 1.428-4.562 0-7.873-2.914-7.998-3.749V9.338c.085-.628.677-1.686 1.588-2.065.013-.07.024-.143.036-.218.029-.183.06-.384.126-.612-.18-.455-.241-.963-.252-1.475L.31 4.107A.747.747 0 0 1 0 3.509V3.49a.748.748 0 0 1 .625-.73c.156-.026.306.047.435.139l14.667 10.578a.592.592 0 0 1 .227.264.752.752 0 0 1 .046.249v.022a.75.75 0 0 1-1.19.596Zm-1.367-.991L5.635 7.964a5.128 5.128 0 0 1-.889.073c-.652 0-1.236-.081-1.727-.291l-.023.116v4.255c.419.323 2.722 1.433 5.002 1.433 1.539 0 3.089-.505 4.063-.934Z"></path>
-</svg>
-</template>
-
-<template id="workflow-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-workflow">
-    <path d="M0 1.75C0 .784.784 0 1.75 0h3.5C6.216 0 7 .784 7 1.75v3.5A1.75 1.75 0 0 1 5.25 7H4v4a1 1 0 0 0 1 1h4v-1.25C9 9.784 9.784 9 10.75 9h3.5c.966 0 1.75.784 1.75 1.75v3.5A1.75 1.75 0 0 1 14.25 16h-3.5A1.75 1.75 0 0 1 9 14.25v-.75H5A2.5 2.5 0 0 1 2.5 11V7h-.75A1.75 1.75 0 0 1 0 5.25Zm1.75-.25a.25.25 0 0 0-.25.25v3.5c0 .138.112.25.25.25h3.5a.25.25 0 0 0 .25-.25v-3.5a.25.25 0 0 0-.25-.25Zm9 9a.25.25 0 0 0-.25.25v3.5c0 .138.112.25.25.25h3.5a.25.25 0 0 0 .25-.25v-3.5a.25.25 0 0 0-.25-.25Z"></path>
-</svg>
-</template>
-
-<template id="book-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-book">
-    <path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path>
-</svg>
-</template>
-
-<template id="code-review-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-code-review">
-    <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 13H8.061l-2.574 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25v-8.5C0 1.784.784 1 1.75 1ZM1.5 2.75v8.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-8.5a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25Zm5.28 1.72a.75.75 0 0 1 0 1.06L5.31 7l1.47 1.47a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-2-2a.75.75 0 0 1 0-1.06l2-2a.75.75 0 0 1 1.06 0Zm2.44 0a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L10.69 7 9.22 5.53a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-</template>
-
-<template id="codespaces-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-codespaces">
-    <path d="M0 11.25c0-.966.784-1.75 1.75-1.75h12.5c.966 0 1.75.784 1.75 1.75v3A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25Zm2-9.5C2 .784 2.784 0 3.75 0h8.5C13.216 0 14 .784 14 1.75v5a1.75 1.75 0 0 1-1.75 1.75h-8.5A1.75 1.75 0 0 1 2 6.75Zm1.75-.25a.25.25 0 0 0-.25.25v5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-5a.25.25 0 0 0-.25-.25Zm-2 9.5a.25.25 0 0 0-.25.25v3c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-3a.25.25 0 0 0-.25-.25Z"></path><path d="M7 12.75a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Zm-4 0a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Z"></path>
-</svg>
-</template>
-
-<template id="comment-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-comment">
-    <path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path>
-</svg>
-</template>
-
-<template id="comment-discussion-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-comment-discussion">
-    <path d="M1.75 1h8.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 10.25 10H7.061l-2.574 2.573A1.458 1.458 0 0 1 2 11.543V10h-.25A1.75 1.75 0 0 1 0 8.25v-5.5C0 1.784.784 1 1.75 1ZM1.5 2.75v5.5c0 .138.112.25.25.25h1a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h3.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25Zm13 2a.25.25 0 0 0-.25-.25h-.5a.75.75 0 0 1 0-1.5h.5c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 14.25 12H14v1.543a1.458 1.458 0 0 1-2.487 1.03L9.22 12.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.22 2.22v-2.19a.75.75 0 0 1 .75-.75h1a.25.25 0 0 0 .25-.25Z"></path>
-</svg>
-</template>
-
-<template id="organization-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-organization">
-    <path d="M1.75 16A1.75 1.75 0 0 1 0 14.25V1.75C0 .784.784 0 1.75 0h8.5C11.216 0 12 .784 12 1.75v12.5c0 .085-.006.168-.018.25h2.268a.25.25 0 0 0 .25-.25V8.285a.25.25 0 0 0-.111-.208l-1.055-.703a.749.749 0 1 1 .832-1.248l1.055.703c.487.325.779.871.779 1.456v5.965A1.75 1.75 0 0 1 14.25 16h-3.5a.766.766 0 0 1-.197-.026c-.099.017-.2.026-.303.026h-3a.75.75 0 0 1-.75-.75V14h-1v1.25a.75.75 0 0 1-.75.75Zm-.25-1.75c0 .138.112.25.25.25H4v-1.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 .75.75v1.25h2.25a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25ZM3.75 6h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1 0-1.5ZM3 3.75A.75.75 0 0 1 3.75 3h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 3 3.75Zm4 3A.75.75 0 0 1 7.75 6h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 7 6.75ZM7.75 3h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1 0-1.5ZM3 9.75A.75.75 0 0 1 3.75 9h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 3 9.75ZM7.75 9h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1 0-1.5Z"></path>
-</svg>
-</template>
-
-<template id="rocket-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-rocket">
-    <path d="M14.064 0h.186C15.216 0 16 .784 16 1.75v.186a8.752 8.752 0 0 1-2.564 6.186l-.458.459c-.314.314-.641.616-.979.904v3.207c0 .608-.315 1.172-.833 1.49l-2.774 1.707a.749.749 0 0 1-1.11-.418l-.954-3.102a1.214 1.214 0 0 1-.145-.125L3.754 9.816a1.218 1.218 0 0 1-.124-.145L.528 8.717a.749.749 0 0 1-.418-1.11l1.71-2.774A1.748 1.748 0 0 1 3.31 4h3.204c.288-.338.59-.665.904-.979l.459-.458A8.749 8.749 0 0 1 14.064 0ZM8.938 3.623h-.002l-.458.458c-.76.76-1.437 1.598-2.02 2.5l-1.5 2.317 2.143 2.143 2.317-1.5c.902-.583 1.74-1.26 2.499-2.02l.459-.458a7.25 7.25 0 0 0 2.123-5.127V1.75a.25.25 0 0 0-.25-.25h-.186a7.249 7.249 0 0 0-5.125 2.123ZM3.56 14.56c-.732.732-2.334 1.045-3.005 1.148a.234.234 0 0 1-.201-.064.234.234 0 0 1-.064-.201c.103-.671.416-2.273 1.15-3.003a1.502 1.502 0 1 1 2.12 2.12Zm6.94-3.935c-.088.06-.177.118-.266.175l-2.35 1.521.548 1.783 1.949-1.2a.25.25 0 0 0 .119-.213ZM3.678 8.116 5.2 5.766c.058-.09.117-.178.176-.266H3.309a.25.25 0 0 0-.213.119l-1.2 1.95ZM12 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
-</svg>
-</template>
-
-<template id="shield-check-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-shield-check">
-    <path d="m8.533.133 5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667l5.25-1.68a1.748 1.748 0 0 1 1.066 0Zm-.61 1.429.001.001-5.25 1.68a.251.251 0 0 0-.174.237V7c0 1.36.275 2.666 1.057 3.859.784 1.194 2.121 2.342 4.366 3.298a.196.196 0 0 0 .154 0c2.245-.957 3.582-2.103 4.366-3.297C13.225 9.666 13.5 8.358 13.5 7V3.48a.25.25 0 0 0-.174-.238l-5.25-1.68a.25.25 0 0 0-.153 0ZM11.28 6.28l-3.5 3.5a.75.75 0 0 1-1.06 0l-1.5-1.5a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l.97.97 2.97-2.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path>
-</svg>
-</template>
-
-<template id="heart-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-heart">
-    <path d="m8 14.25.345.666a.75.75 0 0 1-.69 0l-.008-.004-.018-.01a7.152 7.152 0 0 1-.31-.17 22.055 22.055 0 0 1-3.434-2.414C2.045 10.731 0 8.35 0 5.5 0 2.836 2.086 1 4.25 1 5.797 1 7.153 1.802 8 3.02 8.847 1.802 10.203 1 11.75 1 13.914 1 16 2.836 16 5.5c0 2.85-2.045 5.231-3.885 6.818a22.066 22.066 0 0 1-3.744 2.584l-.018.01-.006.003h-.002ZM4.25 2.5c-1.336 0-2.75 1.164-2.75 3 0 2.15 1.58 4.144 3.365 5.682A20.58 20.58 0 0 0 8 13.393a20.58 20.58 0 0 0 3.135-2.211C12.92 9.644 14.5 7.65 14.5 5.5c0-1.836-1.414-3-2.75-3-1.373 0-2.609.986-3.029 2.456a.749.749 0 0 1-1.442 0C6.859 3.486 5.623 2.5 4.25 2.5Z"></path>
-</svg>
-</template>
-
-<template id="server-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-server">
-    <path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v4c0 .372-.116.717-.314 1 .198.283.314.628.314 1v4a1.75 1.75 0 0 1-1.75 1.75H1.75A1.75 1.75 0 0 1 0 12.75v-4c0-.358.109-.707.314-1a1.739 1.739 0 0 1-.314-1v-4C0 1.784.784 1 1.75 1ZM1.5 2.75v4c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-4a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25Zm.25 5.75a.25.25 0 0 0-.25.25v4c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-4a.25.25 0 0 0-.25-.25ZM7 4.75A.75.75 0 0 1 7.75 4h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 7 4.75ZM7.75 10h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM3 4.75A.75.75 0 0 1 3.75 4h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 3 4.75ZM3.75 10h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1 0-1.5Z"></path>
-</svg>
-</template>
-
-<template id="globe-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-globe">
-    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM5.78 8.75a9.64 9.64 0 0 0 1.363 4.177c.255.426.542.832.857 1.215.245-.296.551-.705.857-1.215A9.64 9.64 0 0 0 10.22 8.75Zm4.44-1.5a9.64 9.64 0 0 0-1.363-4.177c-.307-.51-.612-.919-.857-1.215a9.927 9.927 0 0 0-.857 1.215A9.64 9.64 0 0 0 5.78 7.25Zm-5.944 1.5H1.543a6.507 6.507 0 0 0 4.666 5.5c-.123-.181-.24-.365-.352-.552-.715-1.192-1.437-2.874-1.581-4.948Zm-2.733-1.5h2.733c.144-2.074.866-3.756 1.58-4.948.12-.197.237-.381.353-.552a6.507 6.507 0 0 0-4.666 5.5Zm10.181 1.5c-.144 2.074-.866 3.756-1.58 4.948-.12.197-.237.381-.353.552a6.507 6.507 0 0 0 4.666-5.5Zm2.733-1.5a6.507 6.507 0 0 0-4.666-5.5c.123.181.24.365.353.552.714 1.192 1.436 2.874 1.58 4.948Z"></path>
-</svg>
-</template>
-
-<template id="issue-opened-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-issue-opened">
-    <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
-</svg>
-</template>
-
-<template id="device-mobile-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-device-mobile">
-    <path d="M3.75 0h8.5C13.216 0 14 .784 14 1.75v12.5A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25V1.75C2 .784 2.784 0 3.75 0ZM3.5 1.75v12.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25h-8.5a.25.25 0 0 0-.25.25ZM8 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path>
-</svg>
-</template>
-
-<template id="package-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-package">
-    <path d="m8.878.392 5.25 3.045c.54.314.872.89.872 1.514v6.098a1.75 1.75 0 0 1-.872 1.514l-5.25 3.045a1.75 1.75 0 0 1-1.756 0l-5.25-3.045A1.75 1.75 0 0 1 1 11.049V4.951c0-.624.332-1.201.872-1.514L7.122.392a1.75 1.75 0 0 1 1.756 0ZM7.875 1.69l-4.63 2.685L8 7.133l4.755-2.758-4.63-2.685a.248.248 0 0 0-.25 0ZM2.5 5.677v5.372c0 .09.047.171.125.216l4.625 2.683V8.432Zm6.25 8.271 4.625-2.683a.25.25 0 0 0 .125-.216V5.677L8.75 8.432Z"></path>
-</svg>
-</template>
-
-<template id="credit-card-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-credit-card">
-    <path d="M10.75 9a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5h-1.5Z"></path><path d="M0 3.75C0 2.784.784 2 1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25ZM14.5 6.5h-13v5.75c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25Zm0-2.75a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25V5h13Z"></path>
-</svg>
-</template>
-
-<template id="play-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-play">
-    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path>
-</svg>
-</template>
-
-<template id="gift-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-gift">
-    <path d="M2 2.75A2.75 2.75 0 0 1 4.75 0c.983 0 1.873.42 2.57 1.232.268.318.497.668.68 1.042.183-.375.411-.725.68-1.044C9.376.42 10.266 0 11.25 0a2.75 2.75 0 0 1 2.45 4h.55c.966 0 1.75.784 1.75 1.75v2c0 .698-.409 1.301-1 1.582v4.918A1.75 1.75 0 0 1 13.25 16H2.75A1.75 1.75 0 0 1 1 14.25V9.332C.409 9.05 0 8.448 0 7.75v-2C0 4.784.784 4 1.75 4h.55c-.192-.375-.3-.8-.3-1.25ZM7.25 9.5H2.5v4.75c0 .138.112.25.25.25h4.5Zm1.5 0v5h4.5a.25.25 0 0 0 .25-.25V9.5Zm0-4V8h5.5a.25.25 0 0 0 .25-.25v-2a.25.25 0 0 0-.25-.25Zm-7 0a.25.25 0 0 0-.25.25v2c0 .138.112.25.25.25h5.5V5.5h-5.5Zm3-4a1.25 1.25 0 0 0 0 2.5h2.309c-.233-.818-.542-1.401-.878-1.793-.43-.502-.915-.707-1.431-.707ZM8.941 4h2.309a1.25 1.25 0 0 0 0-2.5c-.516 0-1 .205-1.43.707-.337.392-.646.975-.879 1.793Z"></path>
-</svg>
-</template>
-
-<template id="code-square-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-code-square">
-    <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25Zm7.47 3.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L10.69 8 9.22 6.53a.75.75 0 0 1 0-1.06ZM6.78 6.53 5.31 8l1.47 1.47a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-2-2a.75.75 0 0 1 0-1.06l2-2a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path>
-</svg>
-</template>
-
-<template id="device-desktop-icon">
-  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-device-desktop">
-    <path d="M14.25 1c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 14.25 12h-3.727c.099 1.041.52 1.872 1.292 2.757A.752.752 0 0 1 11.25 16h-6.5a.75.75 0 0 1-.565-1.243c.772-.885 1.192-1.716 1.292-2.757H1.75A1.75 1.75 0 0 1 0 10.25v-7.5C0 1.784.784 1 1.75 1ZM1.75 2.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25ZM9.018 12H6.982a5.72 5.72 0 0 1-.765 2.5h3.566a5.72 5.72 0 0 1-.765-2.5Z"></path>
-</svg>
-</template>
-
-        <div class="position-relative">
-                <ul
-                  role="listbox"
-                  class="ActionListWrap QueryBuilder-ListWrap"
-                  aria-label="Suggestions"
-                  data-action="
-                    combobox-commit:query-builder#comboboxCommit
-                    mousedown:query-builder#resultsMousedown
-                  "
-                  data-target="query-builder.resultsList"
-                  data-persist-list=false
-                  id="query-builder-test-results"
-                  tabindex="-1"
-                ></ul>
-        </div>
-      <div class="FormControl-inlineValidation" id="validation-7add55b3-033f-4383-ab46-714923383cb8" hidden="hidden">
-        <span class="FormControl-inlineValidation--visual">
-          <svg aria-hidden="true" height="12" viewBox="0 0 12 12" version="1.1" width="12" data-view-component="true" class="octicon octicon-alert-fill">
-    <path d="M4.855.708c.5-.896 1.79-.896 2.29 0l4.675 8.351a1.312 1.312 0 0 1-1.146 1.954H1.33A1.313 1.313 0 0 1 .183 9.058ZM7 7V3H5v4Zm-1 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"></path>
-</svg>
-        </span>
-        <span></span>
-</div>    </div>
-    <div data-target="query-builder.screenReaderFeedback" aria-live="polite" aria-atomic="true" class="sr-only"></div>
-</query-builder></form>
-          <div class="d-flex flex-row color-fg-muted px-3 text-small color-bg-default search-feedback-prompt">
-            <a target="_blank" href="https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax" data-view-component="true" class="Link color-fg-accent text-normal ml-2">Search syntax tips</a>            <div class="d-flex flex-1"></div>
-          </div>
-        </div>
-</div>
-
-    </div>
-</modal-dialog></div>
-  </div>
-  <div data-action="click:qbsearch-input#retract" class="dark-backdrop position-fixed" hidden data-target="qbsearch-input.darkBackdrop"></div>
-  <div class="color-fg-default">
-    
-<dialog-helper>
-  <dialog data-target="qbsearch-input.feedbackDialog" data-action="close:qbsearch-input#handleDialogClose cancel:qbsearch-input#handleDialogClose" id="feedback-dialog" aria-modal="true" aria-labelledby="feedback-dialog-title" aria-describedby="feedback-dialog-description" data-view-component="true" class="Overlay Overlay-whenNarrow Overlay--size-medium Overlay--motion-scaleFade Overlay--disableScroll">
-    <div data-view-component="true" class="Overlay-header">
-  <div class="Overlay-headerContentWrap">
-    <div class="Overlay-titleWrap">
-      <h1 class="Overlay-title " id="feedback-dialog-title">
-        Provide feedback
-      </h1>
-        
-    </div>
-    <div class="Overlay-actionWrap">
-      <button data-close-dialog-id="feedback-dialog" aria-label="Close" aria-label="Close" type="button" data-view-component="true" class="close-button Overlay-closeButton"><svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x">
-    <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
-</svg></button>
-    </div>
-  </div>
-  
-</div>
-      <scrollable-region data-labelled-by="feedback-dialog-title">
-        <div data-view-component="true" class="Overlay-body">        <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="code-search-feedback-form" data-turbo="false" action="/search/feedback" accept-charset="UTF-8" method="post"><input type="hidden" data-csrf="true" name="authenticity_token" value="0heRNeaK/h6zjH9u4ab+5bNuzdZMU06JSRTYU4+Nm/kz16paKzNtfX0nvEP7QgLag+wZjGm+ipbI1npTd22lJA==" />
-          <p>We read every piece of feedback, and take your input very seriously.</p>
-          <textarea name="feedback" class="form-control width-full mb-2" style="height: 120px" id="feedback"></textarea>
-          <input name="include_email" id="include_email" aria-label="Include my email address so I can be contacted" class="form-control mr-2" type="checkbox">
-          <label for="include_email" style="font-weight: normal">Include my email address so I can be contacted</label>
-</form></div>
-      </scrollable-region>
-      <div data-view-component="true" class="Overlay-footer Overlay-footer--alignEnd">          <button data-close-dialog-id="feedback-dialog" type="button" data-view-component="true" class="btn">    Cancel
-</button>
-          <button form="code-search-feedback-form" data-action="click:qbsearch-input#submitFeedback" type="submit" data-view-component="true" class="btn-primary btn">    Submit feedback
-</button>
-</div>
-</dialog></dialog-helper>
-
-    <custom-scopes data-target="qbsearch-input.customScopesManager">
-    
-<dialog-helper>
-  <dialog data-target="custom-scopes.customScopesModalDialog" data-action="close:qbsearch-input#handleDialogClose cancel:qbsearch-input#handleDialogClose" id="custom-scopes-dialog" aria-modal="true" aria-labelledby="custom-scopes-dialog-title" aria-describedby="custom-scopes-dialog-description" data-view-component="true" class="Overlay Overlay-whenNarrow Overlay--size-medium Overlay--motion-scaleFade Overlay--disableScroll">
-    <div data-view-component="true" class="Overlay-header Overlay-header--divided">
-  <div class="Overlay-headerContentWrap">
-    <div class="Overlay-titleWrap">
-      <h1 class="Overlay-title " id="custom-scopes-dialog-title">
-        Saved searches
-      </h1>
-        <h2 id="custom-scopes-dialog-description" class="Overlay-description">Use saved searches to filter your results more quickly</h2>
-    </div>
-    <div class="Overlay-actionWrap">
-      <button data-close-dialog-id="custom-scopes-dialog" aria-label="Close" aria-label="Close" type="button" data-view-component="true" class="close-button Overlay-closeButton"><svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x">
-    <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
-</svg></button>
-    </div>
-  </div>
-  
-</div>
-      <scrollable-region data-labelled-by="custom-scopes-dialog-title">
-        <div data-view-component="true" class="Overlay-body">        <div data-target="custom-scopes.customScopesModalDialogFlash"></div>
-
-        <div hidden class="create-custom-scope-form" data-target="custom-scopes.createCustomScopeForm">
-        <!-- '"` --><!-- </textarea></xmp> --></option></form><form id="custom-scopes-dialog-form" data-turbo="false" action="/search/custom_scopes" accept-charset="UTF-8" method="post"><input type="hidden" data-csrf="true" name="authenticity_token" value="vtea1VzzhNZ9bxHiPo8qvCoegHzcAp/MTEbtQfljrLunxxqHSz+nAe5GN+8fGbrr1dawwmeeifM3r3t79xtzqg==" />
-          <div data-target="custom-scopes.customScopesModalDialogFlash"></div>
-
-          <input type="hidden" id="custom_scope_id" name="custom_scope_id" data-target="custom-scopes.customScopesIdField">
-
-          <div class="form-group">
-            <label for="custom_scope_name">Name</label>
-            <auto-check src="/search/custom_scopes/check_name" required>
-              <input
-                type="text"
-                name="custom_scope_name"
-                id="custom_scope_name"
-                data-target="custom-scopes.customScopesNameField"
-                class="form-control"
-                autocomplete="off"
-                placeholder="github-ruby"
-                required
-                maxlength="50">
-              <input type="hidden" data-csrf="true" value="iMNcztPWq1Wda+dsRCiiZyHE7JY5jbwDLw4AnC4ia3tGkGyy3p+PN9xZZxsHlGfsCjDXUGJATDY4xSxTaDmK7g==" />
-            </auto-check>
-          </div>
-
-          <div class="form-group">
-            <label for="custom_scope_query">Query</label>
-            <input
-              type="text"
-              name="custom_scope_query"
-              id="custom_scope_query"
-              data-target="custom-scopes.customScopesQueryField"
-              class="form-control"
-              autocomplete="off"
-              placeholder="(repo:mona/a OR repo:mona/b) AND lang:python"
-              required
-              maxlength="500">
-          </div>
-
-          <p class="text-small color-fg-muted">
-            To see all available qualifiers, see our <a class="Link--inTextBlock" href="https://docs.github.com/search-github/github-code-search/understanding-github-code-search-syntax">documentation</a>.
-          </p>
-</form>        </div>
-
-        <div data-target="custom-scopes.manageCustomScopesForm">
-          <div data-target="custom-scopes.list"></div>
-        </div>
-
-</div>
-      </scrollable-region>
-      <div data-view-component="true" class="Overlay-footer Overlay-footer--alignEnd Overlay-footer--divided">          <button data-action="click:custom-scopes#customScopesCancel" type="button" data-view-component="true" class="btn">    Cancel
-</button>
-          <button form="custom-scopes-dialog-form" data-action="click:custom-scopes#customScopesSubmit" data-target="custom-scopes.customScopesSubmitButton" type="submit" data-view-component="true" class="btn-primary btn">    Create saved search
-</button>
-</div>
-</dialog></dialog-helper>
-    </custom-scopes>
-  </div>
-</qbsearch-input>
-
-
-            <div class="position-relative HeaderMenu-link-wrap d-lg-inline-block">
-              <a
-                href="/login?return_to=https%3A%2F%2Fgithub.com%2Fmrdoob%2Fthree.js%2Fblob%2Fr159%2Fexamples%252Fjsm%252Floaders%252FGLTFLoader.js"
-                class="HeaderMenu-link HeaderMenu-link--sign-in HeaderMenu-button flex-shrink-0 no-underline d-none d-lg-inline-flex border border-lg-0 rounded px-2 py-1"
-                style="margin-left: 12px;"
-                data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="6f8e11b985298611653073e8bee5fd2e442a82d7ed426a37e60ba835a55aed1a"
-                data-analytics-event="{&quot;category&quot;:&quot;Marketing nav&quot;,&quot;action&quot;:&quot;click to go to homepage&quot;,&quot;label&quot;:&quot;ref_page:Marketing;ref_cta:Sign in;ref_loc:Header&quot;}"
-              >
-                Sign in
-              </a>
-            </div>
-
-              <a href="/signup?ref_cta=Sign+up&amp;ref_loc=header+logged+out&amp;ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E%2Fblob%2Fshow&amp;source=header-repo&amp;source_repo=mrdoob%2Fthree.js"
-                class="HeaderMenu-link HeaderMenu-link--sign-up HeaderMenu-button flex-shrink-0 d-flex d-lg-inline-flex no-underline border color-border-default rounded px-2 py-1"
-                data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;site header menu&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;SIGN_UP&quot;,&quot;originating_url&quot;:&quot;https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="6f8e11b985298611653073e8bee5fd2e442a82d7ed426a37e60ba835a55aed1a"
-                data-analytics-event="{&quot;category&quot;:&quot;Sign up&quot;,&quot;action&quot;:&quot;click to sign up for account&quot;,&quot;label&quot;:&quot;ref_page:/&lt;user-name&gt;/&lt;repo-name&gt;/blob/show;ref_cta:Sign up;ref_loc:header logged out&quot;}"
-              >
-                Sign up
-              </a>
-
-                <div class="AppHeader-appearanceSettings">
-    <react-partial-anchor>
-      <button data-target="react-partial-anchor.anchor" id="icon-button-3cc0fffb-e222-4f38-b1b8-e16c8d6aca0c" aria-labelledby="tooltip-253ab30b-e36c-4c54-931b-797b9f2fbe87" type="button" disabled="disabled" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium AppHeader-button HeaderMenu-link border cursor-wait">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-sliders Button-visual">
-    <path d="M15 2.75a.75.75 0 0 1-.75.75h-4a.75.75 0 0 1 0-1.5h4a.75.75 0 0 1 .75.75Zm-8.5.75v1.25a.75.75 0 0 0 1.5 0v-4a.75.75 0 0 0-1.5 0V2H1.75a.75.75 0 0 0 0 1.5H6.5Zm1.25 5.25a.75.75 0 0 0 0-1.5h-6a.75.75 0 0 0 0 1.5h6ZM15 8a.75.75 0 0 1-.75.75H11.5V10a.75.75 0 1 1-1.5 0V6a.75.75 0 0 1 1.5 0v1.25h2.75A.75.75 0 0 1 15 8Zm-9 5.25v-2a.75.75 0 0 0-1.5 0v1.25H1.75a.75.75 0 0 0 0 1.5H4.5v1.25a.75.75 0 0 0 1.5 0v-2Zm9 0a.75.75 0 0 1-.75.75h-6a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75Z"></path>
-</svg>
-</button><tool-tip id="tooltip-253ab30b-e36c-4c54-931b-797b9f2fbe87" for="icon-button-3cc0fffb-e222-4f38-b1b8-e16c8d6aca0c" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Appearance settings</tool-tip>
-
-      <template data-target="react-partial-anchor.template">
-        <link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/primer-react.8ab8a4727d5240df9a3a.module.css" />
-<link crossorigin="anonymous" media="all" rel="stylesheet" href="https://github.githubassets.com/assets/appearance-settings.753d458774a2f782559b.module.css" />
-
-<react-partial
-  partial-name="appearance-settings"
-  data-ssr="false"
-  data-attempted-ssr="false"
-  data-react-profiling="false"
->
-  
-  <script type="application/json" data-target="react-partial.embeddedData">{"props":{}}</script>
-  <div data-target="react-partial.reactRoot"></div>
-</react-partial>
-
-
-      </template>
-    </react-partial-anchor>
-  </div>
-
-          <button type="button" class="sr-only js-header-menu-focus-trap d-block d-lg-none">Resetting focus</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
-
-      <div hidden="hidden" data-view-component="true" class="js-stale-session-flash stale-session-flash flash flash-warn flash-full">
-  
-        <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-alert">
-    <path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
-</svg>
-        <span class="js-stale-session-flash-signed-in" hidden>You signed in with another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
-        <span class="js-stale-session-flash-signed-out" hidden>You signed out in another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
-        <span class="js-stale-session-flash-switched" hidden>You switched accounts on another tab or window. <a class="Link--inTextBlock" href="">Reload</a> to refresh your session.</span>
-
-    <button id="icon-button-e4dde3fe-e86a-45ae-b03a-607daf133065" aria-labelledby="tooltip-f72d0f2e-5ace-4e60-b0c1-a77ec8d568ca" type="button" data-view-component="true" class="Button Button--iconOnly Button--invisible Button--medium flash-close js-flash-close">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x Button-visual">
-    <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-</button><tool-tip id="tooltip-f72d0f2e-5ace-4e60-b0c1-a77ec8d568ca" for="icon-button-e4dde3fe-e86a-45ae-b03a-607daf133065" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Dismiss alert</tool-tip>
-
-
-  
-</div>
-    </div>
-
-  <div id="start-of-content" class="show-on-focus"></div>
-
-
-
-
-
-
-
-
-    <div id="js-flash-container" class="flash-container" data-turbo-replace>
-
-
-
-
-  <template class="js-flash-template">
-    
-<div class="flash flash-full   {{ className }}">
-  <div >
-    <button autofocus class="flash-close js-flash-close" type="button" aria-label="Dismiss this message">
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x">
-    <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-    </button>
-    <div aria-atomic="true" role="alert" class="js-flash-alert">
-      
-      <div>{{ message }}</div>
-
-    </div>
-  </div>
-</div>
-  </template>
-</div>
-
-
-    
-
-
-
-
-
-
-  <div
-    class="application-main "
-    data-commit-hovercards-enabled
-    data-discussion-hovercards-enabled
-    data-issue-and-pr-hovercards-enabled
-    data-project-hovercards-enabled
-  >
-        <div itemscope itemtype="http://schema.org/SoftwareSourceCode" class="">
-    <main id="js-repo-pjax-container" >
-      
-      
-
-
-
-
-
-
-  
-
-  <div id="repository-container-header"  class="pt-3 hide-full-screen" style="background-color: var(--page-header-bgColor, var(--color-page-header-bg));" data-turbo-replace>
-
-      <div class="d-flex flex-nowrap flex-justify-end mb-3  px-3 px-lg-5" style="gap: 1rem;">
-
-        <div class="flex-auto min-width-0 width-fit">
-            
-  <div class=" d-flex flex-wrap flex-items-center wb-break-word f3 text-normal">
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-repo color-fg-muted mr-2">
-    <path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"></path>
-</svg>
-    
-    <span class="author flex-self-stretch" itemprop="author">
-      <a class="url fn" rel="author" data-hovercard-type="user" data-hovercard-url="/users/mrdoob/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" href="/mrdoob">
-        mrdoob
-</a>    </span>
-    <span class="mx-1 flex-self-stretch color-fg-muted">/</span>
-    <strong itemprop="name" class="mr-2 flex-self-stretch">
-      <a data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" href="/mrdoob/three.js">three.js</a>
-    </strong>
-
-    <span></span><span class="Label Label--secondary v-align-middle mr-1">Public</span>
-  </div>
-
-
-        </div>
-
-        <div id="repository-details-container" class="flex-shrink-0" data-turbo-replace style="max-width: 70%;">
-            <ul class="pagehead-actions flex-shrink-0 d-none d-md-inline" style="padding: 2px 0;">
-    
-        <li>
-          <include-fragment src="/mrdoob/three.js/sponsor_button" data-nonce="v2:6d50dbae-2bb1-dafc-c69c-b490a58554ea" data-view-component="true">
-  
-  <div data-show-on-forbidden-error hidden>
-    <div class="Box">
-  <div class="blankslate-container">
-    <div data-view-component="true" class="blankslate blankslate-spacious color-bg-default rounded-2">
-      
-
-      <h3 data-view-component="true" class="blankslate-heading">        Uh oh!
-</h3>
-      <p data-view-component="true">        <p class="color-fg-muted my-2 mb-2 ws-normal">There was an error while loading. <a class="Link--inTextBlock" data-turbo="false" href="" aria-label="Please reload this page">Please reload this page</a>.</p>
-</p>
-
-</div>  </div>
-</div>  </div>
-</include-fragment>
-        </li>
-
-      
-
-  <li>
-            <a href="/login?return_to=%2Fmrdoob%2Fthree.js" rel="nofollow" id="repository-details-watch-button" data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;notification subscription menu watch&quot;,&quot;repository_id&quot;:null,&quot;auth_type&quot;:&quot;LOG_IN&quot;,&quot;originating_url&quot;:&quot;https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="2f6c27c3ab30e2511343fc0bc0e49c6a352687673262397d70e928f5c152fdda" aria-label="You must be signed in to change notification settings" data-view-component="true" class="btn-sm btn">    <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-bell mr-2">
-    <path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16ZM3 5a5 5 0 0 1 10 0v2.947c0 .05.015.098.042.139l1.703 2.555A1.519 1.519 0 0 1 13.482 13H2.518a1.516 1.516 0 0 1-1.263-2.36l1.703-2.554A.255.255 0 0 0 3 7.947Zm5-3.5A3.5 3.5 0 0 0 4.5 5v2.947c0 .346-.102.683-.294.97l-1.703 2.556a.017.017 0 0 0-.003.01l.001.006c0 .002.002.004.004.006l.006.004.007.001h10.964l.007-.001.006-.004.004-.006.001-.007a.017.017 0 0 0-.003-.01l-1.703-2.554a1.745 1.745 0 0 1-.294-.97V5A3.5 3.5 0 0 0 8 1.5Z"></path>
-</svg>Notifications
-</a>    <tool-tip id="tooltip-3ac98dac-eda3-47a3-a365-ec330cd73018" for="repository-details-watch-button" popover="manual" data-direction="s" data-type="description" data-view-component="true" class="sr-only position-absolute">You must be signed in to change notification settings</tool-tip>
-
-  </li>
-
-  <li>
-          <a icon="repo-forked" id="fork-button" href="/login?return_to=%2Fmrdoob%2Fthree.js" rel="nofollow" data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;repo details fork button&quot;,&quot;repository_id&quot;:576201,&quot;auth_type&quot;:&quot;LOG_IN&quot;,&quot;originating_url&quot;:&quot;https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="8b4ba46f93c0b557e232acd5ef96a59113571b9a82757362fa80ba3467b273d7" data-view-component="true" class="btn-sm btn">    <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-repo-forked mr-2">
-    <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z"></path>
-</svg>Fork
-    <span id="repo-network-counter" data-pjax-replace="true" data-turbo-replace="true" title="36,165" data-view-component="true" class="Counter">36.2k</span>
-</a>
-  </li>
-
-  <li>
-        <div data-view-component="true" class="BtnGroup d-flex">
-        <a href="/login?return_to=%2Fmrdoob%2Fthree.js" rel="nofollow" data-hydro-click="{&quot;event_type&quot;:&quot;authentication.click&quot;,&quot;payload&quot;:{&quot;location_in_page&quot;:&quot;star button&quot;,&quot;repository_id&quot;:576201,&quot;auth_type&quot;:&quot;LOG_IN&quot;,&quot;originating_url&quot;:&quot;https://github.com/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js&quot;,&quot;user_id&quot;:null}}" data-hydro-click-hmac="969288f0bdd3d08ca013deebfe45d8f44d4d7075d937aa441107265feebd98f1" aria-label="You must be signed in to star a repository" data-view-component="true" class="tooltipped tooltipped-sw btn-sm btn">    <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-star v-align-text-bottom d-inline-block mr-2">
-    <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Zm0 2.445L6.615 5.5a.75.75 0 0 1-.564.41l-3.097.45 2.24 2.184a.75.75 0 0 1 .216.664l-.528 3.084 2.769-1.456a.75.75 0 0 1 .698 0l2.77 1.456-.53-3.084a.75.75 0 0 1 .216-.664l2.24-2.183-3.096-.45a.75.75 0 0 1-.564-.41L8 2.694Z"></path>
-</svg><span data-view-component="true" class="d-inline">
-          Star
-</span>          <span id="repo-stars-counter-star" aria-label="109899 users starred this repository" data-singular-suffix="user starred this repository" data-plural-suffix="users starred this repository" data-turbo-replace="true" title="109,899" data-view-component="true" class="Counter js-social-count">110k</span>
-</a></div>
-  </li>
-
-</ul>
-
-        </div>
-      </div>
-
-        <div id="responsive-meta-container" data-turbo-replace>
-</div>
-
-
-          <nav data-pjax="#js-repo-pjax-container" aria-label="Repository" data-view-component="true" class="js-repo-nav js-sidenav-container-pjax js-responsive-underlinenav overflow-hidden UnderlineNav px-3 px-md-4 px-lg-5">
-
-  <ul data-view-component="true" class="UnderlineNav-body list-style-none">
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="code-tab" href="/mrdoob/three.js/tree/r159" data-tab-item="i0code-tab" data-selected-links="repo_source repo_downloads repo_commits repo_releases repo_tags repo_branches repo_packages repo_deployments repo_attestations /mrdoob/three.js/tree/r159" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-hotkey="g c" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Code&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" aria-current="page" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item selected">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-code UnderlineNav-octicon d-none d-sm-inline">
-    <path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-        <span data-content="Code">Code</span>
-          <span id="code-repo-tab-count" data-pjax-replace="" data-turbo-replace="" title="Not available" data-view-component="true" class="Counter"></span>
-
-
-    
-</a></li>
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="issues-tab" href="/mrdoob/three.js/issues" data-tab-item="i1issues-tab" data-selected-links="repo_issues repo_labels repo_milestones /mrdoob/three.js/issues" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-hotkey="g i" data-react-nav="issues-react" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Issues&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-issue-opened UnderlineNav-octicon d-none d-sm-inline">
-    <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
-</svg>
-        <span data-content="Issues">Issues</span>
-          <span id="issues-repo-tab-count" data-pjax-replace="" data-turbo-replace="" title="458" data-view-component="true" class="Counter">458</span>
-
-
-    
-</a></li>
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="pull-requests-tab" href="/mrdoob/three.js/pulls" data-tab-item="i2pull-requests-tab" data-selected-links="repo_pulls checks /mrdoob/three.js/pulls" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-hotkey="g p" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Pull requests&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-git-pull-request UnderlineNav-octicon d-none d-sm-inline">
-    <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
-</svg>
-        <span data-content="Pull requests">Pull requests</span>
-          <span id="pull-requests-repo-tab-count" data-pjax-replace="" data-turbo-replace="" title="154" data-view-component="true" class="Counter">154</span>
-
-
-    
-</a></li>
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="actions-tab" href="/mrdoob/three.js/actions" data-tab-item="i3actions-tab" data-selected-links="repo_actions /mrdoob/three.js/actions" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-hotkey="g a" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Actions&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-play UnderlineNav-octicon d-none d-sm-inline">
-    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path>
-</svg>
-        <span data-content="Actions">Actions</span>
-          <span id="actions-repo-tab-count" data-pjax-replace="" data-turbo-replace="" title="Not available" data-view-component="true" class="Counter"></span>
-
-
-    
-</a></li>
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="wiki-tab" href="/mrdoob/three.js/wiki" data-tab-item="i4wiki-tab" data-selected-links="repo_wiki /mrdoob/three.js/wiki" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-hotkey="g w" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Wiki&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-book UnderlineNav-octicon d-none d-sm-inline">
-    <path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path>
-</svg>
-        <span data-content="Wiki">Wiki</span>
-          <span id="wiki-repo-tab-count" data-pjax-replace="" data-turbo-replace="" title="Not available" data-view-component="true" class="Counter"></span>
-
-
-    
-</a></li>
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="security-tab" href="/mrdoob/three.js/security" data-tab-item="i5security-tab" data-selected-links="security overview alerts policy token_scanning code_scanning /mrdoob/three.js/security" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-hotkey="g s" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Security&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-shield UnderlineNav-octicon d-none d-sm-inline">
-    <path d="M7.467.133a1.748 1.748 0 0 1 1.066 0l5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667Zm.61 1.429a.25.25 0 0 0-.153 0l-5.25 1.68a.25.25 0 0 0-.174.238V7c0 1.358.275 2.666 1.057 3.86.784 1.194 2.121 2.34 4.366 3.297a.196.196 0 0 0 .154 0c2.245-.956 3.582-2.104 4.366-3.298C13.225 9.666 13.5 8.36 13.5 7V3.48a.251.251 0 0 0-.174-.237l-5.25-1.68ZM8.75 4.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 1.5 0ZM9 10.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
-</svg>
-        <span data-content="Security">Security</span>
-          <include-fragment src="/mrdoob/three.js/security/overall-count" accept="text/fragment+html" data-nonce="v2:6d50dbae-2bb1-dafc-c69c-b490a58554ea" data-view-component="true">
-  
-  <div data-show-on-forbidden-error hidden>
-    <div class="Box">
-  <div class="blankslate-container">
-    <div data-view-component="true" class="blankslate blankslate-spacious color-bg-default rounded-2">
-      
-
-      <h3 data-view-component="true" class="blankslate-heading">        Uh oh!
-</h3>
-      <p data-view-component="true">        <p class="color-fg-muted my-2 mb-2 ws-normal">There was an error while loading. <a class="Link--inTextBlock" data-turbo="false" href="" aria-label="Please reload this page">Please reload this page</a>.</p>
-</p>
-
-</div>  </div>
-</div>  </div>
-</include-fragment>
-
-    
-</a></li>
-      <li data-view-component="true" class="d-inline-flex">
-  <a id="insights-tab" href="/mrdoob/three.js/pulse" data-tab-item="i6insights-tab" data-selected-links="repo_graphs repo_contributors dependency_graph dependabot_updates pulse people community /mrdoob/three.js/pulse" data-pjax="#repo-content-pjax-container" data-turbo-frame="repo-content-turbo-frame" data-analytics-event="{&quot;category&quot;:&quot;Underline navbar&quot;,&quot;action&quot;:&quot;Click tab&quot;,&quot;label&quot;:&quot;Insights&quot;,&quot;target&quot;:&quot;UNDERLINE_NAV.TAB&quot;}" data-view-component="true" class="UnderlineNav-item no-wrap js-responsive-underlinenav-item js-selected-navigation-item">
-    
-              <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-graph UnderlineNav-octicon d-none d-sm-inline">
-    <path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path>
-</svg>
-        <span data-content="Insights">Insights</span>
-          <span id="insights-repo-tab-count" data-pjax-replace="" data-turbo-replace="" title="Not available" data-view-component="true" class="Counter"></span>
-
-
-    
-</a></li>
-</ul>
-    <div style="visibility:hidden;" data-view-component="true" class="UnderlineNav-actions js-responsive-underlinenav-overflow position-absolute pr-3 pr-md-4 pr-lg-5 right-0">      <action-menu data-select-variant="none" data-view-component="true">
-  <focus-group direction="vertical" mnemonics retain>
-    <button id="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-button" popovertarget="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-overlay" aria-controls="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-list" aria-haspopup="true" aria-labelledby="tooltip-64613b7b-eb7b-4838-8625-a7802c240fd9" type="button" data-view-component="true" class="Button Button--iconOnly Button--secondary Button--medium UnderlineNav-item">  <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-kebab-horizontal Button-visual">
-    <path d="M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM1.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm13 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path>
-</svg>
-</button><tool-tip id="tooltip-64613b7b-eb7b-4838-8625-a7802c240fd9" for="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-button" popover="manual" data-direction="s" data-type="label" data-view-component="true" class="sr-only position-absolute">Additional navigation options</tool-tip>
-
-
-<anchored-position data-target="action-menu.overlay" id="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-overlay" anchor="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-button" align="start" side="outside-bottom" anchor-offset="normal" popover="auto" data-view-component="true">
-  <div data-view-component="true" class="Overlay Overlay--size-auto">
-    
-      <div data-view-component="true" class="Overlay-body Overlay-body--paddingNone">          <action-list>
-  <div data-view-component="true">
-    <ul aria-labelledby="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-button" id="action-menu-1f0a766a-a224-4920-bca0-ea56e8c71bed-list" role="menu" data-view-component="true" class="ActionListWrap--inset ActionListWrap">
-        <li hidden="hidden" data-menu-item="i0code-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-e1c03daf-1230-4c26-9604-f7295e084de5" href="/mrdoob/three.js/tree/r159" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-code">
-    <path d="m11.28 3.22 4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L13.94 8l-3.72-3.72a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215Zm-6.56 0a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L2.06 8l3.72 3.72a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L.47 8.53a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Code
-</span>      
-</a>
-  
-</li>
-        <li hidden="hidden" data-menu-item="i1issues-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-5516e355-f434-40b3-940c-8c682ff5056c" href="/mrdoob/three.js/issues" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-issue-opened">
-    <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"></path><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Issues
-</span>      
-</a>
-  
-</li>
-        <li hidden="hidden" data-menu-item="i2pull-requests-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-67b0d878-5427-461a-9025-cbabb096e05f" href="/mrdoob/three.js/pulls" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-git-pull-request">
-    <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Pull requests
-</span>      
-</a>
-  
-</li>
-        <li hidden="hidden" data-menu-item="i3actions-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-c9b8af8e-5fef-48d9-9ed9-5316406b898e" href="/mrdoob/three.js/actions" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-play">
-    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm4.879-2.773 4.264 2.559a.25.25 0 0 1 0 .428l-4.264 2.559A.25.25 0 0 1 6 10.559V5.442a.25.25 0 0 1 .379-.215Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Actions
-</span>      
-</a>
-  
-</li>
-        <li hidden="hidden" data-menu-item="i4wiki-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-9aea2f72-2f55-4cd2-8eab-afd1296c0e58" href="/mrdoob/three.js/wiki" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-book">
-    <path d="M0 1.75A.75.75 0 0 1 .75 1h4.253c1.227 0 2.317.59 3 1.501A3.743 3.743 0 0 1 11.006 1h4.245a.75.75 0 0 1 .75.75v10.5a.75.75 0 0 1-.75.75h-4.507a2.25 2.25 0 0 0-1.591.659l-.622.621a.75.75 0 0 1-1.06 0l-.622-.621A2.25 2.25 0 0 0 5.258 13H.75a.75.75 0 0 1-.75-.75Zm7.251 10.324.004-5.073-.002-2.253A2.25 2.25 0 0 0 5.003 2.5H1.5v9h3.757a3.75 3.75 0 0 1 1.994.574ZM8.755 4.75l-.004 7.322a3.752 3.752 0 0 1 1.992-.572H14.5v-9h-3.495a2.25 2.25 0 0 0-2.25 2.25Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Wiki
-</span>      
-</a>
-  
-</li>
-        <li hidden="hidden" data-menu-item="i5security-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-f6eb2cbe-d6d3-4969-ad45-1c50d8ff050e" href="/mrdoob/three.js/security" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-shield">
-    <path d="M7.467.133a1.748 1.748 0 0 1 1.066 0l5.25 1.68A1.75 1.75 0 0 1 15 3.48V7c0 1.566-.32 3.182-1.303 4.682-.983 1.498-2.585 2.813-5.032 3.855a1.697 1.697 0 0 1-1.33 0c-2.447-1.042-4.049-2.357-5.032-3.855C1.32 10.182 1 8.566 1 7V3.48a1.75 1.75 0 0 1 1.217-1.667Zm.61 1.429a.25.25 0 0 0-.153 0l-5.25 1.68a.25.25 0 0 0-.174.238V7c0 1.358.275 2.666 1.057 3.86.784 1.194 2.121 2.34 4.366 3.297a.196.196 0 0 0 .154 0c2.245-.956 3.582-2.104 4.366-3.298C13.225 9.666 13.5 8.36 13.5 7V3.48a.251.251 0 0 0-.174-.237l-5.25-1.68ZM8.75 4.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 1.5 0ZM9 10.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Security
-</span>      
-</a>
-  
-</li>
-        <li hidden="hidden" data-menu-item="i6insights-tab" data-targets="action-list.items" role="none" data-view-component="true" class="ActionListItem">
-    
-    
-    <a tabindex="-1" id="item-ecd12400-408d-4f30-a8a3-4a1fb0fa5f85" href="/mrdoob/three.js/pulse" role="menuitem" data-view-component="true" class="ActionListContent ActionListContent--visual16">
-        <span class="ActionListItem-visual ActionListItem-visual--leading">
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-graph">
-    <path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"></path>
-</svg>
-        </span>
-      
-        <span data-view-component="true" class="ActionListItem-label">
-          Insights
-</span>      
-</a>
-  
-</li>
-</ul>    
-</div></action-list>
-
-
-</div>
-      
-</div></anchored-position>  </focus-group>
-</action-menu></div>
-</nav>
-
-  </div>
-  
-
-
-  <div id="repository-hidden-app" data-turbo-replace hidden></div>
-
-
-<turbo-frame id="repo-content-turbo-frame" target="_top" data-turbo-action="advance" class="">
-    <div id="repo-content-pjax-container" class="repository-content " >
-    
-
-
-
-    
-      
-    
-
-
-
-
-
-
-
-
-<react-app
-  app-name="react-code-view"
-  initial-path="/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js"
-    style="display: block; min-height: calc(100vh - 64px);"
-  data-attempted-ssr="false"
-  data-ssr="false"
-  data-lazy="false"
-  data-alternate="false"
-  data-data-router-enabled="false"
-  data-react-profiling="false"
->
-  
-  <script type="application/json" data-target="react-app.embeddedData">{"payload":{"allShortcutsEnabled":false,"fileTree":{"examples/jsm/loaders":{"items":[{"name":"lwo","path":"examples/jsm/loaders/lwo","contentType":"directory"},{"name":"3DMLoader.js","path":"examples/jsm/loaders/3DMLoader.js","contentType":"file"},{"name":"3MFLoader.js","path":"examples/jsm/loaders/3MFLoader.js","contentType":"file"},{"name":"AMFLoader.js","path":"examples/jsm/loaders/AMFLoader.js","contentType":"file"},{"name":"BVHLoader.js","path":"examples/jsm/loaders/BVHLoader.js","contentType":"file"},{"name":"ColladaLoader.js","path":"examples/jsm/loaders/ColladaLoader.js","contentType":"file"},{"name":"DDSLoader.js","path":"examples/jsm/loaders/DDSLoader.js","contentType":"file"},{"name":"DRACOLoader.js","path":"examples/jsm/loaders/DRACOLoader.js","contentType":"file"},{"name":"EXRLoader.js","path":"examples/jsm/loaders/EXRLoader.js","contentType":"file"},{"name":"FBXLoader.js","path":"examples/jsm/loaders/FBXLoader.js","contentType":"file"},{"name":"FontLoader.js","path":"examples/jsm/loaders/FontLoader.js","contentType":"file"},{"name":"GCodeLoader.js","path":"examples/jsm/loaders/GCodeLoader.js","contentType":"file"},{"name":"GLTFLoader.js","path":"examples/jsm/loaders/GLTFLoader.js","contentType":"file"},{"name":"HDRCubeTextureLoader.js","path":"examples/jsm/loaders/HDRCubeTextureLoader.js","contentType":"file"},{"name":"IESLoader.js","path":"examples/jsm/loaders/IESLoader.js","contentType":"file"},{"name":"KMZLoader.js","path":"examples/jsm/loaders/KMZLoader.js","contentType":"file"},{"name":"KTX2Loader.js","path":"examples/jsm/loaders/KTX2Loader.js","contentType":"file"},{"name":"KTXLoader.js","path":"examples/jsm/loaders/KTXLoader.js","contentType":"file"},{"name":"LDrawLoader.js","path":"examples/jsm/loaders/LDrawLoader.js","contentType":"file"},{"name":"LUT3dlLoader.js","path":"examples/jsm/loaders/LUT3dlLoader.js","contentType":"file"},{"name":"LUTCubeLoader.js","path":"examples/jsm/loaders/LUTCubeLoader.js","contentType":"file"},{"name":"LUTImageLoader.js","path":"examples/jsm/loaders/LUTImageLoader.js","contentType":"file"},{"name":"LWOLoader.js","path":"examples/jsm/loaders/LWOLoader.js","contentType":"file"},{"name":"LogLuvLoader.js","path":"examples/jsm/loaders/LogLuvLoader.js","contentType":"file"},{"name":"LottieLoader.js","path":"examples/jsm/loaders/LottieLoader.js","contentType":"file"},{"name":"MD2Loader.js","path":"examples/jsm/loaders/MD2Loader.js","contentType":"file"},{"name":"MDDLoader.js","path":"examples/jsm/loaders/MDDLoader.js","contentType":"file"},{"name":"MMDLoader.js","path":"examples/jsm/loaders/MMDLoader.js","contentType":"file"},{"name":"MTLLoader.js","path":"examples/jsm/loaders/MTLLoader.js","contentType":"file"},{"name":"MaterialXLoader.js","path":"examples/jsm/loaders/MaterialXLoader.js","contentType":"file"},{"name":"NRRDLoader.js","path":"examples/jsm/loaders/NRRDLoader.js","contentType":"file"},{"name":"OBJLoader.js","path":"examples/jsm/loaders/OBJLoader.js","contentType":"file"},{"name":"PCDLoader.js","path":"examples/jsm/loaders/PCDLoader.js","contentType":"file"},{"name":"PDBLoader.js","path":"examples/jsm/loaders/PDBLoader.js","contentType":"file"},{"name":"PLYLoader.js","path":"examples/jsm/loaders/PLYLoader.js","contentType":"file"},{"name":"PVRLoader.js","path":"examples/jsm/loaders/PVRLoader.js","contentType":"file"},{"name":"RGBELoader.js","path":"examples/jsm/loaders/RGBELoader.js","contentType":"file"},{"name":"RGBMLoader.js","path":"examples/jsm/loaders/RGBMLoader.js","contentType":"file"},{"name":"STLLoader.js","path":"examples/jsm/loaders/STLLoader.js","contentType":"file"},{"name":"SVGLoader.js","path":"examples/jsm/loaders/SVGLoader.js","contentType":"file"},{"name":"TDSLoader.js","path":"examples/jsm/loaders/TDSLoader.js","contentType":"file"},{"name":"TGALoader.js","path":"examples/jsm/loaders/TGALoader.js","contentType":"file"},{"name":"TIFFLoader.js","path":"examples/jsm/loaders/TIFFLoader.js","contentType":"file"},{"name":"TTFLoader.js","path":"examples/jsm/loaders/TTFLoader.js","contentType":"file"},{"name":"TiltLoader.js","path":"examples/jsm/loaders/TiltLoader.js","contentType":"file"},{"name":"USDZLoader.js","path":"examples/jsm/loaders/USDZLoader.js","contentType":"file"},{"name":"VOXLoader.js","path":"examples/jsm/loaders/VOXLoader.js","contentType":"file"},{"name":"VRMLLoader.js","path":"examples/jsm/loaders/VRMLLoader.js","contentType":"file"},{"name":"VTKLoader.js","path":"examples/jsm/loaders/VTKLoader.js","contentType":"file"},{"name":"XYZLoader.js","path":"examples/jsm/loaders/XYZLoader.js","contentType":"file"}],"totalCount":50},"examples/jsm":{"items":[{"name":"animation","path":"examples/jsm/animation","contentType":"directory"},{"name":"cameras","path":"examples/jsm/cameras","contentType":"directory"},{"name":"capabilities","path":"examples/jsm/capabilities","contentType":"directory"},{"name":"controls","path":"examples/jsm/controls","contentType":"directory"},{"name":"csm","path":"examples/jsm/csm","contentType":"directory"},{"name":"curves","path":"examples/jsm/curves","contentType":"directory"},{"name":"effects","path":"examples/jsm/effects","contentType":"directory"},{"name":"environments","path":"examples/jsm/environments","contentType":"directory"},{"name":"exporters","path":"examples/jsm/exporters","contentType":"directory"},{"name":"geometries","path":"examples/jsm/geometries","contentType":"directory"},{"name":"helpers","path":"examples/jsm/helpers","contentType":"directory"},{"name":"interactive","path":"examples/jsm/interactive","contentType":"directory"},{"name":"libs","path":"examples/jsm/libs","contentType":"directory"},{"name":"lights","path":"examples/jsm/lights","contentType":"directory"},{"name":"lines","path":"examples/jsm/lines","contentType":"directory"},{"name":"loaders","path":"examples/jsm/loaders","contentType":"directory"},{"name":"materials","path":"examples/jsm/materials","contentType":"directory"},{"name":"math","path":"examples/jsm/math","contentType":"directory"},{"name":"misc","path":"examples/jsm/misc","contentType":"directory"},{"name":"modifiers","path":"examples/jsm/modifiers","contentType":"directory"},{"name":"nodes","path":"examples/jsm/nodes","contentType":"directory"},{"name":"objects","path":"examples/jsm/objects","contentType":"directory"},{"name":"offscreen","path":"examples/jsm/offscreen","contentType":"directory"},{"name":"physics","path":"examples/jsm/physics","contentType":"directory"},{"name":"postprocessing","path":"examples/jsm/postprocessing","contentType":"directory"},{"name":"renderers","path":"examples/jsm/renderers","contentType":"directory"},{"name":"shaders","path":"examples/jsm/shaders","contentType":"directory"},{"name":"textures","path":"examples/jsm/textures","contentType":"directory"},{"name":"transpiler","path":"examples/jsm/transpiler","contentType":"directory"},{"name":"utils","path":"examples/jsm/utils","contentType":"directory"},{"name":"webxr","path":"examples/jsm/webxr","contentType":"directory"},{"name":"Addons.js","path":"examples/jsm/Addons.js","contentType":"file"}],"totalCount":32},"examples":{"items":[{"name":"files","path":"examples/files","contentType":"directory"},{"name":"fonts","path":"examples/fonts","contentType":"directory"},{"name":"ies","path":"examples/ies","contentType":"directory"},{"name":"jsm","path":"examples/jsm","contentType":"directory"},{"name":"luts","path":"examples/luts","contentType":"directory"},{"name":"models","path":"examples/models","contentType":"directory"},{"name":"screenshots","path":"examples/screenshots","contentType":"directory"},{"name":"sounds","path":"examples/sounds","contentType":"directory"},{"name":"textures","path":"examples/textures","contentType":"directory"},{"name":"css2d_label.html","path":"examples/css2d_label.html","contentType":"file"},{"name":"css3d_molecules.html","path":"examples/css3d_molecules.html","contentType":"file"},{"name":"css3d_orthographic.html","path":"examples/css3d_orthographic.html","contentType":"file"},{"name":"css3d_periodictable.html","path":"examples/css3d_periodictable.html","contentType":"file"},{"name":"css3d_sandbox.html","path":"examples/css3d_sandbox.html","contentType":"file"},{"name":"css3d_sprites.html","path":"examples/css3d_sprites.html","contentType":"file"},{"name":"css3d_youtube.html","path":"examples/css3d_youtube.html","contentType":"file"},{"name":"files.json","path":"examples/files.json","contentType":"file"},{"name":"games_fps.html","path":"examples/games_fps.html","contentType":"file"},{"name":"index.html","path":"examples/index.html","contentType":"file"},{"name":"main.css","path":"examples/main.css","contentType":"file"},{"name":"misc_animation_groups.html","path":"examples/misc_animation_groups.html","contentType":"file"},{"name":"misc_animation_keys.html","path":"examples/misc_animation_keys.html","contentType":"file"},{"name":"misc_boxselection.html","path":"examples/misc_boxselection.html","contentType":"file"},{"name":"misc_controls_arcball.html","path":"examples/misc_controls_arcball.html","contentType":"file"},{"name":"misc_controls_drag.html","path":"examples/misc_controls_drag.html","contentType":"file"},{"name":"misc_controls_fly.html","path":"examples/misc_controls_fly.html","contentType":"file"},{"name":"misc_controls_map.html","path":"examples/misc_controls_map.html","contentType":"file"},{"name":"misc_controls_orbit.html","path":"examples/misc_controls_orbit.html","contentType":"file"},{"name":"misc_controls_pointerlock.html","path":"examples/misc_controls_pointerlock.html","contentType":"file"},{"name":"misc_controls_trackball.html","path":"examples/misc_controls_trackball.html","contentType":"file"},{"name":"misc_controls_transform.html","path":"examples/misc_controls_transform.html","contentType":"file"},{"name":"misc_exporter_draco.html","path":"examples/misc_exporter_draco.html","contentType":"file"},{"name":"misc_exporter_exr.html","path":"examples/misc_exporter_exr.html","contentType":"file"},{"name":"misc_exporter_gltf.html","path":"examples/misc_exporter_gltf.html","contentType":"file"},{"name":"misc_exporter_obj.html","path":"examples/misc_exporter_obj.html","contentType":"file"},{"name":"misc_exporter_ply.html","path":"examples/misc_exporter_ply.html","contentType":"file"},{"name":"misc_exporter_stl.html","path":"examples/misc_exporter_stl.html","contentType":"file"},{"name":"misc_exporter_usdz.html","path":"examples/misc_exporter_usdz.html","contentType":"file"},{"name":"misc_lookat.html","path":"examples/misc_lookat.html","contentType":"file"},{"name":"misc_uv_tests.html","path":"examples/misc_uv_tests.html","contentType":"file"},{"name":"physics_ammo_break.html","path":"examples/physics_ammo_break.html","contentType":"file"},{"name":"physics_ammo_cloth.html","path":"examples/physics_ammo_cloth.html","contentType":"file"},{"name":"physics_ammo_instancing.html","path":"examples/physics_ammo_instancing.html","contentType":"file"},{"name":"physics_ammo_rope.html","path":"examples/physics_ammo_rope.html","contentType":"file"},{"name":"physics_ammo_terrain.html","path":"examples/physics_ammo_terrain.html","contentType":"file"},{"name":"physics_ammo_volume.html","path":"examples/physics_ammo_volume.html","contentType":"file"},{"name":"physics_rapier_instancing.html","path":"examples/physics_rapier_instancing.html","contentType":"file"},{"name":"svg_lines.html","path":"examples/svg_lines.html","contentType":"file"},{"name":"svg_sandbox.html","path":"examples/svg_sandbox.html","contentType":"file"},{"name":"tags.json","path":"examples/tags.json","contentType":"file"},{"name":"webaudio_orientation.html","path":"examples/webaudio_orientation.html","contentType":"file"},{"name":"webaudio_sandbox.html","path":"examples/webaudio_sandbox.html","contentType":"file"},{"name":"webaudio_timing.html","path":"examples/webaudio_timing.html","contentType":"file"},{"name":"webaudio_visualizer.html","path":"examples/webaudio_visualizer.html","contentType":"file"},{"name":"webgl2_buffergeometry_attributes_integer.html","path":"examples/webgl2_buffergeometry_attributes_integer.html","contentType":"file"},{"name":"webgl2_buffergeometry_attributes_none.html","path":"examples/webgl2_buffergeometry_attributes_none.html","contentType":"file"},{"name":"webgl2_materials_texture2darray.html","path":"examples/webgl2_materials_texture2darray.html","contentType":"file"},{"name":"webgl2_materials_texture3d.html","path":"examples/webgl2_materials_texture3d.html","contentType":"file"},{"name":"webgl2_materials_texture3d_partialupdate.html","path":"examples/webgl2_materials_texture3d_partialupdate.html","contentType":"file"},{"name":"webgl2_multiple_rendertargets.html","path":"examples/webgl2_multiple_rendertargets.html","contentType":"file"},{"name":"webgl2_multisampled_renderbuffers.html","path":"examples/webgl2_multisampled_renderbuffers.html","contentType":"file"},{"name":"webgl2_rendertarget_texture2darray.html","path":"examples/webgl2_rendertarget_texture2darray.html","contentType":"file"},{"name":"webgl2_texture2darray_compressed.html","path":"examples/webgl2_texture2darray_compressed.html","contentType":"file"},{"name":"webgl2_ubo.html","path":"examples/webgl2_ubo.html","contentType":"file"},{"name":"webgl2_volume_cloud.html","path":"examples/webgl2_volume_cloud.html","contentType":"file"},{"name":"webgl2_volume_instancing.html","path":"examples/webgl2_volume_instancing.html","contentType":"file"},{"name":"webgl2_volume_perlin.html","path":"examples/webgl2_volume_perlin.html","contentType":"file"},{"name":"webgl_animation_keyframes.html","path":"examples/webgl_animation_keyframes.html","contentType":"file"},{"name":"webgl_animation_multiple.html","path":"examples/webgl_animation_multiple.html","contentType":"file"},{"name":"webgl_animation_skinning_additive_blending.html","path":"examples/webgl_animation_skinning_additive_blending.html","contentType":"file"},{"name":"webgl_animation_skinning_blending.html","path":"examples/webgl_animation_skinning_blending.html","contentType":"file"},{"name":"webgl_animation_skinning_ik.html","path":"examples/webgl_animation_skinning_ik.html","contentType":"file"},{"name":"webgl_animation_skinning_morph.html","path":"examples/webgl_animation_skinning_morph.html","contentType":"file"},{"name":"webgl_buffergeometry.html","path":"examples/webgl_buffergeometry.html","contentType":"file"},{"name":"webgl_buffergeometry_compression.html","path":"examples/webgl_buffergeometry_compression.html","contentType":"file"},{"name":"webgl_buffergeometry_custom_attributes_particles.html","path":"examples/webgl_buffergeometry_custom_attributes_particles.html","contentType":"file"},{"name":"webgl_buffergeometry_drawrange.html","path":"examples/webgl_buffergeometry_drawrange.html","contentType":"file"},{"name":"webgl_buffergeometry_glbufferattribute.html","path":"examples/webgl_buffergeometry_glbufferattribute.html","contentType":"file"},{"name":"webgl_buffergeometry_indexed.html","path":"examples/webgl_buffergeometry_indexed.html","contentType":"file"},{"name":"webgl_buffergeometry_instancing.html","path":"examples/webgl_buffergeometry_instancing.html","contentType":"file"},{"name":"webgl_buffergeometry_instancing_billboards.html","path":"examples/webgl_buffergeometry_instancing_billboards.html","contentType":"file"},{"name":"webgl_buffergeometry_instancing_interleaved.html","path":"examples/webgl_buffergeometry_instancing_interleaved.html","contentType":"file"},{"name":"webgl_buffergeometry_lines.html","path":"examples/webgl_buffergeometry_lines.html","contentType":"file"},{"name":"webgl_buffergeometry_lines_indexed.html","path":"examples/webgl_buffergeometry_lines_indexed.html","contentType":"file"},{"name":"webgl_buffergeometry_points.html","path":"examples/webgl_buffergeometry_points.html","contentType":"file"},{"name":"webgl_buffergeometry_points_interleaved.html","path":"examples/webgl_buffergeometry_points_interleaved.html","contentType":"file"},{"name":"webgl_buffergeometry_rawshader.html","path":"examples/webgl_buffergeometry_rawshader.html","contentType":"file"},{"name":"webgl_buffergeometry_selective_draw.html","path":"examples/webgl_buffergeometry_selective_draw.html","contentType":"file"},{"name":"webgl_buffergeometry_uint.html","path":"examples/webgl_buffergeometry_uint.html","contentType":"file"},{"name":"webgl_camera.html","path":"examples/webgl_camera.html","contentType":"file"},{"name":"webgl_camera_array.html","path":"examples/webgl_camera_array.html","contentType":"file"},{"name":"webgl_camera_cinematic.html","path":"examples/webgl_camera_cinematic.html","contentType":"file"},{"name":"webgl_camera_logarithmicdepthbuffer.html","path":"examples/webgl_camera_logarithmicdepthbuffer.html","contentType":"file"},{"name":"webgl_clipping.html","path":"examples/webgl_clipping.html","contentType":"file"},{"name":"webgl_clipping_advanced.html","path":"examples/webgl_clipping_advanced.html","contentType":"file"},{"name":"webgl_clipping_intersection.html","path":"examples/webgl_clipping_intersection.html","contentType":"file"},{"name":"webgl_clipping_stencil.html","path":"examples/webgl_clipping_stencil.html","contentType":"file"},{"name":"webgl_custom_attributes.html","path":"examples/webgl_custom_attributes.html","contentType":"file"},{"name":"webgl_custom_attributes_lines.html","path":"examples/webgl_custom_attributes_lines.html","contentType":"file"},{"name":"webgl_custom_attributes_points.html","path":"examples/webgl_custom_attributes_points.html","contentType":"file"},{"name":"webgl_custom_attributes_points2.html","path":"examples/webgl_custom_attributes_points2.html","contentType":"file"},{"name":"webgl_custom_attributes_points3.html","path":"examples/webgl_custom_attributes_points3.html","contentType":"file"},{"name":"webgl_decals.html","path":"examples/webgl_decals.html","contentType":"file"},{"name":"webgl_depth_texture.html","path":"examples/webgl_depth_texture.html","contentType":"file"},{"name":"webgl_effects_anaglyph.html","path":"examples/webgl_effects_anaglyph.html","contentType":"file"},{"name":"webgl_effects_ascii.html","path":"examples/webgl_effects_ascii.html","contentType":"file"},{"name":"webgl_effects_parallaxbarrier.html","path":"examples/webgl_effects_parallaxbarrier.html","contentType":"file"},{"name":"webgl_effects_peppersghost.html","path":"examples/webgl_effects_peppersghost.html","contentType":"file"},{"name":"webgl_effects_stereo.html","path":"examples/webgl_effects_stereo.html","contentType":"file"},{"name":"webgl_framebuffer_texture.html","path":"examples/webgl_framebuffer_texture.html","contentType":"file"},{"name":"webgl_furnace_test.html","path":"examples/webgl_furnace_test.html","contentType":"file"},{"name":"webgl_geometries.html","path":"examples/webgl_geometries.html","contentType":"file"},{"name":"webgl_geometries_parametric.html","path":"examples/webgl_geometries_parametric.html","contentType":"file"},{"name":"webgl_geometry_colors.html","path":"examples/webgl_geometry_colors.html","contentType":"file"},{"name":"webgl_geometry_colors_lookuptable.html","path":"examples/webgl_geometry_colors_lookuptable.html","contentType":"file"},{"name":"webgl_geometry_convex.html","path":"examples/webgl_geometry_convex.html","contentType":"file"},{"name":"webgl_geometry_csg.html","path":"examples/webgl_geometry_csg.html","contentType":"file"},{"name":"webgl_geometry_cube.html","path":"examples/webgl_geometry_cube.html","contentType":"file"},{"name":"webgl_geometry_dynamic.html","path":"examples/webgl_geometry_dynamic.html","contentType":"file"},{"name":"webgl_geometry_extrude_shapes.html","path":"examples/webgl_geometry_extrude_shapes.html","contentType":"file"},{"name":"webgl_geometry_extrude_splines.html","path":"examples/webgl_geometry_extrude_splines.html","contentType":"file"},{"name":"webgl_geometry_minecraft.html","path":"examples/webgl_geometry_minecraft.html","contentType":"file"},{"name":"webgl_geometry_nurbs.html","path":"examples/webgl_geometry_nurbs.html","contentType":"file"},{"name":"webgl_geometry_sdf.html","path":"examples/webgl_geometry_sdf.html","contentType":"file"},{"name":"webgl_geometry_shapes.html","path":"examples/webgl_geometry_shapes.html","contentType":"file"},{"name":"webgl_geometry_spline_editor.html","path":"examples/webgl_geometry_spline_editor.html","contentType":"file"},{"name":"webgl_geometry_teapot.html","path":"examples/webgl_geometry_teapot.html","contentType":"file"},{"name":"webgl_geometry_terrain.html","path":"examples/webgl_geometry_terrain.html","contentType":"file"},{"name":"webgl_geometry_terrain_raycast.html","path":"examples/webgl_geometry_terrain_raycast.html","contentType":"file"},{"name":"webgl_geometry_text.html","path":"examples/webgl_geometry_text.html","contentType":"file"},{"name":"webgl_geometry_text_shapes.html","path":"examples/webgl_geometry_text_shapes.html","contentType":"file"},{"name":"webgl_geometry_text_stroke.html","path":"examples/webgl_geometry_text_stroke.html","contentType":"file"},{"name":"webgl_gpgpu_birds.html","path":"examples/webgl_gpgpu_birds.html","contentType":"file"},{"name":"webgl_gpgpu_birds_gltf.html","path":"examples/webgl_gpgpu_birds_gltf.html","contentType":"file"},{"name":"webgl_gpgpu_protoplanet.html","path":"examples/webgl_gpgpu_protoplanet.html","contentType":"file"},{"name":"webgl_gpgpu_water.html","path":"examples/webgl_gpgpu_water.html","contentType":"file"},{"name":"webgl_helpers.html","path":"examples/webgl_helpers.html","contentType":"file"},{"name":"webgl_instancing_dynamic.html","path":"examples/webgl_instancing_dynamic.html","contentType":"file"},{"name":"webgl_instancing_performance.html","path":"examples/webgl_instancing_performance.html","contentType":"file"},{"name":"webgl_instancing_raycast.html","path":"examples/webgl_instancing_raycast.html","contentType":"file"},{"name":"webgl_instancing_scatter.html","path":"examples/webgl_instancing_scatter.html","contentType":"file"},{"name":"webgl_interactive_buffergeometry.html","path":"examples/webgl_interactive_buffergeometry.html","contentType":"file"},{"name":"webgl_interactive_cubes.html","path":"examples/webgl_interactive_cubes.html","contentType":"file"},{"name":"webgl_interactive_cubes_gpu.html","path":"examples/webgl_interactive_cubes_gpu.html","contentType":"file"},{"name":"webgl_interactive_cubes_ortho.html","path":"examples/webgl_interactive_cubes_ortho.html","contentType":"file"},{"name":"webgl_interactive_lines.html","path":"examples/webgl_interactive_lines.html","contentType":"file"},{"name":"webgl_interactive_points.html","path":"examples/webgl_interactive_points.html","contentType":"file"},{"name":"webgl_interactive_raycasting_points.html","path":"examples/webgl_interactive_raycasting_points.html","contentType":"file"},{"name":"webgl_interactive_voxelpainter.html","path":"examples/webgl_interactive_voxelpainter.html","contentType":"file"},{"name":"webgl_layers.html","path":"examples/webgl_layers.html","contentType":"file"},{"name":"webgl_lensflares.html","path":"examples/webgl_lensflares.html","contentType":"file"},{"name":"webgl_lightprobe.html","path":"examples/webgl_lightprobe.html","contentType":"file"},{"name":"webgl_lightprobe_cubecamera.html","path":"examples/webgl_lightprobe_cubecamera.html","contentType":"file"},{"name":"webgl_lights_hemisphere.html","path":"examples/webgl_lights_hemisphere.html","contentType":"file"},{"name":"webgl_lights_physical.html","path":"examples/webgl_lights_physical.html","contentType":"file"},{"name":"webgl_lights_pointlights.html","path":"examples/webgl_lights_pointlights.html","contentType":"file"},{"name":"webgl_lights_rectarealight.html","path":"examples/webgl_lights_rectarealight.html","contentType":"file"},{"name":"webgl_lights_spotlight.html","path":"examples/webgl_lights_spotlight.html","contentType":"file"},{"name":"webgl_lights_spotlights.html","path":"examples/webgl_lights_spotlights.html","contentType":"file"},{"name":"webgl_lines_colors.html","path":"examples/webgl_lines_colors.html","contentType":"file"},{"name":"webgl_lines_dashed.html","path":"examples/webgl_lines_dashed.html","contentType":"file"},{"name":"webgl_lines_fat.html","path":"examples/webgl_lines_fat.html","contentType":"file"},{"name":"webgl_lines_fat_raycasting.html","path":"examples/webgl_lines_fat_raycasting.html","contentType":"file"},{"name":"webgl_lines_fat_wireframe.html","path":"examples/webgl_lines_fat_wireframe.html","contentType":"file"},{"name":"webgl_loader_3dm.html","path":"examples/webgl_loader_3dm.html","contentType":"file"},{"name":"webgl_loader_3ds.html","path":"examples/webgl_loader_3ds.html","contentType":"file"},{"name":"webgl_loader_3mf.html","path":"examples/webgl_loader_3mf.html","contentType":"file"},{"name":"webgl_loader_3mf_materials.html","path":"examples/webgl_loader_3mf_materials.html","contentType":"file"},{"name":"webgl_loader_amf.html","path":"examples/webgl_loader_amf.html","contentType":"file"},{"name":"webgl_loader_bvh.html","path":"examples/webgl_loader_bvh.html","contentType":"file"},{"name":"webgl_loader_collada.html","path":"examples/webgl_loader_collada.html","contentType":"file"},{"name":"webgl_loader_collada_kinematics.html","path":"examples/webgl_loader_collada_kinematics.html","contentType":"file"},{"name":"webgl_loader_collada_skinning.html","path":"examples/webgl_loader_collada_skinning.html","contentType":"file"},{"name":"webgl_loader_draco.html","path":"examples/webgl_loader_draco.html","contentType":"file"},{"name":"webgl_loader_fbx.html","path":"examples/webgl_loader_fbx.html","contentType":"file"},{"name":"webgl_loader_fbx_nurbs.html","path":"examples/webgl_loader_fbx_nurbs.html","contentType":"file"},{"name":"webgl_loader_gcode.html","path":"examples/webgl_loader_gcode.html","contentType":"file"},{"name":"webgl_loader_gltf.html","path":"examples/webgl_loader_gltf.html","contentType":"file"},{"name":"webgl_loader_gltf_anisotropy.html","path":"examples/webgl_loader_gltf_anisotropy.html","contentType":"file"},{"name":"webgl_loader_gltf_avif.html","path":"examples/webgl_loader_gltf_avif.html","contentType":"file"},{"name":"webgl_loader_gltf_compressed.html","path":"examples/webgl_loader_gltf_compressed.html","contentType":"file"},{"name":"webgl_loader_gltf_instancing.html","path":"examples/webgl_loader_gltf_instancing.html","contentType":"file"},{"name":"webgl_loader_gltf_iridescence.html","path":"examples/webgl_loader_gltf_iridescence.html","contentType":"file"},{"name":"webgl_loader_gltf_lights.html","path":"examples/webgl_loader_gltf_lights.html","contentType":"file"},{"name":"webgl_loader_gltf_sheen.html","path":"examples/webgl_loader_gltf_sheen.html","contentType":"file"},{"name":"webgl_loader_gltf_transmission.html","path":"examples/webgl_loader_gltf_transmission.html","contentType":"file"},{"name":"webgl_loader_gltf_variants.html","path":"examples/webgl_loader_gltf_variants.html","contentType":"file"},{"name":"webgl_loader_ifc.html","path":"examples/webgl_loader_ifc.html","contentType":"file"},{"name":"webgl_loader_imagebitmap.html","path":"examples/webgl_loader_imagebitmap.html","contentType":"file"},{"name":"webgl_loader_kmz.html","path":"examples/webgl_loader_kmz.html","contentType":"file"},{"name":"webgl_loader_ldraw.html","path":"examples/webgl_loader_ldraw.html","contentType":"file"},{"name":"webgl_loader_lwo.html","path":"examples/webgl_loader_lwo.html","contentType":"file"},{"name":"webgl_loader_md2.html","path":"examples/webgl_loader_md2.html","contentType":"file"},{"name":"webgl_loader_md2_control.html","path":"examples/webgl_loader_md2_control.html","contentType":"file"},{"name":"webgl_loader_mdd.html","path":"examples/webgl_loader_mdd.html","contentType":"file"},{"name":"webgl_loader_mmd.html","path":"examples/webgl_loader_mmd.html","contentType":"file"},{"name":"webgl_loader_mmd_audio.html","path":"examples/webgl_loader_mmd_audio.html","contentType":"file"},{"name":"webgl_loader_mmd_pose.html","path":"examples/webgl_loader_mmd_pose.html","contentType":"file"},{"name":"webgl_loader_nrrd.html","path":"examples/webgl_loader_nrrd.html","contentType":"file"},{"name":"webgl_loader_obj.html","path":"examples/webgl_loader_obj.html","contentType":"file"},{"name":"webgl_loader_obj_mtl.html","path":"examples/webgl_loader_obj_mtl.html","contentType":"file"},{"name":"webgl_loader_pcd.html","path":"examples/webgl_loader_pcd.html","contentType":"file"},{"name":"webgl_loader_pdb.html","path":"examples/webgl_loader_pdb.html","contentType":"file"},{"name":"webgl_loader_ply.html","path":"examples/webgl_loader_ply.html","contentType":"file"},{"name":"webgl_loader_stl.html","path":"examples/webgl_loader_stl.html","contentType":"file"},{"name":"webgl_loader_svg.html","path":"examples/webgl_loader_svg.html","contentType":"file"},{"name":"webgl_loader_texture_dds.html","path":"examples/webgl_loader_texture_dds.html","contentType":"file"},{"name":"webgl_loader_texture_exr.html","path":"examples/webgl_loader_texture_exr.html","contentType":"file"},{"name":"webgl_loader_texture_hdr.html","path":"examples/webgl_loader_texture_hdr.html","contentType":"file"},{"name":"webgl_loader_texture_hdrjpg.html","path":"examples/webgl_loader_texture_hdrjpg.html","contentType":"file"},{"name":"webgl_loader_texture_ktx.html","path":"examples/webgl_loader_texture_ktx.html","contentType":"file"},{"name":"webgl_loader_texture_ktx2.html","path":"examples/webgl_loader_texture_ktx2.html","contentType":"file"},{"name":"webgl_loader_texture_logluv.html","path":"examples/webgl_loader_texture_logluv.html","contentType":"file"},{"name":"webgl_loader_texture_lottie.html","path":"examples/webgl_loader_texture_lottie.html","contentType":"file"},{"name":"webgl_loader_texture_pvrtc.html","path":"examples/webgl_loader_texture_pvrtc.html","contentType":"file"},{"name":"webgl_loader_texture_rgbm.html","path":"examples/webgl_loader_texture_rgbm.html","contentType":"file"},{"name":"webgl_loader_texture_tga.html","path":"examples/webgl_loader_texture_tga.html","contentType":"file"},{"name":"webgl_loader_texture_tiff.html","path":"examples/webgl_loader_texture_tiff.html","contentType":"file"},{"name":"webgl_loader_tilt.html","path":"examples/webgl_loader_tilt.html","contentType":"file"},{"name":"webgl_loader_ttf.html","path":"examples/webgl_loader_ttf.html","contentType":"file"},{"name":"webgl_loader_usdz.html","path":"examples/webgl_loader_usdz.html","contentType":"file"},{"name":"webgl_loader_vox.html","path":"examples/webgl_loader_vox.html","contentType":"file"},{"name":"webgl_loader_vrml.html","path":"examples/webgl_loader_vrml.html","contentType":"file"},{"name":"webgl_loader_vtk.html","path":"examples/webgl_loader_vtk.html","contentType":"file"},{"name":"webgl_loader_xyz.html","path":"examples/webgl_loader_xyz.html","contentType":"file"},{"name":"webgl_lod.html","path":"examples/webgl_lod.html","contentType":"file"},{"name":"webgl_marchingcubes.html","path":"examples/webgl_marchingcubes.html","contentType":"file"},{"name":"webgl_materials_alphahash.html","path":"examples/webgl_materials_alphahash.html","contentType":"file"},{"name":"webgl_materials_blending.html","path":"examples/webgl_materials_blending.html","contentType":"file"},{"name":"webgl_materials_blending_custom.html","path":"examples/webgl_materials_blending_custom.html","contentType":"file"},{"name":"webgl_materials_bumpmap.html","path":"examples/webgl_materials_bumpmap.html","contentType":"file"},{"name":"webgl_materials_car.html","path":"examples/webgl_materials_car.html","contentType":"file"},{"name":"webgl_materials_channels.html","path":"examples/webgl_materials_channels.html","contentType":"file"},{"name":"webgl_materials_cubemap.html","path":"examples/webgl_materials_cubemap.html","contentType":"file"},{"name":"webgl_materials_cubemap_dynamic.html","path":"examples/webgl_materials_cubemap_dynamic.html","contentType":"file"},{"name":"webgl_materials_cubemap_mipmaps.html","path":"examples/webgl_materials_cubemap_mipmaps.html","contentType":"file"},{"name":"webgl_materials_cubemap_refraction.html","path":"examples/webgl_materials_cubemap_refraction.html","contentType":"file"},{"name":"webgl_materials_cubemap_render_to_mipmaps.html","path":"examples/webgl_materials_cubemap_render_to_mipmaps.html","contentType":"file"},{"name":"webgl_materials_curvature.html","path":"examples/webgl_materials_curvature.html","contentType":"file"},{"name":"webgl_materials_displacementmap.html","path":"examples/webgl_materials_displacementmap.html","contentType":"file"},{"name":"webgl_materials_envmaps.html","path":"examples/webgl_materials_envmaps.html","contentType":"file"},{"name":"webgl_materials_envmaps_exr.html","path":"examples/webgl_materials_envmaps_exr.html","contentType":"file"},{"name":"webgl_materials_envmaps_groundprojected.html","path":"examples/webgl_materials_envmaps_groundprojected.html","contentType":"file"},{"name":"webgl_materials_envmaps_hdr.html","path":"examples/webgl_materials_envmaps_hdr.html","contentType":"file"},{"name":"webgl_materials_lightmap.html","path":"examples/webgl_materials_lightmap.html","contentType":"file"},{"name":"webgl_materials_matcap.html","path":"examples/webgl_materials_matcap.html","contentType":"file"},{"name":"webgl_materials_modified.html","path":"examples/webgl_materials_modified.html","contentType":"file"},{"name":"webgl_materials_normalmap.html","path":"examples/webgl_materials_normalmap.html","contentType":"file"},{"name":"webgl_materials_normalmap_object_space.html","path":"examples/webgl_materials_normalmap_object_space.html","contentType":"file"},{"name":"webgl_materials_physical_clearcoat.html","path":"examples/webgl_materials_physical_clearcoat.html","contentType":"file"},{"name":"webgl_materials_physical_transmission.html","path":"examples/webgl_materials_physical_transmission.html","contentType":"file"},{"name":"webgl_materials_physical_transmission_alpha.html","path":"examples/webgl_materials_physical_transmission_alpha.html","contentType":"file"},{"name":"webgl_materials_subsurface_scattering.html","path":"examples/webgl_materials_subsurface_scattering.html","contentType":"file"},{"name":"webgl_materials_texture_anisotropy.html","path":"examples/webgl_materials_texture_anisotropy.html","contentType":"file"},{"name":"webgl_materials_texture_canvas.html","path":"examples/webgl_materials_texture_canvas.html","contentType":"file"},{"name":"webgl_materials_texture_filters.html","path":"examples/webgl_materials_texture_filters.html","contentType":"file"},{"name":"webgl_materials_texture_manualmipmap.html","path":"examples/webgl_materials_texture_manualmipmap.html","contentType":"file"},{"name":"webgl_materials_texture_partialupdate.html","path":"examples/webgl_materials_texture_partialupdate.html","contentType":"file"},{"name":"webgl_materials_texture_rotation.html","path":"examples/webgl_materials_texture_rotation.html","contentType":"file"},{"name":"webgl_materials_toon.html","path":"examples/webgl_materials_toon.html","contentType":"file"},{"name":"webgl_materials_video.html","path":"examples/webgl_materials_video.html","contentType":"file"},{"name":"webgl_materials_video_webcam.html","path":"examples/webgl_materials_video_webcam.html","contentType":"file"},{"name":"webgl_materials_wireframe.html","path":"examples/webgl_materials_wireframe.html","contentType":"file"},{"name":"webgl_math_obb.html","path":"examples/webgl_math_obb.html","contentType":"file"},{"name":"webgl_math_orientation_transform.html","path":"examples/webgl_math_orientation_transform.html","contentType":"file"},{"name":"webgl_mesh_batch.html","path":"examples/webgl_mesh_batch.html","contentType":"file"},{"name":"webgl_mirror.html","path":"examples/webgl_mirror.html","contentType":"file"},{"name":"webgl_modifier_curve.html","path":"examples/webgl_modifier_curve.html","contentType":"file"},{"name":"webgl_modifier_curve_instanced.html","path":"examples/webgl_modifier_curve_instanced.html","contentType":"file"},{"name":"webgl_modifier_edgesplit.html","path":"examples/webgl_modifier_edgesplit.html","contentType":"file"},{"name":"webgl_modifier_simplifier.html","path":"examples/webgl_modifier_simplifier.html","contentType":"file"},{"name":"webgl_modifier_subdivision.html","path":"examples/webgl_modifier_subdivision.html","contentType":"file"},{"name":"webgl_modifier_tessellation.html","path":"examples/webgl_modifier_tessellation.html","contentType":"file"},{"name":"webgl_morphtargets.html","path":"examples/webgl_morphtargets.html","contentType":"file"},{"name":"webgl_morphtargets_face.html","path":"examples/webgl_morphtargets_face.html","contentType":"file"},{"name":"webgl_morphtargets_horse.html","path":"examples/webgl_morphtargets_horse.html","contentType":"file"},{"name":"webgl_morphtargets_sphere.html","path":"examples/webgl_morphtargets_sphere.html","contentType":"file"},{"name":"webgl_morphtargets_webcam.html","path":"examples/webgl_morphtargets_webcam.html","contentType":"file"},{"name":"webgl_multiple_elements.html","path":"examples/webgl_multiple_elements.html","contentType":"file"},{"name":"webgl_multiple_elements_text.html","path":"examples/webgl_multiple_elements_text.html","contentType":"file"},{"name":"webgl_multiple_scenes_comparison.html","path":"examples/webgl_multiple_scenes_comparison.html","contentType":"file"},{"name":"webgl_multiple_views.html","path":"examples/webgl_multiple_views.html","contentType":"file"},{"name":"webgl_nodes_loader_gltf_iridescence.html","path":"examples/webgl_nodes_loader_gltf_iridescence.html","contentType":"file"},{"name":"webgl_nodes_loader_gltf_sheen.html","path":"examples/webgl_nodes_loader_gltf_sheen.html","contentType":"file"},{"name":"webgl_nodes_loader_gltf_transmission.html","path":"examples/webgl_nodes_loader_gltf_transmission.html","contentType":"file"},{"name":"webgl_nodes_loader_materialx.html","path":"examples/webgl_nodes_loader_materialx.html","contentType":"file"},{"name":"webgl_nodes_materials_instance_uniform.html","path":"examples/webgl_nodes_materials_instance_uniform.html","contentType":"file"},{"name":"webgl_nodes_materials_physical_clearcoat.html","path":"examples/webgl_nodes_materials_physical_clearcoat.html","contentType":"file"},{"name":"webgl_nodes_materials_standard.html","path":"examples/webgl_nodes_materials_standard.html","contentType":"file"},{"name":"webgl_nodes_materialx_noise.html","path":"examples/webgl_nodes_materialx_noise.html","contentType":"file"},{"name":"webgl_nodes_points.html","path":"examples/webgl_nodes_points.html","contentType":"file"},{"name":"webgl_panorama_cube.html","path":"examples/webgl_panorama_cube.html","contentType":"file"},{"name":"webgl_panorama_equirectangular.html","path":"examples/webgl_panorama_equirectangular.html","contentType":"file"},{"name":"webgl_pmrem_test.html","path":"examples/webgl_pmrem_test.html","contentType":"file"},{"name":"webgl_points_billboards.html","path":"examples/webgl_points_billboards.html","contentType":"file"},{"name":"webgl_points_dynamic.html","path":"examples/webgl_points_dynamic.html","contentType":"file"},{"name":"webgl_points_sprites.html","path":"examples/webgl_points_sprites.html","contentType":"file"},{"name":"webgl_points_waves.html","path":"examples/webgl_points_waves.html","contentType":"file"},{"name":"webgl_portal.html","path":"examples/webgl_portal.html","contentType":"file"},{"name":"webgl_postprocessing.html","path":"examples/webgl_postprocessing.html","contentType":"file"},{"name":"webgl_postprocessing_3dlut.html","path":"examples/webgl_postprocessing_3dlut.html","contentType":"file"},{"name":"webgl_postprocessing_advanced.html","path":"examples/webgl_postprocessing_advanced.html","contentType":"file"},{"name":"webgl_postprocessing_afterimage.html","path":"examples/webgl_postprocessing_afterimage.html","contentType":"file"},{"name":"webgl_postprocessing_backgrounds.html","path":"examples/webgl_postprocessing_backgrounds.html","contentType":"file"},{"name":"webgl_postprocessing_crossfade.html","path":"examples/webgl_postprocessing_crossfade.html","contentType":"file"},{"name":"webgl_postprocessing_dof.html","path":"examples/webgl_postprocessing_dof.html","contentType":"file"},{"name":"webgl_postprocessing_dof2.html","path":"examples/webgl_postprocessing_dof2.html","contentType":"file"},{"name":"webgl_postprocessing_fxaa.html","path":"examples/webgl_postprocessing_fxaa.html","contentType":"file"},{"name":"webgl_postprocessing_glitch.html","path":"examples/webgl_postprocessing_glitch.html","contentType":"file"},{"name":"webgl_postprocessing_godrays.html","path":"examples/webgl_postprocessing_godrays.html","contentType":"file"},{"name":"webgl_postprocessing_hbao.html","path":"examples/webgl_postprocessing_hbao.html","contentType":"file"},{"name":"webgl_postprocessing_masking.html","path":"examples/webgl_postprocessing_masking.html","contentType":"file"},{"name":"webgl_postprocessing_outline.html","path":"examples/webgl_postprocessing_outline.html","contentType":"file"},{"name":"webgl_postprocessing_pixel.html","path":"examples/webgl_postprocessing_pixel.html","contentType":"file"},{"name":"webgl_postprocessing_procedural.html","path":"examples/webgl_postprocessing_procedural.html","contentType":"file"},{"name":"webgl_postprocessing_rgb_halftone.html","path":"examples/webgl_postprocessing_rgb_halftone.html","contentType":"file"},{"name":"webgl_postprocessing_sao.html","path":"examples/webgl_postprocessing_sao.html","contentType":"file"},{"name":"webgl_postprocessing_smaa.html","path":"examples/webgl_postprocessing_smaa.html","contentType":"file"},{"name":"webgl_postprocessing_sobel.html","path":"examples/webgl_postprocessing_sobel.html","contentType":"file"},{"name":"webgl_postprocessing_ssaa.html","path":"examples/webgl_postprocessing_ssaa.html","contentType":"file"},{"name":"webgl_postprocessing_ssao.html","path":"examples/webgl_postprocessing_ssao.html","contentType":"file"},{"name":"webgl_postprocessing_ssr.html","path":"examples/webgl_postprocessing_ssr.html","contentType":"file"},{"name":"webgl_postprocessing_taa.html","path":"examples/webgl_postprocessing_taa.html","contentType":"file"},{"name":"webgl_postprocessing_unreal_bloom.html","path":"examples/webgl_postprocessing_unreal_bloom.html","contentType":"file"},{"name":"webgl_postprocessing_unreal_bloom_selective.html","path":"examples/webgl_postprocessing_unreal_bloom_selective.html","contentType":"file"},{"name":"webgl_raycaster_bvh.html","path":"examples/webgl_raycaster_bvh.html","contentType":"file"},{"name":"webgl_raycaster_sprite.html","path":"examples/webgl_raycaster_sprite.html","contentType":"file"},{"name":"webgl_raycaster_texture.html","path":"examples/webgl_raycaster_texture.html","contentType":"file"},{"name":"webgl_raymarching_reflect.html","path":"examples/webgl_raymarching_reflect.html","contentType":"file"},{"name":"webgl_read_float_buffer.html","path":"examples/webgl_read_float_buffer.html","contentType":"file"},{"name":"webgl_refraction.html","path":"examples/webgl_refraction.html","contentType":"file"},{"name":"webgl_renderer_pathtracer.html","path":"examples/webgl_renderer_pathtracer.html","contentType":"file"},{"name":"webgl_rtt.html","path":"examples/webgl_rtt.html","contentType":"file"},{"name":"webgl_shader.html","path":"examples/webgl_shader.html","contentType":"file"},{"name":"webgl_shader_lava.html","path":"examples/webgl_shader_lava.html","contentType":"file"},{"name":"webgl_shaders_ocean.html","path":"examples/webgl_shaders_ocean.html","contentType":"file"},{"name":"webgl_shaders_sky.html","path":"examples/webgl_shaders_sky.html","contentType":"file"},{"name":"webgl_shadow_contact.html","path":"examples/webgl_shadow_contact.html","contentType":"file"},{"name":"webgl_shadowmap.html","path":"examples/webgl_shadowmap.html","contentType":"file"},{"name":"webgl_shadowmap_csm.html","path":"examples/webgl_shadowmap_csm.html","contentType":"file"},{"name":"webgl_shadowmap_pcss.html","path":"examples/webgl_shadowmap_pcss.html","contentType":"file"},{"name":"webgl_shadowmap_performance.html","path":"examples/webgl_shadowmap_performance.html","contentType":"file"},{"name":"webgl_shadowmap_pointlight.html","path":"examples/webgl_shadowmap_pointlight.html","contentType":"file"},{"name":"webgl_shadowmap_progressive.html","path":"examples/webgl_shadowmap_progressive.html","contentType":"file"},{"name":"webgl_shadowmap_viewer.html","path":"examples/webgl_shadowmap_viewer.html","contentType":"file"},{"name":"webgl_shadowmap_vsm.html","path":"examples/webgl_shadowmap_vsm.html","contentType":"file"},{"name":"webgl_shadowmesh.html","path":"examples/webgl_shadowmesh.html","contentType":"file"},{"name":"webgl_simple_gi.html","path":"examples/webgl_simple_gi.html","contentType":"file"},{"name":"webgl_sprites.html","path":"examples/webgl_sprites.html","contentType":"file"},{"name":"webgl_test_memory.html","path":"examples/webgl_test_memory.html","contentType":"file"},{"name":"webgl_test_memory2.html","path":"examples/webgl_test_memory2.html","contentType":"file"},{"name":"webgl_test_wide_gamut.html","path":"examples/webgl_test_wide_gamut.html","contentType":"file"},{"name":"webgl_tonemapping.html","path":"examples/webgl_tonemapping.html","contentType":"file"},{"name":"webgl_video_kinect.html","path":"examples/webgl_video_kinect.html","contentType":"file"},{"name":"webgl_video_panorama_equirectangular.html","path":"examples/webgl_video_panorama_equirectangular.html","contentType":"file"},{"name":"webgl_water.html","path":"examples/webgl_water.html","contentType":"file"},{"name":"webgl_water_flowmap.html","path":"examples/webgl_water_flowmap.html","contentType":"file"},{"name":"webgl_worker_offscreencanvas.html","path":"examples/webgl_worker_offscreencanvas.html","contentType":"file"},{"name":"webgpu_backdrop.html","path":"examples/webgpu_backdrop.html","contentType":"file"},{"name":"webgpu_backdrop_area.html","path":"examples/webgpu_backdrop_area.html","contentType":"file"},{"name":"webgpu_camera_logarithmicdepthbuffer.html","path":"examples/webgpu_camera_logarithmicdepthbuffer.html","contentType":"file"},{"name":"webgpu_clearcoat.html","path":"examples/webgpu_clearcoat.html","contentType":"file"},{"name":"webgpu_compute_audio.html","path":"examples/webgpu_compute_audio.html","contentType":"file"},{"name":"webgpu_compute_particles.html","path":"examples/webgpu_compute_particles.html","contentType":"file"},{"name":"webgpu_compute_particles_rain.html","path":"examples/webgpu_compute_particles_rain.html","contentType":"file"},{"name":"webgpu_compute_points.html","path":"examples/webgpu_compute_points.html","contentType":"file"},{"name":"webgpu_compute_texture.html","path":"examples/webgpu_compute_texture.html","contentType":"file"},{"name":"webgpu_compute_texture_pingpong.html","path":"examples/webgpu_compute_texture_pingpong.html","contentType":"file"},{"name":"webgpu_cubemap_adjustments.html","path":"examples/webgpu_cubemap_adjustments.html","contentType":"file"},{"name":"webgpu_cubemap_dynamic.html","path":"examples/webgpu_cubemap_dynamic.html","contentType":"file"},{"name":"webgpu_cubemap_mix.html","path":"examples/webgpu_cubemap_mix.html","contentType":"file"},{"name":"webgpu_depth_texture.html","path":"examples/webgpu_depth_texture.html","contentType":"file"},{"name":"webgpu_equirectangular.html","path":"examples/webgpu_equirectangular.html","contentType":"file"},{"name":"webgpu_instance_mesh.html","path":"examples/webgpu_instance_mesh.html","contentType":"file"},{"name":"webgpu_instance_points.html","path":"examples/webgpu_instance_points.html","contentType":"file"},{"name":"webgpu_instance_uniform.html","path":"examples/webgpu_instance_uniform.html","contentType":"file"},{"name":"webgpu_lights_custom.html","path":"examples/webgpu_lights_custom.html","contentType":"file"},{"name":"webgpu_lights_ies_spotlight.html","path":"examples/webgpu_lights_ies_spotlight.html","contentType":"file"},{"name":"webgpu_lights_phong.html","path":"examples/webgpu_lights_phong.html","contentType":"file"},{"name":"webgpu_lights_selective.html","path":"examples/webgpu_lights_selective.html","contentType":"file"},{"name":"webgpu_lines_fat.html","path":"examples/webgpu_lines_fat.html","contentType":"file"},{"name":"webgpu_loader_gltf.html","path":"examples/webgpu_loader_gltf.html","contentType":"file"},{"name":"webgpu_loader_gltf_compressed.html","path":"examples/webgpu_loader_gltf_compressed.html","contentType":"file"},{"name":"webgpu_loader_gltf_iridescence.html","path":"examples/webgpu_loader_gltf_iridescence.html","contentType":"file"},{"name":"webgpu_loader_gltf_sheen.html","path":"examples/webgpu_loader_gltf_sheen.html","contentType":"file"},{"name":"webgpu_materials.html","path":"examples/webgpu_materials.html","contentType":"file"},{"name":"webgpu_materials_video.html","path":"examples/webgpu_materials_video.html","contentType":"file"},{"name":"webgpu_morphtargets.html","path":"examples/webgpu_morphtargets.html","contentType":"file"},{"name":"webgpu_morphtargets_face.html","path":"examples/webgpu_morphtargets_face.html","contentType":"file"},{"name":"webgpu_multiple_rendertargets.html","path":"examples/webgpu_multiple_rendertargets.html","contentType":"file"},{"name":"webgpu_occlusion.html","path":"examples/webgpu_occlusion.html","contentType":"file"},{"name":"webgpu_particles.html","path":"examples/webgpu_particles.html","contentType":"file"},{"name":"webgpu_rtt.html","path":"examples/webgpu_rtt.html","contentType":"file"},{"name":"webgpu_sandbox.html","path":"examples/webgpu_sandbox.html","contentType":"file"},{"name":"webgpu_shadertoy.html","path":"examples/webgpu_shadertoy.html","contentType":"file"},{"name":"webgpu_shadowmap.html","path":"examples/webgpu_shadowmap.html","contentType":"file"},{"name":"webgpu_skinning.html","path":"examples/webgpu_skinning.html","contentType":"file"},{"name":"webgpu_skinning_instancing.html","path":"examples/webgpu_skinning_instancing.html","contentType":"file"},{"name":"webgpu_skinning_points.html","path":"examples/webgpu_skinning_points.html","contentType":"file"},{"name":"webgpu_sprites.html","path":"examples/webgpu_sprites.html","contentType":"file"},{"name":"webgpu_textures_2d-array.html","path":"examples/webgpu_textures_2d-array.html","contentType":"file"},{"name":"webgpu_tsl_editor.html","path":"examples/webgpu_tsl_editor.html","contentType":"file"},{"name":"webgpu_tsl_transpiler.html","path":"examples/webgpu_tsl_transpiler.html","contentType":"file"},{"name":"webgpu_video_panorama.html","path":"examples/webgpu_video_panorama.html","contentType":"file"},{"name":"webxr_ar_cones.html","path":"examples/webxr_ar_cones.html","contentType":"file"},{"name":"webxr_ar_hittest.html","path":"examples/webxr_ar_hittest.html","contentType":"file"},{"name":"webxr_ar_lighting.html","path":"examples/webxr_ar_lighting.html","contentType":"file"},{"name":"webxr_ar_plane_detection.html","path":"examples/webxr_ar_plane_detection.html","contentType":"file"},{"name":"webxr_vr_handinput.html","path":"examples/webxr_vr_handinput.html","contentType":"file"},{"name":"webxr_vr_handinput_cubes.html","path":"examples/webxr_vr_handinput_cubes.html","contentType":"file"},{"name":"webxr_vr_handinput_pointerclick.html","path":"examples/webxr_vr_handinput_pointerclick.html","contentType":"file"},{"name":"webxr_vr_handinput_pointerdrag.html","path":"examples/webxr_vr_handinput_pointerdrag.html","contentType":"file"},{"name":"webxr_vr_handinput_pressbutton.html","path":"examples/webxr_vr_handinput_pressbutton.html","contentType":"file"},{"name":"webxr_vr_handinput_profiles.html","path":"examples/webxr_vr_handinput_profiles.html","contentType":"file"},{"name":"webxr_vr_layers.html","path":"examples/webxr_vr_layers.html","contentType":"file"},{"name":"webxr_vr_panorama.html","path":"examples/webxr_vr_panorama.html","contentType":"file"},{"name":"webxr_vr_panorama_depth.html","path":"examples/webxr_vr_panorama_depth.html","contentType":"file"},{"name":"webxr_vr_rollercoaster.html","path":"examples/webxr_vr_rollercoaster.html","contentType":"file"},{"name":"webxr_vr_sandbox.html","path":"examples/webxr_vr_sandbox.html","contentType":"file"},{"name":"webxr_vr_teleport.html","path":"examples/webxr_vr_teleport.html","contentType":"file"},{"name":"webxr_vr_video.html","path":"examples/webxr_vr_video.html","contentType":"file"},{"name":"webxr_xr_ballshooter.html","path":"examples/webxr_xr_ballshooter.html","contentType":"file"},{"name":"webxr_xr_cubes.html","path":"examples/webxr_xr_cubes.html","contentType":"file"},{"name":"webxr_xr_dragging.html","path":"examples/webxr_xr_dragging.html","contentType":"file"},{"name":"webxr_xr_haptics.html","path":"examples/webxr_xr_haptics.html","contentType":"file"},{"name":"webxr_xr_paint.html","path":"examples/webxr_xr_paint.html","contentType":"file"},{"name":"webxr_xr_sculpt.html","path":"examples/webxr_xr_sculpt.html","contentType":"file"}],"totalCount":427},"":{"items":[{"name":".github","path":".github","contentType":"directory"},{"name":"build","path":"build","contentType":"directory"},{"name":"docs","path":"docs","contentType":"directory"},{"name":"editor","path":"editor","contentType":"directory"},{"name":"examples","path":"examples","contentType":"directory"},{"name":"files","path":"files","contentType":"directory"},{"name":"manual","path":"manual","contentType":"directory"},{"name":"playground","path":"playground","contentType":"directory"},{"name":"src","path":"src","contentType":"directory"},{"name":"test","path":"test","contentType":"directory"},{"name":"utils","path":"utils","contentType":"directory"},{"name":".editorconfig","path":".editorconfig","contentType":"file"},{"name":".eslintrc.json","path":".eslintrc.json","contentType":"file"},{"name":".gitattributes","path":".gitattributes","contentType":"file"},{"name":".gitignore","path":".gitignore","contentType":"file"},{"name":"LICENSE","path":"LICENSE","contentType":"file"},{"name":"README.md","path":"README.md","contentType":"file"},{"name":"SECURITY.md","path":"SECURITY.md","contentType":"file"},{"name":"icon.png","path":"icon.png","contentType":"file"},{"name":"package-lock.json","path":"package-lock.json","contentType":"file"},{"name":"package.json","path":"package.json","contentType":"file"}],"totalCount":21}},"fileTreeProcessingTime":194.499588,"foldersToFetch":[],"incompleteFileTree":false,"repo":{"id":576201,"defaultBranch":"dev","name":"three.js","ownerLogin":"mrdoob","currentUserCanPush":false,"isFork":false,"isEmpty":false,"createdAt":"2010-03-23T18:58:01.000Z","ownerAvatar":"https://avatars.githubusercontent.com/u/97088?v=4","public":true,"private":false,"isOrgOwned":false},"codeLineWrapEnabled":false,"symbolsExpanded":false,"treeExpanded":true,"refInfo":{"name":"r159","listCacheKey":"v0:1765864279.0","canEdit":false,"refType":"tag","currentOid":"09fe0527a9aa5aaca7aaf17531e6c0d0efaa8c59","canEditOnDefaultBranch":false,"fileExistsOnDefault":true},"path":"examples/jsm/loaders/GLTFLoader.js","currentUser":null,"blob":{"rawLines":["import {","\tAnimationClip,","\tBone,","\tBox3,","\tBufferAttribute,","\tBufferGeometry,","\tClampToEdgeWrapping,","\tColor,","\tColorManagement,","\tDirectionalLight,","\tDoubleSide,","\tFileLoader,","\tFrontSide,","\tGroup,","\tImageBitmapLoader,","\tInstancedMesh,","\tInterleavedBuffer,","\tInterleavedBufferAttribute,","\tInterpolant,","\tInterpolateDiscrete,","\tInterpolateLinear,","\tLine,","\tLineBasicMaterial,","\tLineLoop,","\tLineSegments,","\tLinearFilter,","\tLinearMipmapLinearFilter,","\tLinearMipmapNearestFilter,","\tLinearSRGBColorSpace,","\tLoader,","\tLoaderUtils,","\tMaterial,","\tMathUtils,","\tMatrix4,","\tMesh,","\tMeshBasicMaterial,","\tMeshPhysicalMaterial,","\tMeshStandardMaterial,","\tMirroredRepeatWrapping,","\tNearestFilter,","\tNearestMipmapLinearFilter,","\tNearestMipmapNearestFilter,","\tNumberKeyframeTrack,","\tObject3D,","\tOrthographicCamera,","\tPerspectiveCamera,","\tPointLight,","\tPoints,","\tPointsMaterial,","\tPropertyBinding,","\tQuaternion,","\tQuaternionKeyframeTrack,","\tRepeatWrapping,","\tSkeleton,","\tSkinnedMesh,","\tSphere,","\tSpotLight,","\tTexture,","\tTextureLoader,","\tTriangleFanDrawMode,","\tTriangleStripDrawMode,","\tVector2,","\tVector3,","\tVectorKeyframeTrack,","\tSRGBColorSpace,","\tInstancedBufferAttribute","} from 'three';","import { toTrianglesDrawMode } from '../utils/BufferGeometryUtils.js';","","class GLTFLoader extends Loader {","","\tconstructor( manager ) {","","\t\tsuper( manager );","","\t\tthis.dracoLoader = null;","\t\tthis.ktx2Loader = null;","\t\tthis.meshoptDecoder = null;","","\t\tthis.pluginCallbacks = [];","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsClearcoatExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFTextureBasisUExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFTextureWebPExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFTextureAVIFExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsSheenExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsTransmissionExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsVolumeExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsIorExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsEmissiveStrengthExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsSpecularExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsIridescenceExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsAnisotropyExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMaterialsBumpExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFLightsExtension( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMeshoptCompression( parser );","","\t\t} );","","\t\tthis.register( function ( parser ) {","","\t\t\treturn new GLTFMeshGpuInstancing( parser );","","\t\t} );","","\t}","","\tload( url, onLoad, onProgress, onError ) {","","\t\tconst scope = this;","","\t\tlet resourcePath;","","\t\tif ( this.resourcePath !== '' ) {","","\t\t\tresourcePath = this.resourcePath;","","\t\t} else if ( this.path !== '' ) {","","\t\t\t// If a base path is set, resources will be relative paths from that plus the relative path of the gltf file","\t\t\t// Example  path = 'https://my-cnd-server.com/', url = 'assets/models/model.gltf'","\t\t\t// resourcePath = 'https://my-cnd-server.com/assets/models/'","\t\t\t// referenced resource 'model.bin' will be loaded from 'https://my-cnd-server.com/assets/models/model.bin'","\t\t\t// referenced resource '../textures/texture.png' will be loaded from 'https://my-cnd-server.com/assets/textures/texture.png'","\t\t\tconst relativeUrl = LoaderUtils.extractUrlBase( url );","\t\t\tresourcePath = LoaderUtils.resolveURL( relativeUrl, this.path );","","\t\t} else {","","\t\t\tresourcePath = LoaderUtils.extractUrlBase( url );","","\t\t}","","\t\t// Tells the LoadingManager to track an extra item, which resolves after","\t\t// the model is fully loaded. This means the count of items loaded will","\t\t// be incorrect, but ensures manager.onLoad() does not fire early.","\t\tthis.manager.itemStart( url );","","\t\tconst _onError = function ( e ) {","","\t\t\tif ( onError ) {","","\t\t\t\tonError( e );","","\t\t\t} else {","","\t\t\t\tconsole.error( e );","","\t\t\t}","","\t\t\tscope.manager.itemError( url );","\t\t\tscope.manager.itemEnd( url );","","\t\t};","","\t\tconst loader = new FileLoader( this.manager );","","\t\tloader.setPath( this.path );","\t\tloader.setResponseType( 'arraybuffer' );","\t\tloader.setRequestHeader( this.requestHeader );","\t\tloader.setWithCredentials( this.withCredentials );","","\t\tloader.load( url, function ( data ) {","","\t\t\ttry {","","\t\t\t\tscope.parse( data, resourcePath, function ( gltf ) {","","\t\t\t\t\tonLoad( gltf );","","\t\t\t\t\tscope.manager.itemEnd( url );","","\t\t\t\t}, _onError );","","\t\t\t} catch ( e ) {","","\t\t\t\t_onError( e );","","\t\t\t}","","\t\t}, onProgress, _onError );","","\t}","","\tsetDRACOLoader( dracoLoader ) {","","\t\tthis.dracoLoader = dracoLoader;","\t\treturn this;","","\t}","","\tsetDDSLoader() {","","\t\tthrow new Error(","","\t\t\t'THREE.GLTFLoader: \"MSFT_texture_dds\" no longer supported. Please update to \"KHR_texture_basisu\".'","","\t\t);","","\t}","","\tsetKTX2Loader( ktx2Loader ) {","","\t\tthis.ktx2Loader = ktx2Loader;","\t\treturn this;","","\t}","","\tsetMeshoptDecoder( meshoptDecoder ) {","","\t\tthis.meshoptDecoder = meshoptDecoder;","\t\treturn this;","","\t}","","\tregister( callback ) {","","\t\tif ( this.pluginCallbacks.indexOf( callback ) === - 1 ) {","","\t\t\tthis.pluginCallbacks.push( callback );","","\t\t}","","\t\treturn this;","","\t}","","\tunregister( callback ) {","","\t\tif ( this.pluginCallbacks.indexOf( callback ) !== - 1 ) {","","\t\t\tthis.pluginCallbacks.splice( this.pluginCallbacks.indexOf( callback ), 1 );","","\t\t}","","\t\treturn this;","","\t}","","\tparse( data, path, onLoad, onError ) {","","\t\tlet json;","\t\tconst extensions = {};","\t\tconst plugins = {};","\t\tconst textDecoder = new TextDecoder();","","\t\tif ( typeof data === 'string' ) {","","\t\t\tjson = JSON.parse( data );","","\t\t} else if ( data instanceof ArrayBuffer ) {","","\t\t\tconst magic = textDecoder.decode( new Uint8Array( data, 0, 4 ) );","","\t\t\tif ( magic === BINARY_EXTENSION_HEADER_MAGIC ) {","","\t\t\t\ttry {","","\t\t\t\t\textensions[ EXTENSIONS.KHR_BINARY_GLTF ] = new GLTFBinaryExtension( data );","","\t\t\t\t} catch ( error ) {","","\t\t\t\t\tif ( onError ) onError( error );","\t\t\t\t\treturn;","","\t\t\t\t}","","\t\t\t\tjson = JSON.parse( extensions[ EXTENSIONS.KHR_BINARY_GLTF ].content );","","\t\t\t} else {","","\t\t\t\tjson = JSON.parse( textDecoder.decode( data ) );","","\t\t\t}","","\t\t} else {","","\t\t\tjson = data;","","\t\t}","","\t\tif ( json.asset === undefined || json.asset.version[ 0 ] \u003c 2 ) {","","\t\t\tif ( onError ) onError( new Error( 'THREE.GLTFLoader: Unsupported asset. glTF versions \u003e=2.0 are supported.' ) );","\t\t\treturn;","","\t\t}","","\t\tconst parser = new GLTFParser( json, {","","\t\t\tpath: path || this.resourcePath || '',","\t\t\tcrossOrigin: this.crossOrigin,","\t\t\trequestHeader: this.requestHeader,","\t\t\tmanager: this.manager,","\t\t\tktx2Loader: this.ktx2Loader,","\t\t\tmeshoptDecoder: this.meshoptDecoder","","\t\t} );","","\t\tparser.fileLoader.setRequestHeader( this.requestHeader );","","\t\tfor ( let i = 0; i \u003c this.pluginCallbacks.length; i ++ ) {","","\t\t\tconst plugin = this.pluginCallbacks[ i ]( parser );","","\t\t\tif ( ! plugin.name ) console.error( 'THREE.GLTFLoader: Invalid plugin found: missing name' );","","\t\t\tplugins[ plugin.name ] = plugin;","","\t\t\t// Workaround to avoid determining as unknown extension","\t\t\t// in addUnknownExtensionsToUserData().","\t\t\t// Remove this workaround if we move all the existing","\t\t\t// extension handlers to plugin system","\t\t\textensions[ plugin.name ] = true;","","\t\t}","","\t\tif ( json.extensionsUsed ) {","","\t\t\tfor ( let i = 0; i \u003c json.extensionsUsed.length; ++ i ) {","","\t\t\t\tconst extensionName = json.extensionsUsed[ i ];","\t\t\t\tconst extensionsRequired = json.extensionsRequired || [];","","\t\t\t\tswitch ( extensionName ) {","","\t\t\t\t\tcase EXTENSIONS.KHR_MATERIALS_UNLIT:","\t\t\t\t\t\textensions[ extensionName ] = new GLTFMaterialsUnlitExtension();","\t\t\t\t\t\tbreak;","","\t\t\t\t\tcase EXTENSIONS.KHR_DRACO_MESH_COMPRESSION:","\t\t\t\t\t\textensions[ extensionName ] = new GLTFDracoMeshCompressionExtension( json, this.dracoLoader );","\t\t\t\t\t\tbreak;","","\t\t\t\t\tcase EXTENSIONS.KHR_TEXTURE_TRANSFORM:","\t\t\t\t\t\textensions[ extensionName ] = new GLTFTextureTransformExtension();","\t\t\t\t\t\tbreak;","","\t\t\t\t\tcase EXTENSIONS.KHR_MESH_QUANTIZATION:","\t\t\t\t\t\textensions[ extensionName ] = new GLTFMeshQuantizationExtension();","\t\t\t\t\t\tbreak;","","\t\t\t\t\tdefault:","","\t\t\t\t\t\tif ( extensionsRequired.indexOf( extensionName ) \u003e= 0 \u0026\u0026 plugins[ extensionName ] === undefined ) {","","\t\t\t\t\t\t\tconsole.warn( 'THREE.GLTFLoader: Unknown extension \"' + extensionName + '\".' );","","\t\t\t\t\t\t}","","\t\t\t\t}","","\t\t\t}","","\t\t}","","\t\tparser.setExtensions( extensions );","\t\tparser.setPlugins( plugins );","\t\tparser.parse( onLoad, onError );","","\t}","","\tparseAsync( data, path ) {","","\t\tconst scope = this;","","\t\treturn new Promise( function ( resolve, reject ) {","","\t\t\tscope.parse( data, path, resolve, reject );","","\t\t} );","","\t}","","}","","/* GLTFREGISTRY */","","function GLTFRegistry() {","","\tlet objects = {};","","\treturn\t{","","\t\tget: function ( key ) {","","\t\t\treturn objects[ key ];","","\t\t},","","\t\tadd: function ( key, object ) {","","\t\t\tobjects[ key ] = object;","","\t\t},","","\t\tremove: function ( key ) {","","\t\t\tdelete objects[ key ];","","\t\t},","","\t\tremoveAll: function () {","","\t\t\tobjects = {};","","\t\t}","","\t};","","}","","/*********************************/","/********** EXTENSIONS ***********/","/*********************************/","","const EXTENSIONS = {","\tKHR_BINARY_GLTF: 'KHR_binary_glTF',","\tKHR_DRACO_MESH_COMPRESSION: 'KHR_draco_mesh_compression',","\tKHR_LIGHTS_PUNCTUAL: 'KHR_lights_punctual',","\tKHR_MATERIALS_CLEARCOAT: 'KHR_materials_clearcoat',","\tKHR_MATERIALS_IOR: 'KHR_materials_ior',","\tKHR_MATERIALS_SHEEN: 'KHR_materials_sheen',","\tKHR_MATERIALS_SPECULAR: 'KHR_materials_specular',","\tKHR_MATERIALS_TRANSMISSION: 'KHR_materials_transmission',","\tKHR_MATERIALS_IRIDESCENCE: 'KHR_materials_iridescence',","\tKHR_MATERIALS_ANISOTROPY: 'KHR_materials_anisotropy',","\tKHR_MATERIALS_UNLIT: 'KHR_materials_unlit',","\tKHR_MATERIALS_VOLUME: 'KHR_materials_volume',","\tKHR_TEXTURE_BASISU: 'KHR_texture_basisu',","\tKHR_TEXTURE_TRANSFORM: 'KHR_texture_transform',","\tKHR_MESH_QUANTIZATION: 'KHR_mesh_quantization',","\tKHR_MATERIALS_EMISSIVE_STRENGTH: 'KHR_materials_emissive_strength',","\tEXT_MATERIALS_BUMP: 'EXT_materials_bump',","\tEXT_TEXTURE_WEBP: 'EXT_texture_webp',","\tEXT_TEXTURE_AVIF: 'EXT_texture_avif',","\tEXT_MESHOPT_COMPRESSION: 'EXT_meshopt_compression',","\tEXT_MESH_GPU_INSTANCING: 'EXT_mesh_gpu_instancing'","};","","/**"," * Punctual Lights Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_lights_punctual"," */","class GLTFLightsExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_LIGHTS_PUNCTUAL;","","\t\t// Object3D instance caches","\t\tthis.cache = { refs: {}, uses: {} };","","\t}","","\t_markDefs() {","","\t\tconst parser = this.parser;","\t\tconst nodeDefs = this.parser.json.nodes || [];","","\t\tfor ( let nodeIndex = 0, nodeLength = nodeDefs.length; nodeIndex \u003c nodeLength; nodeIndex ++ ) {","","\t\t\tconst nodeDef = nodeDefs[ nodeIndex ];","","\t\t\tif ( nodeDef.extensions","\t\t\t\t\t\u0026\u0026 nodeDef.extensions[ this.name ]","\t\t\t\t\t\u0026\u0026 nodeDef.extensions[ this.name ].light !== undefined ) {","","\t\t\t\tparser._addNodeRef( this.cache, nodeDef.extensions[ this.name ].light );","","\t\t\t}","","\t\t}","","\t}","","\t_loadLight( lightIndex ) {","","\t\tconst parser = this.parser;","\t\tconst cacheKey = 'light:' + lightIndex;","\t\tlet dependency = parser.cache.get( cacheKey );","","\t\tif ( dependency ) return dependency;","","\t\tconst json = parser.json;","\t\tconst extensions = ( json.extensions \u0026\u0026 json.extensions[ this.name ] ) || {};","\t\tconst lightDefs = extensions.lights || [];","\t\tconst lightDef = lightDefs[ lightIndex ];","\t\tlet lightNode;","","\t\tconst color = new Color( 0xffffff );","","\t\tif ( lightDef.color !== undefined ) color.setRGB( lightDef.color[ 0 ], lightDef.color[ 1 ], lightDef.color[ 2 ], LinearSRGBColorSpace );","","\t\tconst range = lightDef.range !== undefined ? lightDef.range : 0;","","\t\tswitch ( lightDef.type ) {","","\t\t\tcase 'directional':","\t\t\t\tlightNode = new DirectionalLight( color );","\t\t\t\tlightNode.target.position.set( 0, 0, - 1 );","\t\t\t\tlightNode.add( lightNode.target );","\t\t\t\tbreak;","","\t\t\tcase 'point':","\t\t\t\tlightNode = new PointLight( color );","\t\t\t\tlightNode.distance = range;","\t\t\t\tbreak;","","\t\t\tcase 'spot':","\t\t\t\tlightNode = new SpotLight( color );","\t\t\t\tlightNode.distance = range;","\t\t\t\t// Handle spotlight properties.","\t\t\t\tlightDef.spot = lightDef.spot || {};","\t\t\t\tlightDef.spot.innerConeAngle = lightDef.spot.innerConeAngle !== undefined ? lightDef.spot.innerConeAngle : 0;","\t\t\t\tlightDef.spot.outerConeAngle = lightDef.spot.outerConeAngle !== undefined ? lightDef.spot.outerConeAngle : Math.PI / 4.0;","\t\t\t\tlightNode.angle = lightDef.spot.outerConeAngle;","\t\t\t\tlightNode.penumbra = 1.0 - lightDef.spot.innerConeAngle / lightDef.spot.outerConeAngle;","\t\t\t\tlightNode.target.position.set( 0, 0, - 1 );","\t\t\t\tlightNode.add( lightNode.target );","\t\t\t\tbreak;","","\t\t\tdefault:","\t\t\t\tthrow new Error( 'THREE.GLTFLoader: Unexpected light type: ' + lightDef.type );","","\t\t}","","\t\t// Some lights (e.g. spot) default to a position other than the origin. Reset the position","\t\t// here, because node-level parsing will only override position if explicitly specified.","\t\tlightNode.position.set( 0, 0, 0 );","","\t\tlightNode.decay = 2;","","\t\tassignExtrasToUserData( lightNode, lightDef );","","\t\tif ( lightDef.intensity !== undefined ) lightNode.intensity = lightDef.intensity;","","\t\tlightNode.name = parser.createUniqueName( lightDef.name || ( 'light_' + lightIndex ) );","","\t\tdependency = Promise.resolve( lightNode );","","\t\tparser.cache.add( cacheKey, dependency );","","\t\treturn dependency;","","\t}","","\tgetDependency( type, index ) {","","\t\tif ( type !== 'light' ) return;","","\t\treturn this._loadLight( index );","","\t}","","\tcreateNodeAttachment( nodeIndex ) {","","\t\tconst self = this;","\t\tconst parser = this.parser;","\t\tconst json = parser.json;","\t\tconst nodeDef = json.nodes[ nodeIndex ];","\t\tconst lightDef = ( nodeDef.extensions \u0026\u0026 nodeDef.extensions[ this.name ] ) || {};","\t\tconst lightIndex = lightDef.light;","","\t\tif ( lightIndex === undefined ) return null;","","\t\treturn this._loadLight( lightIndex ).then( function ( light ) {","","\t\t\treturn parser._getNodeRef( self.cache, lightIndex, light );","","\t\t} );","","\t}","","}","","/**"," * Unlit Materials Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit"," */","class GLTFMaterialsUnlitExtension {","","\tconstructor() {","","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_UNLIT;","","\t}","","\tgetMaterialType() {","","\t\treturn MeshBasicMaterial;","","\t}","","\textendParams( materialParams, materialDef, parser ) {","","\t\tconst pending = [];","","\t\tmaterialParams.color = new Color( 1.0, 1.0, 1.0 );","\t\tmaterialParams.opacity = 1.0;","","\t\tconst metallicRoughness = materialDef.pbrMetallicRoughness;","","\t\tif ( metallicRoughness ) {","","\t\t\tif ( Array.isArray( metallicRoughness.baseColorFactor ) ) {","","\t\t\t\tconst array = metallicRoughness.baseColorFactor;","","\t\t\t\tmaterialParams.color.setRGB( array[ 0 ], array[ 1 ], array[ 2 ], LinearSRGBColorSpace );","\t\t\t\tmaterialParams.opacity = array[ 3 ];","","\t\t\t}","","\t\t\tif ( metallicRoughness.baseColorTexture !== undefined ) {","","\t\t\t\tpending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, SRGBColorSpace ) );","","\t\t\t}","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Materials Emissive Strength Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/blob/5768b3ce0ef32bc39cdf1bef10b948586635ead3/extensions/2.0/Khronos/KHR_materials_emissive_strength/README.md"," */","class GLTFMaterialsEmissiveStrengthExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_EMISSIVE_STRENGTH;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst emissiveStrength = materialDef.extensions[ this.name ].emissiveStrength;","","\t\tif ( emissiveStrength !== undefined ) {","","\t\t\tmaterialParams.emissiveIntensity = emissiveStrength;","","\t\t}","","\t\treturn Promise.resolve();","","\t}","","}","","/**"," * Clearcoat Materials Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_clearcoat"," */","class GLTFMaterialsClearcoatExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_CLEARCOAT;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tif ( extension.clearcoatFactor !== undefined ) {","","\t\t\tmaterialParams.clearcoat = extension.clearcoatFactor;","","\t\t}","","\t\tif ( extension.clearcoatTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'clearcoatMap', extension.clearcoatTexture ) );","","\t\t}","","\t\tif ( extension.clearcoatRoughnessFactor !== undefined ) {","","\t\t\tmaterialParams.clearcoatRoughness = extension.clearcoatRoughnessFactor;","","\t\t}","","\t\tif ( extension.clearcoatRoughnessTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'clearcoatRoughnessMap', extension.clearcoatRoughnessTexture ) );","","\t\t}","","\t\tif ( extension.clearcoatNormalTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'clearcoatNormalMap', extension.clearcoatNormalTexture ) );","","\t\t\tif ( extension.clearcoatNormalTexture.scale !== undefined ) {","","\t\t\t\tconst scale = extension.clearcoatNormalTexture.scale;","","\t\t\t\tmaterialParams.clearcoatNormalScale = new Vector2( scale, scale );","","\t\t\t}","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Iridescence Materials Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_iridescence"," */","class GLTFMaterialsIridescenceExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_IRIDESCENCE;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tif ( extension.iridescenceFactor !== undefined ) {","","\t\t\tmaterialParams.iridescence = extension.iridescenceFactor;","","\t\t}","","\t\tif ( extension.iridescenceTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'iridescenceMap', extension.iridescenceTexture ) );","","\t\t}","","\t\tif ( extension.iridescenceIor !== undefined ) {","","\t\t\tmaterialParams.iridescenceIOR = extension.iridescenceIor;","","\t\t}","","\t\tif ( materialParams.iridescenceThicknessRange === undefined ) {","","\t\t\tmaterialParams.iridescenceThicknessRange = [ 100, 400 ];","","\t\t}","","\t\tif ( extension.iridescenceThicknessMinimum !== undefined ) {","","\t\t\tmaterialParams.iridescenceThicknessRange[ 0 ] = extension.iridescenceThicknessMinimum;","","\t\t}","","\t\tif ( extension.iridescenceThicknessMaximum !== undefined ) {","","\t\t\tmaterialParams.iridescenceThicknessRange[ 1 ] = extension.iridescenceThicknessMaximum;","","\t\t}","","\t\tif ( extension.iridescenceThicknessTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'iridescenceThicknessMap', extension.iridescenceThicknessTexture ) );","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Sheen Materials Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen"," */","class GLTFMaterialsSheenExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_SHEEN;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tmaterialParams.sheenColor = new Color( 0, 0, 0 );","\t\tmaterialParams.sheenRoughness = 0;","\t\tmaterialParams.sheen = 1;","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tif ( extension.sheenColorFactor !== undefined ) {","","\t\t\tconst colorFactor = extension.sheenColorFactor;","\t\t\tmaterialParams.sheenColor.setRGB( colorFactor[ 0 ], colorFactor[ 1 ], colorFactor[ 2 ], LinearSRGBColorSpace );","","\t\t}","","\t\tif ( extension.sheenRoughnessFactor !== undefined ) {","","\t\t\tmaterialParams.sheenRoughness = extension.sheenRoughnessFactor;","","\t\t}","","\t\tif ( extension.sheenColorTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'sheenColorMap', extension.sheenColorTexture, SRGBColorSpace ) );","","\t\t}","","\t\tif ( extension.sheenRoughnessTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'sheenRoughnessMap', extension.sheenRoughnessTexture ) );","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Transmission Materials Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_transmission"," * Draft: https://github.com/KhronosGroup/glTF/pull/1698"," */","class GLTFMaterialsTransmissionExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_TRANSMISSION;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tif ( extension.transmissionFactor !== undefined ) {","","\t\t\tmaterialParams.transmission = extension.transmissionFactor;","","\t\t}","","\t\tif ( extension.transmissionTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'transmissionMap', extension.transmissionTexture ) );","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Materials Volume Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_volume"," */","class GLTFMaterialsVolumeExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_VOLUME;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tmaterialParams.thickness = extension.thicknessFactor !== undefined ? extension.thicknessFactor : 0;","","\t\tif ( extension.thicknessTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'thicknessMap', extension.thicknessTexture ) );","","\t\t}","","\t\tmaterialParams.attenuationDistance = extension.attenuationDistance || Infinity;","","\t\tconst colorArray = extension.attenuationColor || [ 1, 1, 1 ];","\t\tmaterialParams.attenuationColor = new Color().setRGB( colorArray[ 0 ], colorArray[ 1 ], colorArray[ 2 ], LinearSRGBColorSpace );","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Materials ior Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_ior"," */","class GLTFMaterialsIorExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_IOR;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tmaterialParams.ior = extension.ior !== undefined ? extension.ior : 1.5;","","\t\treturn Promise.resolve();","","\t}","","}","","/**"," * Materials specular Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_specular"," */","class GLTFMaterialsSpecularExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_SPECULAR;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tmaterialParams.specularIntensity = extension.specularFactor !== undefined ? extension.specularFactor : 1.0;","","\t\tif ( extension.specularTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'specularIntensityMap', extension.specularTexture ) );","","\t\t}","","\t\tconst colorArray = extension.specularColorFactor || [ 1, 1, 1 ];","\t\tmaterialParams.specularColor = new Color().setRGB( colorArray[ 0 ], colorArray[ 1 ], colorArray[ 2 ], LinearSRGBColorSpace );","","\t\tif ( extension.specularColorTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'specularColorMap', extension.specularColorTexture, SRGBColorSpace ) );","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","","/**"," * Materials bump Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/EXT_materials_bump"," */","class GLTFMaterialsBumpExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.EXT_MATERIALS_BUMP;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tmaterialParams.bumpScale = extension.bumpFactor !== undefined ? extension.bumpFactor : 1.0;","","\t\tif ( extension.bumpTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'bumpMap', extension.bumpTexture ) );","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * Materials anisotropy Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_anisotropy"," */","class GLTFMaterialsAnisotropyExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_MATERIALS_ANISOTROPY;","","\t}","","\tgetMaterialType( materialIndex ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;","","\t\treturn MeshPhysicalMaterial;","","\t}","","\textendMaterialParams( materialIndex, materialParams ) {","","\t\tconst parser = this.parser;","\t\tconst materialDef = parser.json.materials[ materialIndex ];","","\t\tif ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {","","\t\t\treturn Promise.resolve();","","\t\t}","","\t\tconst pending = [];","","\t\tconst extension = materialDef.extensions[ this.name ];","","\t\tif ( extension.anisotropyStrength !== undefined ) {","","\t\t\tmaterialParams.anisotropy = extension.anisotropyStrength;","","\t\t}","","\t\tif ( extension.anisotropyRotation !== undefined ) {","","\t\t\tmaterialParams.anisotropyRotation = extension.anisotropyRotation;","","\t\t}","","\t\tif ( extension.anisotropyTexture !== undefined ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'anisotropyMap', extension.anisotropyTexture ) );","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","}","","/**"," * BasisU Texture Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_basisu"," */","class GLTFTextureBasisUExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.KHR_TEXTURE_BASISU;","","\t}","","\tloadTexture( textureIndex ) {","","\t\tconst parser = this.parser;","\t\tconst json = parser.json;","","\t\tconst textureDef = json.textures[ textureIndex ];","","\t\tif ( ! textureDef.extensions || ! textureDef.extensions[ this.name ] ) {","","\t\t\treturn null;","","\t\t}","","\t\tconst extension = textureDef.extensions[ this.name ];","\t\tconst loader = parser.options.ktx2Loader;","","\t\tif ( ! loader ) {","","\t\t\tif ( json.extensionsRequired \u0026\u0026 json.extensionsRequired.indexOf( this.name ) \u003e= 0 ) {","","\t\t\t\tthrow new Error( 'THREE.GLTFLoader: setKTX2Loader must be called before loading KTX2 textures' );","","\t\t\t} else {","","\t\t\t\t// Assumes that the extension is optional and that a fallback texture is present","\t\t\t\treturn null;","","\t\t\t}","","\t\t}","","\t\treturn parser.loadTextureImage( textureIndex, extension.source, loader );","","\t}","","}","","/**"," * WebP Texture Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_texture_webp"," */","class GLTFTextureWebPExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.EXT_TEXTURE_WEBP;","\t\tthis.isSupported = null;","","\t}","","\tloadTexture( textureIndex ) {","","\t\tconst name = this.name;","\t\tconst parser = this.parser;","\t\tconst json = parser.json;","","\t\tconst textureDef = json.textures[ textureIndex ];","","\t\tif ( ! textureDef.extensions || ! textureDef.extensions[ name ] ) {","","\t\t\treturn null;","","\t\t}","","\t\tconst extension = textureDef.extensions[ name ];","\t\tconst source = json.images[ extension.source ];","","\t\tlet loader = parser.textureLoader;","\t\tif ( source.uri ) {","","\t\t\tconst handler = parser.options.manager.getHandler( source.uri );","\t\t\tif ( handler !== null ) loader = handler;","","\t\t}","","\t\treturn this.detectSupport().then( function ( isSupported ) {","","\t\t\tif ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );","","\t\t\tif ( json.extensionsRequired \u0026\u0026 json.extensionsRequired.indexOf( name ) \u003e= 0 ) {","","\t\t\t\tthrow new Error( 'THREE.GLTFLoader: WebP required by asset but unsupported.' );","","\t\t\t}","","\t\t\t// Fall back to PNG or JPEG.","\t\t\treturn parser.loadTexture( textureIndex );","","\t\t} );","","\t}","","\tdetectSupport() {","","\t\tif ( ! this.isSupported ) {","","\t\t\tthis.isSupported = new Promise( function ( resolve ) {","","\t\t\t\tconst image = new Image();","","\t\t\t\t// Lossy test image. Support for lossy images doesn't guarantee support for all","\t\t\t\t// WebP images, unfortunately.","\t\t\t\timage.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';","","\t\t\t\timage.onload = image.onerror = function () {","","\t\t\t\t\tresolve( image.height === 1 );","","\t\t\t\t};","","\t\t\t} );","","\t\t}","","\t\treturn this.isSupported;","","\t}","","}","","/**"," * AVIF Texture Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_texture_avif"," */","class GLTFTextureAVIFExtension {","","\tconstructor( parser ) {","","\t\tthis.parser = parser;","\t\tthis.name = EXTENSIONS.EXT_TEXTURE_AVIF;","\t\tthis.isSupported = null;","","\t}","","\tloadTexture( textureIndex ) {","","\t\tconst name = this.name;","\t\tconst parser = this.parser;","\t\tconst json = parser.json;","","\t\tconst textureDef = json.textures[ textureIndex ];","","\t\tif ( ! textureDef.extensions || ! textureDef.extensions[ name ] ) {","","\t\t\treturn null;","","\t\t}","","\t\tconst extension = textureDef.extensions[ name ];","\t\tconst source = json.images[ extension.source ];","","\t\tlet loader = parser.textureLoader;","\t\tif ( source.uri ) {","","\t\t\tconst handler = parser.options.manager.getHandler( source.uri );","\t\t\tif ( handler !== null ) loader = handler;","","\t\t}","","\t\treturn this.detectSupport().then( function ( isSupported ) {","","\t\t\tif ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );","","\t\t\tif ( json.extensionsRequired \u0026\u0026 json.extensionsRequired.indexOf( name ) \u003e= 0 ) {","","\t\t\t\tthrow new Error( 'THREE.GLTFLoader: AVIF required by asset but unsupported.' );","","\t\t\t}","","\t\t\t// Fall back to PNG or JPEG.","\t\t\treturn parser.loadTexture( textureIndex );","","\t\t} );","","\t}","","\tdetectSupport() {","","\t\tif ( ! this.isSupported ) {","","\t\t\tthis.isSupported = new Promise( function ( resolve ) {","","\t\t\t\tconst image = new Image();","","\t\t\t\t// Lossy test image.","\t\t\t\timage.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAABcAAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAMAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAAB9tZGF0EgAKCBgABogQEDQgMgkQAAAAB8dSLfI=';","\t\t\t\timage.onload = image.onerror = function () {","","\t\t\t\t\tresolve( image.height === 1 );","","\t\t\t\t};","","\t\t\t} );","","\t\t}","","\t\treturn this.isSupported;","","\t}","","}","","/**"," * meshopt BufferView Compression Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_meshopt_compression"," */","class GLTFMeshoptCompression {","","\tconstructor( parser ) {","","\t\tthis.name = EXTENSIONS.EXT_MESHOPT_COMPRESSION;","\t\tthis.parser = parser;","","\t}","","\tloadBufferView( index ) {","","\t\tconst json = this.parser.json;","\t\tconst bufferView = json.bufferViews[ index ];","","\t\tif ( bufferView.extensions \u0026\u0026 bufferView.extensions[ this.name ] ) {","","\t\t\tconst extensionDef = bufferView.extensions[ this.name ];","","\t\t\tconst buffer = this.parser.getDependency( 'buffer', extensionDef.buffer );","\t\t\tconst decoder = this.parser.options.meshoptDecoder;","","\t\t\tif ( ! decoder || ! decoder.supported ) {","","\t\t\t\tif ( json.extensionsRequired \u0026\u0026 json.extensionsRequired.indexOf( this.name ) \u003e= 0 ) {","","\t\t\t\t\tthrow new Error( 'THREE.GLTFLoader: setMeshoptDecoder must be called before loading compressed files' );","","\t\t\t\t} else {","","\t\t\t\t\t// Assumes that the extension is optional and that fallback buffer data is present","\t\t\t\t\treturn null;","","\t\t\t\t}","","\t\t\t}","","\t\t\treturn buffer.then( function ( res ) {","","\t\t\t\tconst byteOffset = extensionDef.byteOffset || 0;","\t\t\t\tconst byteLength = extensionDef.byteLength || 0;","","\t\t\t\tconst count = extensionDef.count;","\t\t\t\tconst stride = extensionDef.byteStride;","","\t\t\t\tconst source = new Uint8Array( res, byteOffset, byteLength );","","\t\t\t\tif ( decoder.decodeGltfBufferAsync ) {","","\t\t\t\t\treturn decoder.decodeGltfBufferAsync( count, stride, source, extensionDef.mode, extensionDef.filter ).then( function ( res ) {","","\t\t\t\t\t\treturn res.buffer;","","\t\t\t\t\t} );","","\t\t\t\t} else {","","\t\t\t\t\t// Support for MeshoptDecoder 0.18 or earlier, without decodeGltfBufferAsync","\t\t\t\t\treturn decoder.ready.then( function () {","","\t\t\t\t\t\tconst result = new ArrayBuffer( count * stride );","\t\t\t\t\t\tdecoder.decodeGltfBuffer( new Uint8Array( result ), count, stride, source, extensionDef.mode, extensionDef.filter );","\t\t\t\t\t\treturn result;","","\t\t\t\t\t} );","","\t\t\t\t}","","\t\t\t} );","","\t\t} else {","","\t\t\treturn null;","","\t\t}","","\t}","","}","","/**"," * GPU Instancing Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_mesh_gpu_instancing"," *"," */","class GLTFMeshGpuInstancing {","","\tconstructor( parser ) {","","\t\tthis.name = EXTENSIONS.EXT_MESH_GPU_INSTANCING;","\t\tthis.parser = parser;","","\t}","","\tcreateNodeMesh( nodeIndex ) {","","\t\tconst json = this.parser.json;","\t\tconst nodeDef = json.nodes[ nodeIndex ];","","\t\tif ( ! nodeDef.extensions || ! nodeDef.extensions[ this.name ] ||","\t\t\tnodeDef.mesh === undefined ) {","","\t\t\treturn null;","","\t\t}","","\t\tconst meshDef = json.meshes[ nodeDef.mesh ];","","\t\t// No Points or Lines + Instancing support yet","","\t\tfor ( const primitive of meshDef.primitives ) {","","\t\t\tif ( primitive.mode !== WEBGL_CONSTANTS.TRIANGLES \u0026\u0026","\t\t\t\t primitive.mode !== WEBGL_CONSTANTS.TRIANGLE_STRIP \u0026\u0026","\t\t\t\t primitive.mode !== WEBGL_CONSTANTS.TRIANGLE_FAN \u0026\u0026","\t\t\t\t primitive.mode !== undefined ) {","","\t\t\t\treturn null;","","\t\t\t}","","\t\t}","","\t\tconst extensionDef = nodeDef.extensions[ this.name ];","\t\tconst attributesDef = extensionDef.attributes;","","\t\t// @TODO: Can we support InstancedMesh + SkinnedMesh?","","\t\tconst pending = [];","\t\tconst attributes = {};","","\t\tfor ( const key in attributesDef ) {","","\t\t\tpending.push( this.parser.getDependency( 'accessor', attributesDef[ key ] ).then( accessor =\u003e {","","\t\t\t\tattributes[ key ] = accessor;","\t\t\t\treturn attributes[ key ];","","\t\t\t} ) );","","\t\t}","","\t\tif ( pending.length \u003c 1 ) {","","\t\t\treturn null;","","\t\t}","","\t\tpending.push( this.parser.createNodeMesh( nodeIndex ) );","","\t\treturn Promise.all( pending ).then( results =\u003e {","","\t\t\tconst nodeObject = results.pop();","\t\t\tconst meshes = nodeObject.isGroup ? nodeObject.children : [ nodeObject ];","\t\t\tconst count = results[ 0 ].count; // All attribute counts should be same","\t\t\tconst instancedMeshes = [];","","\t\t\tfor ( const mesh of meshes ) {","","\t\t\t\t// Temporal variables","\t\t\t\tconst m = new Matrix4();","\t\t\t\tconst p = new Vector3();","\t\t\t\tconst q = new Quaternion();","\t\t\t\tconst s = new Vector3( 1, 1, 1 );","","\t\t\t\tconst instancedMesh = new InstancedMesh( mesh.geometry, mesh.material, count );","","\t\t\t\tfor ( let i = 0; i \u003c count; i ++ ) {","","\t\t\t\t\tif ( attributes.TRANSLATION ) {","","\t\t\t\t\t\tp.fromBufferAttribute( attributes.TRANSLATION, i );","","\t\t\t\t\t}","","\t\t\t\t\tif ( attributes.ROTATION ) {","","\t\t\t\t\t\tq.fromBufferAttribute( attributes.ROTATION, i );","","\t\t\t\t\t}","","\t\t\t\t\tif ( attributes.SCALE ) {","","\t\t\t\t\t\ts.fromBufferAttribute( attributes.SCALE, i );","","\t\t\t\t\t}","","\t\t\t\t\tinstancedMesh.setMatrixAt( i, m.compose( p, q, s ) );","","\t\t\t\t}","","\t\t\t\t// Add instance attributes to the geometry, excluding TRS.","\t\t\t\tfor ( const attributeName in attributes ) {","","\t\t\t\t\tif ( attributeName === '_COLOR_0' ) {","","\t\t\t\t\t\tconst attr = attributes[ attributeName ];","\t\t\t\t\t\tinstancedMesh.instanceColor = new InstancedBufferAttribute( attr.array, attr.itemSize, attr.normalized );","","\t\t\t\t\t} else if ( attributeName !== 'TRANSLATION' \u0026\u0026","\t\t\t\t\t\t attributeName !== 'ROTATION' \u0026\u0026","\t\t\t\t\t\t attributeName !== 'SCALE' ) {","","\t\t\t\t\t\tmesh.geometry.setAttribute( attributeName, attributes[ attributeName ] );","","\t\t\t\t\t}","","\t\t\t\t}","","\t\t\t\t// Just in case","\t\t\t\tObject3D.prototype.copy.call( instancedMesh, mesh );","","\t\t\t\tthis.parser.assignFinalMaterial( instancedMesh );","","\t\t\t\tinstancedMeshes.push( instancedMesh );","","\t\t\t}","","\t\t\tif ( nodeObject.isGroup ) {","","\t\t\t\tnodeObject.clear();","","\t\t\t\tnodeObject.add( ... instancedMeshes );","","\t\t\t\treturn nodeObject;","","\t\t\t}","","\t\t\treturn instancedMeshes[ 0 ];","","\t\t} );","","\t}","","}","","/* BINARY EXTENSION */","const BINARY_EXTENSION_HEADER_MAGIC = 'glTF';","const BINARY_EXTENSION_HEADER_LENGTH = 12;","const BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 };","","class GLTFBinaryExtension {","","\tconstructor( data ) {","","\t\tthis.name = EXTENSIONS.KHR_BINARY_GLTF;","\t\tthis.content = null;","\t\tthis.body = null;","","\t\tconst headerView = new DataView( data, 0, BINARY_EXTENSION_HEADER_LENGTH );","\t\tconst textDecoder = new TextDecoder();","","\t\tthis.header = {","\t\t\tmagic: textDecoder.decode( new Uint8Array( data.slice( 0, 4 ) ) ),","\t\t\tversion: headerView.getUint32( 4, true ),","\t\t\tlength: headerView.getUint32( 8, true )","\t\t};","","\t\tif ( this.header.magic !== BINARY_EXTENSION_HEADER_MAGIC ) {","","\t\t\tthrow new Error( 'THREE.GLTFLoader: Unsupported glTF-Binary header.' );","","\t\t} else if ( this.header.version \u003c 2.0 ) {","","\t\t\tthrow new Error( 'THREE.GLTFLoader: Legacy binary file detected.' );","","\t\t}","","\t\tconst chunkContentsLength = this.header.length - BINARY_EXTENSION_HEADER_LENGTH;","\t\tconst chunkView = new DataView( data, BINARY_EXTENSION_HEADER_LENGTH );","\t\tlet chunkIndex = 0;","","\t\twhile ( chunkIndex \u003c chunkContentsLength ) {","","\t\t\tconst chunkLength = chunkView.getUint32( chunkIndex, true );","\t\t\tchunkIndex += 4;","","\t\t\tconst chunkType = chunkView.getUint32( chunkIndex, true );","\t\t\tchunkIndex += 4;","","\t\t\tif ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON ) {","","\t\t\t\tconst contentArray = new Uint8Array( data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength );","\t\t\t\tthis.content = textDecoder.decode( contentArray );","","\t\t\t} else if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN ) {","","\t\t\t\tconst byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex;","\t\t\t\tthis.body = data.slice( byteOffset, byteOffset + chunkLength );","","\t\t\t}","","\t\t\t// Clients must ignore chunks with unknown types.","","\t\t\tchunkIndex += chunkLength;","","\t\t}","","\t\tif ( this.content === null ) {","","\t\t\tthrow new Error( 'THREE.GLTFLoader: JSON content not found.' );","","\t\t}","","\t}","","}","","/**"," * DRACO Mesh Compression Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_draco_mesh_compression"," */","class GLTFDracoMeshCompressionExtension {","","\tconstructor( json, dracoLoader ) {","","\t\tif ( ! dracoLoader ) {","","\t\t\tthrow new Error( 'THREE.GLTFLoader: No DRACOLoader instance provided.' );","","\t\t}","","\t\tthis.name = EXTENSIONS.KHR_DRACO_MESH_COMPRESSION;","\t\tthis.json = json;","\t\tthis.dracoLoader = dracoLoader;","\t\tthis.dracoLoader.preload();","","\t}","","\tdecodePrimitive( primitive, parser ) {","","\t\tconst json = this.json;","\t\tconst dracoLoader = this.dracoLoader;","\t\tconst bufferViewIndex = primitive.extensions[ this.name ].bufferView;","\t\tconst gltfAttributeMap = primitive.extensions[ this.name ].attributes;","\t\tconst threeAttributeMap = {};","\t\tconst attributeNormalizedMap = {};","\t\tconst attributeTypeMap = {};","","\t\tfor ( const attributeName in gltfAttributeMap ) {","","\t\t\tconst threeAttributeName = ATTRIBUTES[ attributeName ] || attributeName.toLowerCase();","","\t\t\tthreeAttributeMap[ threeAttributeName ] = gltfAttributeMap[ attributeName ];","","\t\t}","","\t\tfor ( const attributeName in primitive.attributes ) {","","\t\t\tconst threeAttributeName = ATTRIBUTES[ attributeName ] || attributeName.toLowerCase();","","\t\t\tif ( gltfAttributeMap[ attributeName ] !== undefined ) {","","\t\t\t\tconst accessorDef = json.accessors[ primitive.attributes[ attributeName ] ];","\t\t\t\tconst componentType = WEBGL_COMPONENT_TYPES[ accessorDef.componentType ];","","\t\t\t\tattributeTypeMap[ threeAttributeName ] = componentType.name;","\t\t\t\tattributeNormalizedMap[ threeAttributeName ] = accessorDef.normalized === true;","","\t\t\t}","","\t\t}","","\t\treturn parser.getDependency( 'bufferView', bufferViewIndex ).then( function ( bufferView ) {","","\t\t\treturn new Promise( function ( resolve ) {","","\t\t\t\tdracoLoader.decodeDracoFile( bufferView, function ( geometry ) {","","\t\t\t\t\tfor ( const attributeName in geometry.attributes ) {","","\t\t\t\t\t\tconst attribute = geometry.attributes[ attributeName ];","\t\t\t\t\t\tconst normalized = attributeNormalizedMap[ attributeName ];","","\t\t\t\t\t\tif ( normalized !== undefined ) attribute.normalized = normalized;","","\t\t\t\t\t}","","\t\t\t\t\tresolve( geometry );","","\t\t\t\t}, threeAttributeMap, attributeTypeMap );","","\t\t\t} );","","\t\t} );","","\t}","","}","","/**"," * Texture Transform Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform"," */","class GLTFTextureTransformExtension {","","\tconstructor() {","","\t\tthis.name = EXTENSIONS.KHR_TEXTURE_TRANSFORM;","","\t}","","\textendTexture( texture, transform ) {","","\t\tif ( ( transform.texCoord === undefined || transform.texCoord === texture.channel )","\t\t\t\u0026\u0026 transform.offset === undefined","\t\t\t\u0026\u0026 transform.rotation === undefined","\t\t\t\u0026\u0026 transform.scale === undefined ) {","","\t\t\t// See https://github.com/mrdoob/three.js/issues/21819.","\t\t\treturn texture;","","\t\t}","","\t\ttexture = texture.clone();","","\t\tif ( transform.texCoord !== undefined ) {","","\t\t\ttexture.channel = transform.texCoord;","","\t\t}","","\t\tif ( transform.offset !== undefined ) {","","\t\t\ttexture.offset.fromArray( transform.offset );","","\t\t}","","\t\tif ( transform.rotation !== undefined ) {","","\t\t\ttexture.rotation = transform.rotation;","","\t\t}","","\t\tif ( transform.scale !== undefined ) {","","\t\t\ttexture.repeat.fromArray( transform.scale );","","\t\t}","","\t\ttexture.needsUpdate = true;","","\t\treturn texture;","","\t}","","}","","/**"," * Mesh Quantization Extension"," *"," * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization"," */","class GLTFMeshQuantizationExtension {","","\tconstructor() {","","\t\tthis.name = EXTENSIONS.KHR_MESH_QUANTIZATION;","","\t}","","}","","/*********************************/","/********** INTERPOLATION ********/","/*********************************/","","// Spline Interpolation","// Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#appendix-c-spline-interpolation","class GLTFCubicSplineInterpolant extends Interpolant {","","\tconstructor( parameterPositions, sampleValues, sampleSize, resultBuffer ) {","","\t\tsuper( parameterPositions, sampleValues, sampleSize, resultBuffer );","","\t}","","\tcopySampleValue_( index ) {","","\t\t// Copies a sample value to the result buffer. See description of glTF","\t\t// CUBICSPLINE values layout in interpolate_() function below.","","\t\tconst result = this.resultBuffer,","\t\t\tvalues = this.sampleValues,","\t\t\tvalueSize = this.valueSize,","\t\t\toffset = index * valueSize * 3 + valueSize;","","\t\tfor ( let i = 0; i !== valueSize; i ++ ) {","","\t\t\tresult[ i ] = values[ offset + i ];","","\t\t}","","\t\treturn result;","","\t}","","\tinterpolate_( i1, t0, t, t1 ) {","","\t\tconst result = this.resultBuffer;","\t\tconst values = this.sampleValues;","\t\tconst stride = this.valueSize;","","\t\tconst stride2 = stride * 2;","\t\tconst stride3 = stride * 3;","","\t\tconst td = t1 - t0;","","\t\tconst p = ( t - t0 ) / td;","\t\tconst pp = p * p;","\t\tconst ppp = pp * p;","","\t\tconst offset1 = i1 * stride3;","\t\tconst offset0 = offset1 - stride3;","","\t\tconst s2 = - 2 * ppp + 3 * pp;","\t\tconst s3 = ppp - pp;","\t\tconst s0 = 1 - s2;","\t\tconst s1 = s3 - pp + p;","","\t\t// Layout of keyframe output values for CUBICSPLINE animations:","\t\t//   [ inTangent_1, splineVertex_1, outTangent_1, inTangent_2, splineVertex_2, ... ]","\t\tfor ( let i = 0; i !== stride; i ++ ) {","","\t\t\tconst p0 = values[ offset0 + i + stride ]; // splineVertex_k","\t\t\tconst m0 = values[ offset0 + i + stride2 ] * td; // outTangent_k * (t_k+1 - t_k)","\t\t\tconst p1 = values[ offset1 + i + stride ]; // splineVertex_k+1","\t\t\tconst m1 = values[ offset1 + i ] * td; // inTangent_k+1 * (t_k+1 - t_k)","","\t\t\tresult[ i ] = s0 * p0 + s1 * m0 + s2 * p1 + s3 * m1;","","\t\t}","","\t\treturn result;","","\t}","","}","","const _q = new Quaternion();","","class GLTFCubicSplineQuaternionInterpolant extends GLTFCubicSplineInterpolant {","","\tinterpolate_( i1, t0, t, t1 ) {","","\t\tconst result = super.interpolate_( i1, t0, t, t1 );","","\t\t_q.fromArray( result ).normalize().toArray( result );","","\t\treturn result;","","\t}","","}","","","/*********************************/","/********** INTERNALS ************/","/*********************************/","","/* CONSTANTS */","","const WEBGL_CONSTANTS = {","\tFLOAT: 5126,","\t//FLOAT_MAT2: 35674,","\tFLOAT_MAT3: 35675,","\tFLOAT_MAT4: 35676,","\tFLOAT_VEC2: 35664,","\tFLOAT_VEC3: 35665,","\tFLOAT_VEC4: 35666,","\tLINEAR: 9729,","\tREPEAT: 10497,","\tSAMPLER_2D: 35678,","\tPOINTS: 0,","\tLINES: 1,","\tLINE_LOOP: 2,","\tLINE_STRIP: 3,","\tTRIANGLES: 4,","\tTRIANGLE_STRIP: 5,","\tTRIANGLE_FAN: 6,","\tUNSIGNED_BYTE: 5121,","\tUNSIGNED_SHORT: 5123","};","","const WEBGL_COMPONENT_TYPES = {","\t5120: Int8Array,","\t5121: Uint8Array,","\t5122: Int16Array,","\t5123: Uint16Array,","\t5125: Uint32Array,","\t5126: Float32Array","};","","const WEBGL_FILTERS = {","\t9728: NearestFilter,","\t9729: LinearFilter,","\t9984: NearestMipmapNearestFilter,","\t9985: LinearMipmapNearestFilter,","\t9986: NearestMipmapLinearFilter,","\t9987: LinearMipmapLinearFilter","};","","const WEBGL_WRAPPINGS = {","\t33071: ClampToEdgeWrapping,","\t33648: MirroredRepeatWrapping,","\t10497: RepeatWrapping","};","","const WEBGL_TYPE_SIZES = {","\t'SCALAR': 1,","\t'VEC2': 2,","\t'VEC3': 3,","\t'VEC4': 4,","\t'MAT2': 4,","\t'MAT3': 9,","\t'MAT4': 16","};","","const ATTRIBUTES = {","\tPOSITION: 'position',","\tNORMAL: 'normal',","\tTANGENT: 'tangent',","\tTEXCOORD_0: 'uv',","\tTEXCOORD_1: 'uv1',","\tTEXCOORD_2: 'uv2',","\tTEXCOORD_3: 'uv3',","\tCOLOR_0: 'color',","\tWEIGHTS_0: 'skinWeight',","\tJOINTS_0: 'skinIndex',","};","","const PATH_PROPERTIES = {","\tscale: 'scale',","\ttranslation: 'position',","\trotation: 'quaternion',","\tweights: 'morphTargetInfluences'","};","","const INTERPOLATION = {","\tCUBICSPLINE: undefined, // We use a custom interpolant (GLTFCubicSplineInterpolation) for CUBICSPLINE tracks. Each","\t\t                        // keyframe track will be initialized with a default interpolation type, then modified.","\tLINEAR: InterpolateLinear,","\tSTEP: InterpolateDiscrete","};","","const ALPHA_MODES = {","\tOPAQUE: 'OPAQUE',","\tMASK: 'MASK',","\tBLEND: 'BLEND'","};","","/**"," * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#default-material"," */","function createDefaultMaterial( cache ) {","","\tif ( cache[ 'DefaultMaterial' ] === undefined ) {","","\t\tcache[ 'DefaultMaterial' ] = new MeshStandardMaterial( {","\t\t\tcolor: 0xFFFFFF,","\t\t\temissive: 0x000000,","\t\t\tmetalness: 1,","\t\t\troughness: 1,","\t\t\ttransparent: false,","\t\t\tdepthTest: true,","\t\t\tside: FrontSide","\t\t} );","","\t}","","\treturn cache[ 'DefaultMaterial' ];","","}","","function addUnknownExtensionsToUserData( knownExtensions, object, objectDef ) {","","\t// Add unknown glTF extensions to an object's userData.","","\tfor ( const name in objectDef.extensions ) {","","\t\tif ( knownExtensions[ name ] === undefined ) {","","\t\t\tobject.userData.gltfExtensions = object.userData.gltfExtensions || {};","\t\t\tobject.userData.gltfExtensions[ name ] = objectDef.extensions[ name ];","","\t\t}","","\t}","","}","","/**"," * @param {Object3D|Material|BufferGeometry} object"," * @param {GLTF.definition} gltfDef"," */","function assignExtrasToUserData( object, gltfDef ) {","","\tif ( gltfDef.extras !== undefined ) {","","\t\tif ( typeof gltfDef.extras === 'object' ) {","","\t\t\tObject.assign( object.userData, gltfDef.extras );","","\t\t} else {","","\t\t\tconsole.warn( 'THREE.GLTFLoader: Ignoring primitive type .extras, ' + gltfDef.extras );","","\t\t}","","\t}","","}","","/**"," * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#morph-targets"," *"," * @param {BufferGeometry} geometry"," * @param {Array\u003cGLTF.Target\u003e} targets"," * @param {GLTFParser} parser"," * @return {Promise\u003cBufferGeometry\u003e}"," */","function addMorphTargets( geometry, targets, parser ) {","","\tlet hasMorphPosition = false;","\tlet hasMorphNormal = false;","\tlet hasMorphColor = false;","","\tfor ( let i = 0, il = targets.length; i \u003c il; i ++ ) {","","\t\tconst target = targets[ i ];","","\t\tif ( target.POSITION !== undefined ) hasMorphPosition = true;","\t\tif ( target.NORMAL !== undefined ) hasMorphNormal = true;","\t\tif ( target.COLOR_0 !== undefined ) hasMorphColor = true;","","\t\tif ( hasMorphPosition \u0026\u0026 hasMorphNormal \u0026\u0026 hasMorphColor ) break;","","\t}","","\tif ( ! hasMorphPosition \u0026\u0026 ! hasMorphNormal \u0026\u0026 ! hasMorphColor ) return Promise.resolve( geometry );","","\tconst pendingPositionAccessors = [];","\tconst pendingNormalAccessors = [];","\tconst pendingColorAccessors = [];","","\tfor ( let i = 0, il = targets.length; i \u003c il; i ++ ) {","","\t\tconst target = targets[ i ];","","\t\tif ( hasMorphPosition ) {","","\t\t\tconst pendingAccessor = target.POSITION !== undefined","\t\t\t\t? parser.getDependency( 'accessor', target.POSITION )","\t\t\t\t: geometry.attributes.position;","","\t\t\tpendingPositionAccessors.push( pendingAccessor );","","\t\t}","","\t\tif ( hasMorphNormal ) {","","\t\t\tconst pendingAccessor = target.NORMAL !== undefined","\t\t\t\t? parser.getDependency( 'accessor', target.NORMAL )","\t\t\t\t: geometry.attributes.normal;","","\t\t\tpendingNormalAccessors.push( pendingAccessor );","","\t\t}","","\t\tif ( hasMorphColor ) {","","\t\t\tconst pendingAccessor = target.COLOR_0 !== undefined","\t\t\t\t? parser.getDependency( 'accessor', target.COLOR_0 )","\t\t\t\t: geometry.attributes.color;","","\t\t\tpendingColorAccessors.push( pendingAccessor );","","\t\t}","","\t}","","\treturn Promise.all( [","\t\tPromise.all( pendingPositionAccessors ),","\t\tPromise.all( pendingNormalAccessors ),","\t\tPromise.all( pendingColorAccessors )","\t] ).then( function ( accessors ) {","","\t\tconst morphPositions = accessors[ 0 ];","\t\tconst morphNormals = accessors[ 1 ];","\t\tconst morphColors = accessors[ 2 ];","","\t\tif ( hasMorphPosition ) geometry.morphAttributes.position = morphPositions;","\t\tif ( hasMorphNormal ) geometry.morphAttributes.normal = morphNormals;","\t\tif ( hasMorphColor ) geometry.morphAttributes.color = morphColors;","\t\tgeometry.morphTargetsRelative = true;","","\t\treturn geometry;","","\t} );","","}","","/**"," * @param {Mesh} mesh"," * @param {GLTF.Mesh} meshDef"," */","function updateMorphTargets( mesh, meshDef ) {","","\tmesh.updateMorphTargets();","","\tif ( meshDef.weights !== undefined ) {","","\t\tfor ( let i = 0, il = meshDef.weights.length; i \u003c il; i ++ ) {","","\t\t\tmesh.morphTargetInfluences[ i ] = meshDef.weights[ i ];","","\t\t}","","\t}","","\t// .extras has user-defined data, so check that .extras.targetNames is an array.","\tif ( meshDef.extras \u0026\u0026 Array.isArray( meshDef.extras.targetNames ) ) {","","\t\tconst targetNames = meshDef.extras.targetNames;","","\t\tif ( mesh.morphTargetInfluences.length === targetNames.length ) {","","\t\t\tmesh.morphTargetDictionary = {};","","\t\t\tfor ( let i = 0, il = targetNames.length; i \u003c il; i ++ ) {","","\t\t\t\tmesh.morphTargetDictionary[ targetNames[ i ] ] = i;","","\t\t\t}","","\t\t} else {","","\t\t\tconsole.warn( 'THREE.GLTFLoader: Invalid extras.targetNames length. Ignoring names.' );","","\t\t}","","\t}","","}","","function createPrimitiveKey( primitiveDef ) {","","\tlet geometryKey;","","\tconst dracoExtension = primitiveDef.extensions \u0026\u0026 primitiveDef.extensions[ EXTENSIONS.KHR_DRACO_MESH_COMPRESSION ];","","\tif ( dracoExtension ) {","","\t\tgeometryKey = 'draco:' + dracoExtension.bufferView","\t\t\t\t+ ':' + dracoExtension.indices","\t\t\t\t+ ':' + createAttributesKey( dracoExtension.attributes );","","\t} else {","","\t\tgeometryKey = primitiveDef.indices + ':' + createAttributesKey( primitiveDef.attributes ) + ':' + primitiveDef.mode;","","\t}","","\tif ( primitiveDef.targets !== undefined ) {","","\t\tfor ( let i = 0, il = primitiveDef.targets.length; i \u003c il; i ++ ) {","","\t\t\tgeometryKey += ':' + createAttributesKey( primitiveDef.targets[ i ] );","","\t\t}","","\t}","","\treturn geometryKey;","","}","","function createAttributesKey( attributes ) {","","\tlet attributesKey = '';","","\tconst keys = Object.keys( attributes ).sort();","","\tfor ( let i = 0, il = keys.length; i \u003c il; i ++ ) {","","\t\tattributesKey += keys[ i ] + ':' + attributes[ keys[ i ] ] + ';';","","\t}","","\treturn attributesKey;","","}","","function getNormalizedComponentScale( constructor ) {","","\t// Reference:","\t// https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization#encoding-quantized-data","","\tswitch ( constructor ) {","","\t\tcase Int8Array:","\t\t\treturn 1 / 127;","","\t\tcase Uint8Array:","\t\t\treturn 1 / 255;","","\t\tcase Int16Array:","\t\t\treturn 1 / 32767;","","\t\tcase Uint16Array:","\t\t\treturn 1 / 65535;","","\t\tdefault:","\t\t\tthrow new Error( 'THREE.GLTFLoader: Unsupported normalized accessor component type.' );","","\t}","","}","","function getImageURIMimeType( uri ) {","","\tif ( uri.search( /\\.jpe?g($|\\?)/i ) \u003e 0 || uri.search( /^data\\:image\\/jpeg/ ) === 0 ) return 'image/jpeg';","\tif ( uri.search( /\\.webp($|\\?)/i ) \u003e 0 || uri.search( /^data\\:image\\/webp/ ) === 0 ) return 'image/webp';","","\treturn 'image/png';","","}","","const _identityMatrix = new Matrix4();","","/* GLTF PARSER */","","class GLTFParser {","","\tconstructor( json = {}, options = {} ) {","","\t\tthis.json = json;","\t\tthis.extensions = {};","\t\tthis.plugins = {};","\t\tthis.options = options;","","\t\t// loader object cache","\t\tthis.cache = new GLTFRegistry();","","\t\t// associations between Three.js objects and glTF elements","\t\tthis.associations = new Map();","","\t\t// BufferGeometry caching","\t\tthis.primitiveCache = {};","","\t\t// Node cache","\t\tthis.nodeCache = {};","","\t\t// Object3D instance caches","\t\tthis.meshCache = { refs: {}, uses: {} };","\t\tthis.cameraCache = { refs: {}, uses: {} };","\t\tthis.lightCache = { refs: {}, uses: {} };","","\t\tthis.sourceCache = {};","\t\tthis.textureCache = {};","","\t\t// Track node names, to ensure no duplicates","\t\tthis.nodeNamesUsed = {};","","\t\t// Use an ImageBitmapLoader if imageBitmaps are supported. Moves much of the","\t\t// expensive work of uploading a texture to the GPU off the main thread.","","\t\tlet isSafari = false;","\t\tlet isFirefox = false;","\t\tlet firefoxVersion = - 1;","","\t\tif ( typeof navigator !== 'undefined' ) {","","\t\t\tisSafari = /^((?!chrome|android).)*safari/i.test( navigator.userAgent ) === true;","\t\t\tisFirefox = navigator.userAgent.indexOf( 'Firefox' ) \u003e - 1;","\t\t\tfirefoxVersion = isFirefox ? navigator.userAgent.match( /Firefox\\/([0-9]+)\\./ )[ 1 ] : - 1;","","\t\t}","","\t\tif ( typeof createImageBitmap === 'undefined' || isSafari || ( isFirefox \u0026\u0026 firefoxVersion \u003c 98 ) ) {","","\t\t\tthis.textureLoader = new TextureLoader( this.options.manager );","","\t\t} else {","","\t\t\tthis.textureLoader = new ImageBitmapLoader( this.options.manager );","","\t\t}","","\t\tthis.textureLoader.setCrossOrigin( this.options.crossOrigin );","\t\tthis.textureLoader.setRequestHeader( this.options.requestHeader );","","\t\tthis.fileLoader = new FileLoader( this.options.manager );","\t\tthis.fileLoader.setResponseType( 'arraybuffer' );","","\t\tif ( this.options.crossOrigin === 'use-credentials' ) {","","\t\t\tthis.fileLoader.setWithCredentials( true );","","\t\t}","","\t}","","\tsetExtensions( extensions ) {","","\t\tthis.extensions = extensions;","","\t}","","\tsetPlugins( plugins ) {","","\t\tthis.plugins = plugins;","","\t}","","\tparse( onLoad, onError ) {","","\t\tconst parser = this;","\t\tconst json = this.json;","\t\tconst extensions = this.extensions;","","\t\t// Clear the loader cache","\t\tthis.cache.removeAll();","\t\tthis.nodeCache = {};","","\t\t// Mark the special nodes/meshes in json for efficient parse","\t\tthis._invokeAll( function ( ext ) {","","\t\t\treturn ext._markDefs \u0026\u0026 ext._markDefs();","","\t\t} );","","\t\tPromise.all( this._invokeAll( function ( ext ) {","","\t\t\treturn ext.beforeRoot \u0026\u0026 ext.beforeRoot();","","\t\t} ) ).then( function () {","","\t\t\treturn Promise.all( [","","\t\t\t\tparser.getDependencies( 'scene' ),","\t\t\t\tparser.getDependencies( 'animation' ),","\t\t\t\tparser.getDependencies( 'camera' ),","","\t\t\t] );","","\t\t} ).then( function ( dependencies ) {","","\t\t\tconst result = {","\t\t\t\tscene: dependencies[ 0 ][ json.scene || 0 ],","\t\t\t\tscenes: dependencies[ 0 ],","\t\t\t\tanimations: dependencies[ 1 ],","\t\t\t\tcameras: dependencies[ 2 ],","\t\t\t\tasset: json.asset,","\t\t\t\tparser: parser,","\t\t\t\tuserData: {}","\t\t\t};","","\t\t\taddUnknownExtensionsToUserData( extensions, result, json );","","\t\t\tassignExtrasToUserData( result, json );","","\t\t\treturn Promise.all( parser._invokeAll( function ( ext ) {","","\t\t\t\treturn ext.afterRoot \u0026\u0026 ext.afterRoot( result );","","\t\t\t} ) ).then( function () {","","\t\t\t\tonLoad( result );","","\t\t\t} );","","\t\t} ).catch( onError );","","\t}","","\t/**","\t * Marks the special nodes/meshes in json for efficient parse.","\t */","\t_markDefs() {","","\t\tconst nodeDefs = this.json.nodes || [];","\t\tconst skinDefs = this.json.skins || [];","\t\tconst meshDefs = this.json.meshes || [];","","\t\t// Nothing in the node definition indicates whether it is a Bone or an","\t\t// Object3D. Use the skins' joint references to mark bones.","\t\tfor ( let skinIndex = 0, skinLength = skinDefs.length; skinIndex \u003c skinLength; skinIndex ++ ) {","","\t\t\tconst joints = skinDefs[ skinIndex ].joints;","","\t\t\tfor ( let i = 0, il = joints.length; i \u003c il; i ++ ) {","","\t\t\t\tnodeDefs[ joints[ i ] ].isBone = true;","","\t\t\t}","","\t\t}","","\t\t// Iterate over all nodes, marking references to shared resources,","\t\t// as well as skeleton joints.","\t\tfor ( let nodeIndex = 0, nodeLength = nodeDefs.length; nodeIndex \u003c nodeLength; nodeIndex ++ ) {","","\t\t\tconst nodeDef = nodeDefs[ nodeIndex ];","","\t\t\tif ( nodeDef.mesh !== undefined ) {","","\t\t\t\tthis._addNodeRef( this.meshCache, nodeDef.mesh );","","\t\t\t\t// Nothing in the mesh definition indicates whether it is","\t\t\t\t// a SkinnedMesh or Mesh. Use the node's mesh reference","\t\t\t\t// to mark SkinnedMesh if node has skin.","\t\t\t\tif ( nodeDef.skin !== undefined ) {","","\t\t\t\t\tmeshDefs[ nodeDef.mesh ].isSkinnedMesh = true;","","\t\t\t\t}","","\t\t\t}","","\t\t\tif ( nodeDef.camera !== undefined ) {","","\t\t\t\tthis._addNodeRef( this.cameraCache, nodeDef.camera );","","\t\t\t}","","\t\t}","","\t}","","\t/**","\t * Counts references to shared node / Object3D resources. These resources","\t * can be reused, or \"instantiated\", at multiple nodes in the scene","\t * hierarchy. Mesh, Camera, and Light instances are instantiated and must","\t * be marked. Non-scenegraph resources (like Materials, Geometries, and","\t * Textures) can be reused directly and are not marked here.","\t *","\t * Example: CesiumMilkTruck sample model reuses \"Wheel\" meshes.","\t */","\t_addNodeRef( cache, index ) {","","\t\tif ( index === undefined ) return;","","\t\tif ( cache.refs[ index ] === undefined ) {","","\t\t\tcache.refs[ index ] = cache.uses[ index ] = 0;","","\t\t}","","\t\tcache.refs[ index ] ++;","","\t}","","\t/** Returns a reference to a shared resource, cloning it if necessary. */","\t_getNodeRef( cache, index, object ) {","","\t\tif ( cache.refs[ index ] \u003c= 1 ) return object;","","\t\tconst ref = object.clone();","","\t\t// Propagates mappings to the cloned object, prevents mappings on the","\t\t// original object from being lost.","\t\tconst updateMappings = ( original, clone ) =\u003e {","","\t\t\tconst mappings = this.associations.get( original );","\t\t\tif ( mappings != null ) {","","\t\t\t\tthis.associations.set( clone, mappings );","","\t\t\t}","","\t\t\tfor ( const [ i, child ] of original.children.entries() ) {","","\t\t\t\tupdateMappings( child, clone.children[ i ] );","","\t\t\t}","","\t\t};","","\t\tupdateMappings( object, ref );","","\t\tref.name += '_instance_' + ( cache.uses[ index ] ++ );","","\t\treturn ref;","","\t}","","\t_invokeOne( func ) {","","\t\tconst extensions = Object.values( this.plugins );","\t\textensions.push( this );","","\t\tfor ( let i = 0; i \u003c extensions.length; i ++ ) {","","\t\t\tconst result = func( extensions[ i ] );","","\t\t\tif ( result ) return result;","","\t\t}","","\t\treturn null;","","\t}","","\t_invokeAll( func ) {","","\t\tconst extensions = Object.values( this.plugins );","\t\textensions.unshift( this );","","\t\tconst pending = [];","","\t\tfor ( let i = 0; i \u003c extensions.length; i ++ ) {","","\t\t\tconst result = func( extensions[ i ] );","","\t\t\tif ( result ) pending.push( result );","","\t\t}","","\t\treturn pending;","","\t}","","\t/**","\t * Requests the specified dependency asynchronously, with caching.","\t * @param {string} type","\t * @param {number} index","\t * @return {Promise\u003cObject3D|Material|THREE.Texture|AnimationClip|ArrayBuffer|Object\u003e}","\t */","\tgetDependency( type, index ) {","","\t\tconst cacheKey = type + ':' + index;","\t\tlet dependency = this.cache.get( cacheKey );","","\t\tif ( ! dependency ) {","","\t\t\tswitch ( type ) {","","\t\t\t\tcase 'scene':","\t\t\t\t\tdependency = this.loadScene( index );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'node':","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext.loadNode \u0026\u0026 ext.loadNode( index );","","\t\t\t\t\t} );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'mesh':","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext.loadMesh \u0026\u0026 ext.loadMesh( index );","","\t\t\t\t\t} );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'accessor':","\t\t\t\t\tdependency = this.loadAccessor( index );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'bufferView':","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext.loadBufferView \u0026\u0026 ext.loadBufferView( index );","","\t\t\t\t\t} );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'buffer':","\t\t\t\t\tdependency = this.loadBuffer( index );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'material':","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext.loadMaterial \u0026\u0026 ext.loadMaterial( index );","","\t\t\t\t\t} );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'texture':","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext.loadTexture \u0026\u0026 ext.loadTexture( index );","","\t\t\t\t\t} );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'skin':","\t\t\t\t\tdependency = this.loadSkin( index );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'animation':","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext.loadAnimation \u0026\u0026 ext.loadAnimation( index );","","\t\t\t\t\t} );","\t\t\t\t\tbreak;","","\t\t\t\tcase 'camera':","\t\t\t\t\tdependency = this.loadCamera( index );","\t\t\t\t\tbreak;","","\t\t\t\tdefault:","\t\t\t\t\tdependency = this._invokeOne( function ( ext ) {","","\t\t\t\t\t\treturn ext != this \u0026\u0026 ext.getDependency \u0026\u0026 ext.getDependency( type, index );","","\t\t\t\t\t} );","","\t\t\t\t\tif ( ! dependency ) {","","\t\t\t\t\t\tthrow new Error( 'Unknown type: ' + type );","","\t\t\t\t\t}","","\t\t\t\t\tbreak;","","\t\t\t}","","\t\t\tthis.cache.add( cacheKey, dependency );","","\t\t}","","\t\treturn dependency;","","\t}","","\t/**","\t * Requests all dependencies of the specified type asynchronously, with caching.","\t * @param {string} type","\t * @return {Promise\u003cArray\u003cObject\u003e\u003e}","\t */","\tgetDependencies( type ) {","","\t\tlet dependencies = this.cache.get( type );","","\t\tif ( ! dependencies ) {","","\t\t\tconst parser = this;","\t\t\tconst defs = this.json[ type + ( type === 'mesh' ? 'es' : 's' ) ] || [];","","\t\t\tdependencies = Promise.all( defs.map( function ( def, index ) {","","\t\t\t\treturn parser.getDependency( type, index );","","\t\t\t} ) );","","\t\t\tthis.cache.add( type, dependencies );","","\t\t}","","\t\treturn dependencies;","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#buffers-and-buffer-views","\t * @param {number} bufferIndex","\t * @return {Promise\u003cArrayBuffer\u003e}","\t */","\tloadBuffer( bufferIndex ) {","","\t\tconst bufferDef = this.json.buffers[ bufferIndex ];","\t\tconst loader = this.fileLoader;","","\t\tif ( bufferDef.type \u0026\u0026 bufferDef.type !== 'arraybuffer' ) {","","\t\t\tthrow new Error( 'THREE.GLTFLoader: ' + bufferDef.type + ' buffer type is not supported.' );","","\t\t}","","\t\t// If present, GLB container is required to be the first buffer.","\t\tif ( bufferDef.uri === undefined \u0026\u0026 bufferIndex === 0 ) {","","\t\t\treturn Promise.resolve( this.extensions[ EXTENSIONS.KHR_BINARY_GLTF ].body );","","\t\t}","","\t\tconst options = this.options;","","\t\treturn new Promise( function ( resolve, reject ) {","","\t\t\tloader.load( LoaderUtils.resolveURL( bufferDef.uri, options.path ), resolve, undefined, function () {","","\t\t\t\treject( new Error( 'THREE.GLTFLoader: Failed to load buffer \"' + bufferDef.uri + '\".' ) );","","\t\t\t} );","","\t\t} );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#buffers-and-buffer-views","\t * @param {number} bufferViewIndex","\t * @return {Promise\u003cArrayBuffer\u003e}","\t */","\tloadBufferView( bufferViewIndex ) {","","\t\tconst bufferViewDef = this.json.bufferViews[ bufferViewIndex ];","","\t\treturn this.getDependency( 'buffer', bufferViewDef.buffer ).then( function ( buffer ) {","","\t\t\tconst byteLength = bufferViewDef.byteLength || 0;","\t\t\tconst byteOffset = bufferViewDef.byteOffset || 0;","\t\t\treturn buffer.slice( byteOffset, byteOffset + byteLength );","","\t\t} );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#accessors","\t * @param {number} accessorIndex","\t * @return {Promise\u003cBufferAttribute|InterleavedBufferAttribute\u003e}","\t */","\tloadAccessor( accessorIndex ) {","","\t\tconst parser = this;","\t\tconst json = this.json;","","\t\tconst accessorDef = this.json.accessors[ accessorIndex ];","","\t\tif ( accessorDef.bufferView === undefined \u0026\u0026 accessorDef.sparse === undefined ) {","","\t\t\tconst itemSize = WEBGL_TYPE_SIZES[ accessorDef.type ];","\t\t\tconst TypedArray = WEBGL_COMPONENT_TYPES[ accessorDef.componentType ];","\t\t\tconst normalized = accessorDef.normalized === true;","","\t\t\tconst array = new TypedArray( accessorDef.count * itemSize );","\t\t\treturn Promise.resolve( new BufferAttribute( array, itemSize, normalized ) );","","\t\t}","","\t\tconst pendingBufferViews = [];","","\t\tif ( accessorDef.bufferView !== undefined ) {","","\t\t\tpendingBufferViews.push( this.getDependency( 'bufferView', accessorDef.bufferView ) );","","\t\t} else {","","\t\t\tpendingBufferViews.push( null );","","\t\t}","","\t\tif ( accessorDef.sparse !== undefined ) {","","\t\t\tpendingBufferViews.push( this.getDependency( 'bufferView', accessorDef.sparse.indices.bufferView ) );","\t\t\tpendingBufferViews.push( this.getDependency( 'bufferView', accessorDef.sparse.values.bufferView ) );","","\t\t}","","\t\treturn Promise.all( pendingBufferViews ).then( function ( bufferViews ) {","","\t\t\tconst bufferView = bufferViews[ 0 ];","","\t\t\tconst itemSize = WEBGL_TYPE_SIZES[ accessorDef.type ];","\t\t\tconst TypedArray = WEBGL_COMPONENT_TYPES[ accessorDef.componentType ];","","\t\t\t// For VEC3: itemSize is 3, elementBytes is 4, itemBytes is 12.","\t\t\tconst elementBytes = TypedArray.BYTES_PER_ELEMENT;","\t\t\tconst itemBytes = elementBytes * itemSize;","\t\t\tconst byteOffset = accessorDef.byteOffset || 0;","\t\t\tconst byteStride = accessorDef.bufferView !== undefined ? json.bufferViews[ accessorDef.bufferView ].byteStride : undefined;","\t\t\tconst normalized = accessorDef.normalized === true;","\t\t\tlet array, bufferAttribute;","","\t\t\t// The buffer is not interleaved if the stride is the item size in bytes.","\t\t\tif ( byteStride \u0026\u0026 byteStride !== itemBytes ) {","","\t\t\t\t// Each \"slice\" of the buffer, as defined by 'count' elements of 'byteStride' bytes, gets its own InterleavedBuffer","\t\t\t\t// This makes sure that IBA.count reflects accessor.count properly","\t\t\t\tconst ibSlice = Math.floor( byteOffset / byteStride );","\t\t\t\tconst ibCacheKey = 'InterleavedBuffer:' + accessorDef.bufferView + ':' + accessorDef.componentType + ':' + ibSlice + ':' + accessorDef.count;","\t\t\t\tlet ib = parser.cache.get( ibCacheKey );","","\t\t\t\tif ( ! ib ) {","","\t\t\t\t\tarray = new TypedArray( bufferView, ibSlice * byteStride, accessorDef.count * byteStride / elementBytes );","","\t\t\t\t\t// Integer parameters to IB/IBA are in array elements, not bytes.","\t\t\t\t\tib = new InterleavedBuffer( array, byteStride / elementBytes );","","\t\t\t\t\tparser.cache.add( ibCacheKey, ib );","","\t\t\t\t}","","\t\t\t\tbufferAttribute = new InterleavedBufferAttribute( ib, itemSize, ( byteOffset % byteStride ) / elementBytes, normalized );","","\t\t\t} else {","","\t\t\t\tif ( bufferView === null ) {","","\t\t\t\t\tarray = new TypedArray( accessorDef.count * itemSize );","","\t\t\t\t} else {","","\t\t\t\t\tarray = new TypedArray( bufferView, byteOffset, accessorDef.count * itemSize );","","\t\t\t\t}","","\t\t\t\tbufferAttribute = new BufferAttribute( array, itemSize, normalized );","","\t\t\t}","","\t\t\t// https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#sparse-accessors","\t\t\tif ( accessorDef.sparse !== undefined ) {","","\t\t\t\tconst itemSizeIndices = WEBGL_TYPE_SIZES.SCALAR;","\t\t\t\tconst TypedArrayIndices = WEBGL_COMPONENT_TYPES[ accessorDef.sparse.indices.componentType ];","","\t\t\t\tconst byteOffsetIndices = accessorDef.sparse.indices.byteOffset || 0;","\t\t\t\tconst byteOffsetValues = accessorDef.sparse.values.byteOffset || 0;","","\t\t\t\tconst sparseIndices = new TypedArrayIndices( bufferViews[ 1 ], byteOffsetIndices, accessorDef.sparse.count * itemSizeIndices );","\t\t\t\tconst sparseValues = new TypedArray( bufferViews[ 2 ], byteOffsetValues, accessorDef.sparse.count * itemSize );","","\t\t\t\tif ( bufferView !== null ) {","","\t\t\t\t\t// Avoid modifying the original ArrayBuffer, if the bufferView wasn't initialized with zeroes.","\t\t\t\t\tbufferAttribute = new BufferAttribute( bufferAttribute.array.slice(), bufferAttribute.itemSize, bufferAttribute.normalized );","","\t\t\t\t}","","\t\t\t\tfor ( let i = 0, il = sparseIndices.length; i \u003c il; i ++ ) {","","\t\t\t\t\tconst index = sparseIndices[ i ];","","\t\t\t\t\tbufferAttribute.setX( index, sparseValues[ i * itemSize ] );","\t\t\t\t\tif ( itemSize \u003e= 2 ) bufferAttribute.setY( index, sparseValues[ i * itemSize + 1 ] );","\t\t\t\t\tif ( itemSize \u003e= 3 ) bufferAttribute.setZ( index, sparseValues[ i * itemSize + 2 ] );","\t\t\t\t\tif ( itemSize \u003e= 4 ) bufferAttribute.setW( index, sparseValues[ i * itemSize + 3 ] );","\t\t\t\t\tif ( itemSize \u003e= 5 ) throw new Error( 'THREE.GLTFLoader: Unsupported itemSize in sparse BufferAttribute.' );","","\t\t\t\t}","","\t\t\t}","","\t\t\treturn bufferAttribute;","","\t\t} );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#textures","\t * @param {number} textureIndex","\t * @return {Promise\u003cTHREE.Texture|null\u003e}","\t */","\tloadTexture( textureIndex ) {","","\t\tconst json = this.json;","\t\tconst options = this.options;","\t\tconst textureDef = json.textures[ textureIndex ];","\t\tconst sourceIndex = textureDef.source;","\t\tconst sourceDef = json.images[ sourceIndex ];","","\t\tlet loader = this.textureLoader;","","\t\tif ( sourceDef.uri ) {","","\t\t\tconst handler = options.manager.getHandler( sourceDef.uri );","\t\t\tif ( handler !== null ) loader = handler;","","\t\t}","","\t\treturn this.loadTextureImage( textureIndex, sourceIndex, loader );","","\t}","","\tloadTextureImage( textureIndex, sourceIndex, loader ) {","","\t\tconst parser = this;","\t\tconst json = this.json;","","\t\tconst textureDef = json.textures[ textureIndex ];","\t\tconst sourceDef = json.images[ sourceIndex ];","","\t\tconst cacheKey = ( sourceDef.uri || sourceDef.bufferView ) + ':' + textureDef.sampler;","","\t\tif ( this.textureCache[ cacheKey ] ) {","","\t\t\t// See https://github.com/mrdoob/three.js/issues/21559.","\t\t\treturn this.textureCache[ cacheKey ];","","\t\t}","","\t\tconst promise = this.loadImageSource( sourceIndex, loader ).then( function ( texture ) {","","\t\t\ttexture.flipY = false;","","\t\t\ttexture.name = textureDef.name || sourceDef.name || '';","","\t\t\tif ( texture.name === '' \u0026\u0026 typeof sourceDef.uri === 'string' \u0026\u0026 sourceDef.uri.startsWith( 'data:image/' ) === false ) {","","\t\t\t\ttexture.name = sourceDef.uri;","","\t\t\t}","","\t\t\tconst samplers = json.samplers || {};","\t\t\tconst sampler = samplers[ textureDef.sampler ] || {};","","\t\t\ttexture.magFilter = WEBGL_FILTERS[ sampler.magFilter ] || LinearFilter;","\t\t\ttexture.minFilter = WEBGL_FILTERS[ sampler.minFilter ] || LinearMipmapLinearFilter;","\t\t\ttexture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || RepeatWrapping;","\t\t\ttexture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || RepeatWrapping;","","\t\t\tparser.associations.set( texture, { textures: textureIndex } );","","\t\t\treturn texture;","","\t\t} ).catch( function () {","","\t\t\treturn null;","","\t\t} );","","\t\tthis.textureCache[ cacheKey ] = promise;","","\t\treturn promise;","","\t}","","\tloadImageSource( sourceIndex, loader ) {","","\t\tconst parser = this;","\t\tconst json = this.json;","\t\tconst options = this.options;","","\t\tif ( this.sourceCache[ sourceIndex ] !== undefined ) {","","\t\t\treturn this.sourceCache[ sourceIndex ].then( ( texture ) =\u003e texture.clone() );","","\t\t}","","\t\tconst sourceDef = json.images[ sourceIndex ];","","\t\tconst URL = self.URL || self.webkitURL;","","\t\tlet sourceURI = sourceDef.uri || '';","\t\tlet isObjectURL = false;","","\t\tif ( sourceDef.bufferView !== undefined ) {","","\t\t\t// Load binary image data from bufferView, if provided.","","\t\t\tsourceURI = parser.getDependency( 'bufferView', sourceDef.bufferView ).then( function ( bufferView ) {","","\t\t\t\tisObjectURL = true;","\t\t\t\tconst blob = new Blob( [ bufferView ], { type: sourceDef.mimeType } );","\t\t\t\tsourceURI = URL.createObjectURL( blob );","\t\t\t\treturn sourceURI;","","\t\t\t} );","","\t\t} else if ( sourceDef.uri === undefined ) {","","\t\t\tthrow new Error( 'THREE.GLTFLoader: Image ' + sourceIndex + ' is missing URI and bufferView' );","","\t\t}","","\t\tconst promise = Promise.resolve( sourceURI ).then( function ( sourceURI ) {","","\t\t\treturn new Promise( function ( resolve, reject ) {","","\t\t\t\tlet onLoad = resolve;","","\t\t\t\tif ( loader.isImageBitmapLoader === true ) {","","\t\t\t\t\tonLoad = function ( imageBitmap ) {","","\t\t\t\t\t\tconst texture = new Texture( imageBitmap );","\t\t\t\t\t\ttexture.needsUpdate = true;","","\t\t\t\t\t\tresolve( texture );","","\t\t\t\t\t};","","\t\t\t\t}","","\t\t\t\tloader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );","","\t\t\t} );","","\t\t} ).then( function ( texture ) {","","\t\t\t// Clean up resources and configure Texture.","","\t\t\tif ( isObjectURL === true ) {","","\t\t\t\tURL.revokeObjectURL( sourceURI );","","\t\t\t}","","\t\t\ttexture.userData.mimeType = sourceDef.mimeType || getImageURIMimeType( sourceDef.uri );","","\t\t\treturn texture;","","\t\t} ).catch( function ( error ) {","","\t\t\tconsole.error( 'THREE.GLTFLoader: Couldn\\'t load texture', sourceURI );","\t\t\tthrow error;","","\t\t} );","","\t\tthis.sourceCache[ sourceIndex ] = promise;","\t\treturn promise;","","\t}","","\t/**","\t * Asynchronously assigns a texture to the given material parameters.","\t * @param {Object} materialParams","\t * @param {string} mapName","\t * @param {Object} mapDef","\t * @return {Promise\u003cTexture\u003e}","\t */","\tassignTexture( materialParams, mapName, mapDef, colorSpace ) {","","\t\tconst parser = this;","","\t\treturn this.getDependency( 'texture', mapDef.index ).then( function ( texture ) {","","\t\t\tif ( ! texture ) return null;","","\t\t\tif ( mapDef.texCoord !== undefined \u0026\u0026 mapDef.texCoord \u003e 0 ) {","","\t\t\t\ttexture = texture.clone();","\t\t\t\ttexture.channel = mapDef.texCoord;","","\t\t\t}","","\t\t\tif ( parser.extensions[ EXTENSIONS.KHR_TEXTURE_TRANSFORM ] ) {","","\t\t\t\tconst transform = mapDef.extensions !== undefined ? mapDef.extensions[ EXTENSIONS.KHR_TEXTURE_TRANSFORM ] : undefined;","","\t\t\t\tif ( transform ) {","","\t\t\t\t\tconst gltfReference = parser.associations.get( texture );","\t\t\t\t\ttexture = parser.extensions[ EXTENSIONS.KHR_TEXTURE_TRANSFORM ].extendTexture( texture, transform );","\t\t\t\t\tparser.associations.set( texture, gltfReference );","","\t\t\t\t}","","\t\t\t}","","\t\t\tif ( colorSpace !== undefined ) {","","\t\t\t\ttexture.colorSpace = colorSpace;","","\t\t\t}","","\t\t\tmaterialParams[ mapName ] = texture;","","\t\t\treturn texture;","","\t\t} );","","\t}","","\t/**","\t * Assigns final material to a Mesh, Line, or Points instance. The instance","\t * already has a material (generated from the glTF material options alone)","\t * but reuse of the same glTF material may require multiple threejs materials","\t * to accommodate different primitive types, defines, etc. New materials will","\t * be created if necessary, and reused from a cache.","\t * @param  {Object3D} mesh Mesh, Line, or Points instance.","\t */","\tassignFinalMaterial( mesh ) {","","\t\tconst geometry = mesh.geometry;","\t\tlet material = mesh.material;","","\t\tconst useDerivativeTangents = geometry.attributes.tangent === undefined;","\t\tconst useVertexColors = geometry.attributes.color !== undefined;","\t\tconst useFlatShading = geometry.attributes.normal === undefined;","","\t\tif ( mesh.isPoints ) {","","\t\t\tconst cacheKey = 'PointsMaterial:' + material.uuid;","","\t\t\tlet pointsMaterial = this.cache.get( cacheKey );","","\t\t\tif ( ! pointsMaterial ) {","","\t\t\t\tpointsMaterial = new PointsMaterial();","\t\t\t\tMaterial.prototype.copy.call( pointsMaterial, material );","\t\t\t\tpointsMaterial.color.copy( material.color );","\t\t\t\tpointsMaterial.map = material.map;","\t\t\t\tpointsMaterial.sizeAttenuation = false; // glTF spec says points should be 1px","","\t\t\t\tthis.cache.add( cacheKey, pointsMaterial );","","\t\t\t}","","\t\t\tmaterial = pointsMaterial;","","\t\t} else if ( mesh.isLine ) {","","\t\t\tconst cacheKey = 'LineBasicMaterial:' + material.uuid;","","\t\t\tlet lineMaterial = this.cache.get( cacheKey );","","\t\t\tif ( ! lineMaterial ) {","","\t\t\t\tlineMaterial = new LineBasicMaterial();","\t\t\t\tMaterial.prototype.copy.call( lineMaterial, material );","\t\t\t\tlineMaterial.color.copy( material.color );","\t\t\t\tlineMaterial.map = material.map;","","\t\t\t\tthis.cache.add( cacheKey, lineMaterial );","","\t\t\t}","","\t\t\tmaterial = lineMaterial;","","\t\t}","","\t\t// Clone the material if it will be modified","\t\tif ( useDerivativeTangents || useVertexColors || useFlatShading ) {","","\t\t\tlet cacheKey = 'ClonedMaterial:' + material.uuid + ':';","","\t\t\tif ( useDerivativeTangents ) cacheKey += 'derivative-tangents:';","\t\t\tif ( useVertexColors ) cacheKey += 'vertex-colors:';","\t\t\tif ( useFlatShading ) cacheKey += 'flat-shading:';","","\t\t\tlet cachedMaterial = this.cache.get( cacheKey );","","\t\t\tif ( ! cachedMaterial ) {","","\t\t\t\tcachedMaterial = material.clone();","","\t\t\t\tif ( useVertexColors ) cachedMaterial.vertexColors = true;","\t\t\t\tif ( useFlatShading ) cachedMaterial.flatShading = true;","","\t\t\t\tif ( useDerivativeTangents ) {","","\t\t\t\t\t// https://github.com/mrdoob/three.js/issues/11438#issuecomment-507003995","\t\t\t\t\tif ( cachedMaterial.normalScale ) cachedMaterial.normalScale.y *= - 1;","\t\t\t\t\tif ( cachedMaterial.clearcoatNormalScale ) cachedMaterial.clearcoatNormalScale.y *= - 1;","","\t\t\t\t}","","\t\t\t\tthis.cache.add( cacheKey, cachedMaterial );","","\t\t\t\tthis.associations.set( cachedMaterial, this.associations.get( material ) );","","\t\t\t}","","\t\t\tmaterial = cachedMaterial;","","\t\t}","","\t\tmesh.material = material;","","\t}","","\tgetMaterialType( /* materialIndex */ ) {","","\t\treturn MeshStandardMaterial;","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#materials","\t * @param {number} materialIndex","\t * @return {Promise\u003cMaterial\u003e}","\t */","\tloadMaterial( materialIndex ) {","","\t\tconst parser = this;","\t\tconst json = this.json;","\t\tconst extensions = this.extensions;","\t\tconst materialDef = json.materials[ materialIndex ];","","\t\tlet materialType;","\t\tconst materialParams = {};","\t\tconst materialExtensions = materialDef.extensions || {};","","\t\tconst pending = [];","","\t\tif ( materialExtensions[ EXTENSIONS.KHR_MATERIALS_UNLIT ] ) {","","\t\t\tconst kmuExtension = extensions[ EXTENSIONS.KHR_MATERIALS_UNLIT ];","\t\t\tmaterialType = kmuExtension.getMaterialType();","\t\t\tpending.push( kmuExtension.extendParams( materialParams, materialDef, parser ) );","","\t\t} else {","","\t\t\t// Specification:","\t\t\t// https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metallic-roughness-material","","\t\t\tconst metallicRoughness = materialDef.pbrMetallicRoughness || {};","","\t\t\tmaterialParams.color = new Color( 1.0, 1.0, 1.0 );","\t\t\tmaterialParams.opacity = 1.0;","","\t\t\tif ( Array.isArray( metallicRoughness.baseColorFactor ) ) {","","\t\t\t\tconst array = metallicRoughness.baseColorFactor;","","\t\t\t\tmaterialParams.color.setRGB( array[ 0 ], array[ 1 ], array[ 2 ], LinearSRGBColorSpace );","\t\t\t\tmaterialParams.opacity = array[ 3 ];","","\t\t\t}","","\t\t\tif ( metallicRoughness.baseColorTexture !== undefined ) {","","\t\t\t\tpending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, SRGBColorSpace ) );","","\t\t\t}","","\t\t\tmaterialParams.metalness = metallicRoughness.metallicFactor !== undefined ? metallicRoughness.metallicFactor : 1.0;","\t\t\tmaterialParams.roughness = metallicRoughness.roughnessFactor !== undefined ? metallicRoughness.roughnessFactor : 1.0;","","\t\t\tif ( metallicRoughness.metallicRoughnessTexture !== undefined ) {","","\t\t\t\tpending.push( parser.assignTexture( materialParams, 'metalnessMap', metallicRoughness.metallicRoughnessTexture ) );","\t\t\t\tpending.push( parser.assignTexture( materialParams, 'roughnessMap', metallicRoughness.metallicRoughnessTexture ) );","","\t\t\t}","","\t\t\tmaterialType = this._invokeOne( function ( ext ) {","","\t\t\t\treturn ext.getMaterialType \u0026\u0026 ext.getMaterialType( materialIndex );","","\t\t\t} );","","\t\t\tpending.push( Promise.all( this._invokeAll( function ( ext ) {","","\t\t\t\treturn ext.extendMaterialParams \u0026\u0026 ext.extendMaterialParams( materialIndex, materialParams );","","\t\t\t} ) ) );","","\t\t}","","\t\tif ( materialDef.doubleSided === true ) {","","\t\t\tmaterialParams.side = DoubleSide;","","\t\t}","","\t\tconst alphaMode = materialDef.alphaMode || ALPHA_MODES.OPAQUE;","","\t\tif ( alphaMode === ALPHA_MODES.BLEND ) {","","\t\t\tmaterialParams.transparent = true;","","\t\t\t// See: https://github.com/mrdoob/three.js/issues/17706","\t\t\tmaterialParams.depthWrite = false;","","\t\t} else {","","\t\t\tmaterialParams.transparent = false;","","\t\t\tif ( alphaMode === ALPHA_MODES.MASK ) {","","\t\t\t\tmaterialParams.alphaTest = materialDef.alphaCutoff !== undefined ? materialDef.alphaCutoff : 0.5;","","\t\t\t}","","\t\t}","","\t\tif ( materialDef.normalTexture !== undefined \u0026\u0026 materialType !== MeshBasicMaterial ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'normalMap', materialDef.normalTexture ) );","","\t\t\tmaterialParams.normalScale = new Vector2( 1, 1 );","","\t\t\tif ( materialDef.normalTexture.scale !== undefined ) {","","\t\t\t\tconst scale = materialDef.normalTexture.scale;","","\t\t\t\tmaterialParams.normalScale.set( scale, scale );","","\t\t\t}","","\t\t}","","\t\tif ( materialDef.occlusionTexture !== undefined \u0026\u0026 materialType !== MeshBasicMaterial ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'aoMap', materialDef.occlusionTexture ) );","","\t\t\tif ( materialDef.occlusionTexture.strength !== undefined ) {","","\t\t\t\tmaterialParams.aoMapIntensity = materialDef.occlusionTexture.strength;","","\t\t\t}","","\t\t}","","\t\tif ( materialDef.emissiveFactor !== undefined \u0026\u0026 materialType !== MeshBasicMaterial ) {","","\t\t\tconst emissiveFactor = materialDef.emissiveFactor;","\t\t\tmaterialParams.emissive = new Color().setRGB( emissiveFactor[ 0 ], emissiveFactor[ 1 ], emissiveFactor[ 2 ], LinearSRGBColorSpace );","","\t\t}","","\t\tif ( materialDef.emissiveTexture !== undefined \u0026\u0026 materialType !== MeshBasicMaterial ) {","","\t\t\tpending.push( parser.assignTexture( materialParams, 'emissiveMap', materialDef.emissiveTexture, SRGBColorSpace ) );","","\t\t}","","\t\treturn Promise.all( pending ).then( function () {","","\t\t\tconst material = new materialType( materialParams );","","\t\t\tif ( materialDef.name ) material.name = materialDef.name;","","\t\t\tassignExtrasToUserData( material, materialDef );","","\t\t\tparser.associations.set( material, { materials: materialIndex } );","","\t\t\tif ( materialDef.extensions ) addUnknownExtensionsToUserData( extensions, material, materialDef );","","\t\t\treturn material;","","\t\t} );","","\t}","","\t/** When Object3D instances are targeted by animation, they need unique names. */","\tcreateUniqueName( originalName ) {","","\t\tconst sanitizedName = PropertyBinding.sanitizeNodeName( originalName || '' );","","\t\tif ( sanitizedName in this.nodeNamesUsed ) {","","\t\t\treturn sanitizedName + '_' + ( ++ this.nodeNamesUsed[ sanitizedName ] );","","\t\t} else {","","\t\t\tthis.nodeNamesUsed[ sanitizedName ] = 0;","","\t\t\treturn sanitizedName;","","\t\t}","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#geometry","\t *","\t * Creates BufferGeometries from primitives.","\t *","\t * @param {Array\u003cGLTF.Primitive\u003e} primitives","\t * @return {Promise\u003cArray\u003cBufferGeometry\u003e\u003e}","\t */","\tloadGeometries( primitives ) {","","\t\tconst parser = this;","\t\tconst extensions = this.extensions;","\t\tconst cache = this.primitiveCache;","","\t\tfunction createDracoPrimitive( primitive ) {","","\t\t\treturn extensions[ EXTENSIONS.KHR_DRACO_MESH_COMPRESSION ]","\t\t\t\t.decodePrimitive( primitive, parser )","\t\t\t\t.then( function ( geometry ) {","","\t\t\t\t\treturn addPrimitiveAttributes( geometry, primitive, parser );","","\t\t\t\t} );","","\t\t}","","\t\tconst pending = [];","","\t\tfor ( let i = 0, il = primitives.length; i \u003c il; i ++ ) {","","\t\t\tconst primitive = primitives[ i ];","\t\t\tconst cacheKey = createPrimitiveKey( primitive );","","\t\t\t// See if we've already created this geometry","\t\t\tconst cached = cache[ cacheKey ];","","\t\t\tif ( cached ) {","","\t\t\t\t// Use the cached geometry if it exists","\t\t\t\tpending.push( cached.promise );","","\t\t\t} else {","","\t\t\t\tlet geometryPromise;","","\t\t\t\tif ( primitive.extensions \u0026\u0026 primitive.extensions[ EXTENSIONS.KHR_DRACO_MESH_COMPRESSION ] ) {","","\t\t\t\t\t// Use DRACO geometry if available","\t\t\t\t\tgeometryPromise = createDracoPrimitive( primitive );","","\t\t\t\t} else {","","\t\t\t\t\t// Otherwise create a new geometry","\t\t\t\t\tgeometryPromise = addPrimitiveAttributes( new BufferGeometry(), primitive, parser );","","\t\t\t\t}","","\t\t\t\t// Cache this geometry","\t\t\t\tcache[ cacheKey ] = { primitive: primitive, promise: geometryPromise };","","\t\t\t\tpending.push( geometryPromise );","","\t\t\t}","","\t\t}","","\t\treturn Promise.all( pending );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#meshes","\t * @param {number} meshIndex","\t * @return {Promise\u003cGroup|Mesh|SkinnedMesh\u003e}","\t */","\tloadMesh( meshIndex ) {","","\t\tconst parser = this;","\t\tconst json = this.json;","\t\tconst extensions = this.extensions;","","\t\tconst meshDef = json.meshes[ meshIndex ];","\t\tconst primitives = meshDef.primitives;","","\t\tconst pending = [];","","\t\tfor ( let i = 0, il = primitives.length; i \u003c il; i ++ ) {","","\t\t\tconst material = primitives[ i ].material === undefined","\t\t\t\t? createDefaultMaterial( this.cache )","\t\t\t\t: this.getDependency( 'material', primitives[ i ].material );","","\t\t\tpending.push( material );","","\t\t}","","\t\tpending.push( parser.loadGeometries( primitives ) );","","\t\treturn Promise.all( pending ).then( function ( results ) {","","\t\t\tconst materials = results.slice( 0, results.length - 1 );","\t\t\tconst geometries = results[ results.length - 1 ];","","\t\t\tconst meshes = [];","","\t\t\tfor ( let i = 0, il = geometries.length; i \u003c il; i ++ ) {","","\t\t\t\tconst geometry = geometries[ i ];","\t\t\t\tconst primitive = primitives[ i ];","","\t\t\t\t// 1. create Mesh","","\t\t\t\tlet mesh;","","\t\t\t\tconst material = materials[ i ];","","\t\t\t\tif ( primitive.mode === WEBGL_CONSTANTS.TRIANGLES ||","\t\t\t\t\t\tprimitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP ||","\t\t\t\t\t\tprimitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN ||","\t\t\t\t\t\tprimitive.mode === undefined ) {","","\t\t\t\t\t// .isSkinnedMesh isn't in glTF spec. See ._markDefs()","\t\t\t\t\tmesh = meshDef.isSkinnedMesh === true","\t\t\t\t\t\t? new SkinnedMesh( geometry, material )","\t\t\t\t\t\t: new Mesh( geometry, material );","","\t\t\t\t\tif ( mesh.isSkinnedMesh === true ) {","","\t\t\t\t\t\t// normalize skin weights to fix malformed assets (see #15319)","\t\t\t\t\t\tmesh.normalizeSkinWeights();","","\t\t\t\t\t}","","\t\t\t\t\tif ( primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP ) {","","\t\t\t\t\t\tmesh.geometry = toTrianglesDrawMode( mesh.geometry, TriangleStripDrawMode );","","\t\t\t\t\t} else if ( primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN ) {","","\t\t\t\t\t\tmesh.geometry = toTrianglesDrawMode( mesh.geometry, TriangleFanDrawMode );","","\t\t\t\t\t}","","\t\t\t\t} else if ( primitive.mode === WEBGL_CONSTANTS.LINES ) {","","\t\t\t\t\tmesh = new LineSegments( geometry, material );","","\t\t\t\t} else if ( primitive.mode === WEBGL_CONSTANTS.LINE_STRIP ) {","","\t\t\t\t\tmesh = new Line( geometry, material );","","\t\t\t\t} else if ( primitive.mode === WEBGL_CONSTANTS.LINE_LOOP ) {","","\t\t\t\t\tmesh = new LineLoop( geometry, material );","","\t\t\t\t} else if ( primitive.mode === WEBGL_CONSTANTS.POINTS ) {","","\t\t\t\t\tmesh = new Points( geometry, material );","","\t\t\t\t} else {","","\t\t\t\t\tthrow new Error( 'THREE.GLTFLoader: Primitive mode unsupported: ' + primitive.mode );","","\t\t\t\t}","","\t\t\t\tif ( Object.keys( mesh.geometry.morphAttributes ).length \u003e 0 ) {","","\t\t\t\t\tupdateMorphTargets( mesh, meshDef );","","\t\t\t\t}","","\t\t\t\tmesh.name = parser.createUniqueName( meshDef.name || ( 'mesh_' + meshIndex ) );","","\t\t\t\tassignExtrasToUserData( mesh, meshDef );","","\t\t\t\tif ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh, primitive );","","\t\t\t\tparser.assignFinalMaterial( mesh );","","\t\t\t\tmeshes.push( mesh );","","\t\t\t}","","\t\t\tfor ( let i = 0, il = meshes.length; i \u003c il; i ++ ) {","","\t\t\t\tparser.associations.set( meshes[ i ], {","\t\t\t\t\tmeshes: meshIndex,","\t\t\t\t\tprimitives: i","\t\t\t\t} );","","\t\t\t}","","\t\t\tif ( meshes.length === 1 ) {","","\t\t\t\tif ( meshDef.extensions ) addUnknownExtensionsToUserData( extensions, meshes[ 0 ], meshDef );","","\t\t\t\treturn meshes[ 0 ];","","\t\t\t}","","\t\t\tconst group = new Group();","","\t\t\tif ( meshDef.extensions ) addUnknownExtensionsToUserData( extensions, group, meshDef );","","\t\t\tparser.associations.set( group, { meshes: meshIndex } );","","\t\t\tfor ( let i = 0, il = meshes.length; i \u003c il; i ++ ) {","","\t\t\t\tgroup.add( meshes[ i ] );","","\t\t\t}","","\t\t\treturn group;","","\t\t} );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#cameras","\t * @param {number} cameraIndex","\t * @return {Promise\u003cTHREE.Camera\u003e}","\t */","\tloadCamera( cameraIndex ) {","","\t\tlet camera;","\t\tconst cameraDef = this.json.cameras[ cameraIndex ];","\t\tconst params = cameraDef[ cameraDef.type ];","","\t\tif ( ! params ) {","","\t\t\tconsole.warn( 'THREE.GLTFLoader: Missing camera parameters.' );","\t\t\treturn;","","\t\t}","","\t\tif ( cameraDef.type === 'perspective' ) {","","\t\t\tcamera = new PerspectiveCamera( MathUtils.radToDeg( params.yfov ), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6 );","","\t\t} else if ( cameraDef.type === 'orthographic' ) {","","\t\t\tcamera = new OrthographicCamera( - params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar );","","\t\t}","","\t\tif ( cameraDef.name ) camera.name = this.createUniqueName( cameraDef.name );","","\t\tassignExtrasToUserData( camera, cameraDef );","","\t\treturn Promise.resolve( camera );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#skins","\t * @param {number} skinIndex","\t * @return {Promise\u003cSkeleton\u003e}","\t */","\tloadSkin( skinIndex ) {","","\t\tconst skinDef = this.json.skins[ skinIndex ];","","\t\tconst pending = [];","","\t\tfor ( let i = 0, il = skinDef.joints.length; i \u003c il; i ++ ) {","","\t\t\tpending.push( this._loadNodeShallow( skinDef.joints[ i ] ) );","","\t\t}","","\t\tif ( skinDef.inverseBindMatrices !== undefined ) {","","\t\t\tpending.push( this.getDependency( 'accessor', skinDef.inverseBindMatrices ) );","","\t\t} else {","","\t\t\tpending.push( null );","","\t\t}","","\t\treturn Promise.all( pending ).then( function ( results ) {","","\t\t\tconst inverseBindMatrices = results.pop();","\t\t\tconst jointNodes = results;","","\t\t\t// Note that bones (joint nodes) may or may not be in the","\t\t\t// scene graph at this time.","","\t\t\tconst bones = [];","\t\t\tconst boneInverses = [];","","\t\t\tfor ( let i = 0, il = jointNodes.length; i \u003c il; i ++ ) {","","\t\t\t\tconst jointNode = jointNodes[ i ];","","\t\t\t\tif ( jointNode ) {","","\t\t\t\t\tbones.push( jointNode );","","\t\t\t\t\tconst mat = new Matrix4();","","\t\t\t\t\tif ( inverseBindMatrices !== null ) {","","\t\t\t\t\t\tmat.fromArray( inverseBindMatrices.array, i * 16 );","","\t\t\t\t\t}","","\t\t\t\t\tboneInverses.push( mat );","","\t\t\t\t} else {","","\t\t\t\t\tconsole.warn( 'THREE.GLTFLoader: Joint \"%s\" could not be found.', skinDef.joints[ i ] );","","\t\t\t\t}","","\t\t\t}","","\t\t\treturn new Skeleton( bones, boneInverses );","","\t\t} );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#animations","\t * @param {number} animationIndex","\t * @return {Promise\u003cAnimationClip\u003e}","\t */","\tloadAnimation( animationIndex ) {","","\t\tconst json = this.json;","\t\tconst parser = this;","","\t\tconst animationDef = json.animations[ animationIndex ];","\t\tconst animationName = animationDef.name ? animationDef.name : 'animation_' + animationIndex;","","\t\tconst pendingNodes = [];","\t\tconst pendingInputAccessors = [];","\t\tconst pendingOutputAccessors = [];","\t\tconst pendingSamplers = [];","\t\tconst pendingTargets = [];","","\t\tfor ( let i = 0, il = animationDef.channels.length; i \u003c il; i ++ ) {","","\t\t\tconst channel = animationDef.channels[ i ];","\t\t\tconst sampler = animationDef.samplers[ channel.sampler ];","\t\t\tconst target = channel.target;","\t\t\tconst name = target.node;","\t\t\tconst input = animationDef.parameters !== undefined ? animationDef.parameters[ sampler.input ] : sampler.input;","\t\t\tconst output = animationDef.parameters !== undefined ? animationDef.parameters[ sampler.output ] : sampler.output;","","\t\t\tif ( target.node === undefined ) continue;","","\t\t\tpendingNodes.push( this.getDependency( 'node', name ) );","\t\t\tpendingInputAccessors.push( this.getDependency( 'accessor', input ) );","\t\t\tpendingOutputAccessors.push( this.getDependency( 'accessor', output ) );","\t\t\tpendingSamplers.push( sampler );","\t\t\tpendingTargets.push( target );","","\t\t}","","\t\treturn Promise.all( [","","\t\t\tPromise.all( pendingNodes ),","\t\t\tPromise.all( pendingInputAccessors ),","\t\t\tPromise.all( pendingOutputAccessors ),","\t\t\tPromise.all( pendingSamplers ),","\t\t\tPromise.all( pendingTargets )","","\t\t] ).then( function ( dependencies ) {","","\t\t\tconst nodes = dependencies[ 0 ];","\t\t\tconst inputAccessors = dependencies[ 1 ];","\t\t\tconst outputAccessors = dependencies[ 2 ];","\t\t\tconst samplers = dependencies[ 3 ];","\t\t\tconst targets = dependencies[ 4 ];","","\t\t\tconst tracks = [];","","\t\t\tfor ( let i = 0, il = nodes.length; i \u003c il; i ++ ) {","","\t\t\t\tconst node = nodes[ i ];","\t\t\t\tconst inputAccessor = inputAccessors[ i ];","\t\t\t\tconst outputAccessor = outputAccessors[ i ];","\t\t\t\tconst sampler = samplers[ i ];","\t\t\t\tconst target = targets[ i ];","","\t\t\t\tif ( node === undefined ) continue;","","\t\t\t\tif ( node.updateMatrix ) {","","\t\t\t\t\tnode.updateMatrix();","","\t\t\t\t}","","\t\t\t\tconst createdTracks = parser._createAnimationTracks( node, inputAccessor, outputAccessor, sampler, target );","","\t\t\t\tif ( createdTracks ) {","","\t\t\t\t\tfor ( let k = 0; k \u003c createdTracks.length; k ++ ) {","","\t\t\t\t\t\ttracks.push( createdTracks[ k ] );","","\t\t\t\t\t}","","\t\t\t\t}","","\t\t\t}","","\t\t\treturn new AnimationClip( animationName, undefined, tracks );","","\t\t} );","","\t}","","\tcreateNodeMesh( nodeIndex ) {","","\t\tconst json = this.json;","\t\tconst parser = this;","\t\tconst nodeDef = json.nodes[ nodeIndex ];","","\t\tif ( nodeDef.mesh === undefined ) return null;","","\t\treturn parser.getDependency( 'mesh', nodeDef.mesh ).then( function ( mesh ) {","","\t\t\tconst node = parser._getNodeRef( parser.meshCache, nodeDef.mesh, mesh );","","\t\t\t// if weights are provided on the node, override weights on the mesh.","\t\t\tif ( nodeDef.weights !== undefined ) {","","\t\t\t\tnode.traverse( function ( o ) {","","\t\t\t\t\tif ( ! o.isMesh ) return;","","\t\t\t\t\tfor ( let i = 0, il = nodeDef.weights.length; i \u003c il; i ++ ) {","","\t\t\t\t\t\to.morphTargetInfluences[ i ] = nodeDef.weights[ i ];","","\t\t\t\t\t}","","\t\t\t\t} );","","\t\t\t}","","\t\t\treturn node;","","\t\t} );","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#nodes-and-hierarchy","\t * @param {number} nodeIndex","\t * @return {Promise\u003cObject3D\u003e}","\t */","\tloadNode( nodeIndex ) {","","\t\tconst json = this.json;","\t\tconst parser = this;","","\t\tconst nodeDef = json.nodes[ nodeIndex ];","","\t\tconst nodePending = parser._loadNodeShallow( nodeIndex );","","\t\tconst childPending = [];","\t\tconst childrenDef = nodeDef.children || [];","","\t\tfor ( let i = 0, il = childrenDef.length; i \u003c il; i ++ ) {","","\t\t\tchildPending.push( parser.getDependency( 'node', childrenDef[ i ] ) );","","\t\t}","","\t\tconst skeletonPending = nodeDef.skin === undefined","\t\t\t? Promise.resolve( null )","\t\t\t: parser.getDependency( 'skin', nodeDef.skin );","","\t\treturn Promise.all( [","\t\t\tnodePending,","\t\t\tPromise.all( childPending ),","\t\t\tskeletonPending","\t\t] ).then( function ( results ) {","","\t\t\tconst node = results[ 0 ];","\t\t\tconst children = results[ 1 ];","\t\t\tconst skeleton = results[ 2 ];","","\t\t\tif ( skeleton !== null ) {","","\t\t\t\t// This full traverse should be fine because","\t\t\t\t// child glTF nodes have not been added to this node yet.","\t\t\t\tnode.traverse( function ( mesh ) {","","\t\t\t\t\tif ( ! mesh.isSkinnedMesh ) return;","","\t\t\t\t\tmesh.bind( skeleton, _identityMatrix );","","\t\t\t\t} );","","\t\t\t}","","\t\t\tfor ( let i = 0, il = children.length; i \u003c il; i ++ ) {","","\t\t\t\tnode.add( children[ i ] );","","\t\t\t}","","\t\t\treturn node;","","\t\t} );","","\t}","","\t// ._loadNodeShallow() parses a single node.","\t// skin and child nodes are created and added in .loadNode() (no '_' prefix).","\t_loadNodeShallow( nodeIndex ) {","","\t\tconst json = this.json;","\t\tconst extensions = this.extensions;","\t\tconst parser = this;","","\t\t// This method is called from .loadNode() and .loadSkin().","\t\t// Cache a node to avoid duplication.","","\t\tif ( this.nodeCache[ nodeIndex ] !== undefined ) {","","\t\t\treturn this.nodeCache[ nodeIndex ];","","\t\t}","","\t\tconst nodeDef = json.nodes[ nodeIndex ];","","\t\t// reserve node's name before its dependencies, so the root has the intended name.","\t\tconst nodeName = nodeDef.name ? parser.createUniqueName( nodeDef.name ) : '';","","\t\tconst pending = [];","","\t\tconst meshPromise = parser._invokeOne( function ( ext ) {","","\t\t\treturn ext.createNodeMesh \u0026\u0026 ext.createNodeMesh( nodeIndex );","","\t\t} );","","\t\tif ( meshPromise ) {","","\t\t\tpending.push( meshPromise );","","\t\t}","","\t\tif ( nodeDef.camera !== undefined ) {","","\t\t\tpending.push( parser.getDependency( 'camera', nodeDef.camera ).then( function ( camera ) {","","\t\t\t\treturn parser._getNodeRef( parser.cameraCache, nodeDef.camera, camera );","","\t\t\t} ) );","","\t\t}","","\t\tparser._invokeAll( function ( ext ) {","","\t\t\treturn ext.createNodeAttachment \u0026\u0026 ext.createNodeAttachment( nodeIndex );","","\t\t} ).forEach( function ( promise ) {","","\t\t\tpending.push( promise );","","\t\t} );","","\t\tthis.nodeCache[ nodeIndex ] = Promise.all( pending ).then( function ( objects ) {","","\t\t\tlet node;","","\t\t\t// .isBone isn't in glTF spec. See ._markDefs","\t\t\tif ( nodeDef.isBone === true ) {","","\t\t\t\tnode = new Bone();","","\t\t\t} else if ( objects.length \u003e 1 ) {","","\t\t\t\tnode = new Group();","","\t\t\t} else if ( objects.length === 1 ) {","","\t\t\t\tnode = objects[ 0 ];","","\t\t\t} else {","","\t\t\t\tnode = new Object3D();","","\t\t\t}","","\t\t\tif ( node !== objects[ 0 ] ) {","","\t\t\t\tfor ( let i = 0, il = objects.length; i \u003c il; i ++ ) {","","\t\t\t\t\tnode.add( objects[ i ] );","","\t\t\t\t}","","\t\t\t}","","\t\t\tif ( nodeDef.name ) {","","\t\t\t\tnode.userData.name = nodeDef.name;","\t\t\t\tnode.name = nodeName;","","\t\t\t}","","\t\t\tassignExtrasToUserData( node, nodeDef );","","\t\t\tif ( nodeDef.extensions ) addUnknownExtensionsToUserData( extensions, node, nodeDef );","","\t\t\tif ( nodeDef.matrix !== undefined ) {","","\t\t\t\tconst matrix = new Matrix4();","\t\t\t\tmatrix.fromArray( nodeDef.matrix );","\t\t\t\tnode.applyMatrix4( matrix );","","\t\t\t} else {","","\t\t\t\tif ( nodeDef.translation !== undefined ) {","","\t\t\t\t\tnode.position.fromArray( nodeDef.translation );","","\t\t\t\t}","","\t\t\t\tif ( nodeDef.rotation !== undefined ) {","","\t\t\t\t\tnode.quaternion.fromArray( nodeDef.rotation );","","\t\t\t\t}","","\t\t\t\tif ( nodeDef.scale !== undefined ) {","","\t\t\t\t\tnode.scale.fromArray( nodeDef.scale );","","\t\t\t\t}","","\t\t\t}","","\t\t\tif ( ! parser.associations.has( node ) ) {","","\t\t\t\tparser.associations.set( node, {} );","","\t\t\t}","","\t\t\tparser.associations.get( node ).nodes = nodeIndex;","","\t\t\treturn node;","","\t\t} );","","\t\treturn this.nodeCache[ nodeIndex ];","","\t}","","\t/**","\t * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#scenes","\t * @param {number} sceneIndex","\t * @return {Promise\u003cGroup\u003e}","\t */","\tloadScene( sceneIndex ) {","","\t\tconst extensions = this.extensions;","\t\tconst sceneDef = this.json.scenes[ sceneIndex ];","\t\tconst parser = this;","","\t\t// Loader returns Group, not Scene.","\t\t// See: https://github.com/mrdoob/three.js/issues/18342#issuecomment-578981172","\t\tconst scene = new Group();","\t\tif ( sceneDef.name ) scene.name = parser.createUniqueName( sceneDef.name );","","\t\tassignExtrasToUserData( scene, sceneDef );","","\t\tif ( sceneDef.extensions ) addUnknownExtensionsToUserData( extensions, scene, sceneDef );","","\t\tconst nodeIds = sceneDef.nodes || [];","","\t\tconst pending = [];","","\t\tfor ( let i = 0, il = nodeIds.length; i \u003c il; i ++ ) {","","\t\t\tpending.push( parser.getDependency( 'node', nodeIds[ i ] ) );","","\t\t}","","\t\treturn Promise.all( pending ).then( function ( nodes ) {","","\t\t\tfor ( let i = 0, il = nodes.length; i \u003c il; i ++ ) {","","\t\t\t\tscene.add( nodes[ i ] );","","\t\t\t}","","\t\t\t// Removes dangling associations, associations that reference a node that","\t\t\t// didn't make it into the scene.","\t\t\tconst reduceAssociations = ( node ) =\u003e {","","\t\t\t\tconst reducedAssociations = new Map();","","\t\t\t\tfor ( const [ key, value ] of parser.associations ) {","","\t\t\t\t\tif ( key instanceof Material || key instanceof Texture ) {","","\t\t\t\t\t\treducedAssociations.set( key, value );","","\t\t\t\t\t}","","\t\t\t\t}","","\t\t\t\tnode.traverse( ( node ) =\u003e {","","\t\t\t\t\tconst mappings = parser.associations.get( node );","","\t\t\t\t\tif ( mappings != null ) {","","\t\t\t\t\t\treducedAssociations.set( node, mappings );","","\t\t\t\t\t}","","\t\t\t\t} );","","\t\t\t\treturn reducedAssociations;","","\t\t\t};","","\t\t\tparser.associations = reduceAssociations( scene );","","\t\t\treturn scene;","","\t\t} );","","\t}","","\t_createAnimationTracks( node, inputAccessor, outputAccessor, sampler, target ) {","","\t\tconst tracks = [];","","\t\tconst targetName = node.name ? node.name : node.uuid;","\t\tconst targetNames = [];","","\t\tif ( PATH_PROPERTIES[ target.path ] === PATH_PROPERTIES.weights ) {","","\t\t\tnode.traverse( function ( object ) {","","\t\t\t\tif ( object.morphTargetInfluences ) {","","\t\t\t\t\ttargetNames.push( object.name ? object.name : object.uuid );","","\t\t\t\t}","","\t\t\t} );","","\t\t} else {","","\t\t\ttargetNames.push( targetName );","","\t\t}","","\t\tlet TypedKeyframeTrack;","","\t\tswitch ( PATH_PROPERTIES[ target.path ] ) {","","\t\t\tcase PATH_PROPERTIES.weights:","","\t\t\t\tTypedKeyframeTrack = NumberKeyframeTrack;","\t\t\t\tbreak;","","\t\t\tcase PATH_PROPERTIES.rotation:","","\t\t\t\tTypedKeyframeTrack = QuaternionKeyframeTrack;","\t\t\t\tbreak;","","\t\t\tcase PATH_PROPERTIES.position:","\t\t\tcase PATH_PROPERTIES.scale:","","\t\t\t\tTypedKeyframeTrack = VectorKeyframeTrack;","\t\t\t\tbreak;","","\t\t\tdefault:","","\t\t\t\tswitch ( outputAccessor.itemSize ) {","","\t\t\t\t\tcase 1:","\t\t\t\t\t\tTypedKeyframeTrack = NumberKeyframeTrack;","\t\t\t\t\t\tbreak;","\t\t\t\t\tcase 2:","\t\t\t\t\tcase 3:","\t\t\t\t\tdefault:","\t\t\t\t\t\tTypedKeyframeTrack = VectorKeyframeTrack;","\t\t\t\t\t\tbreak;","","\t\t\t\t}","","\t\t\t\tbreak;","","\t\t}","","\t\tconst interpolation = sampler.interpolation !== undefined ? INTERPOLATION[ sampler.interpolation ] : InterpolateLinear;","","","\t\tconst outputArray = this._getArrayFromAccessor( outputAccessor );","","\t\tfor ( let j = 0, jl = targetNames.length; j \u003c jl; j ++ ) {","","\t\t\tconst track = new TypedKeyframeTrack(","\t\t\t\ttargetNames[ j ] + '.' + PATH_PROPERTIES[ target.path ],","\t\t\t\tinputAccessor.array,","\t\t\t\toutputArray,","\t\t\t\tinterpolation","\t\t\t);","","\t\t\t// Override interpolation with custom factory method.","\t\t\tif ( sampler.interpolation === 'CUBICSPLINE' ) {","","\t\t\t\tthis._createCubicSplineTrackInterpolant( track );","","\t\t\t}","","\t\t\ttracks.push( track );","","\t\t}","","\t\treturn tracks;","","\t}","","\t_getArrayFromAccessor( accessor ) {","","\t\tlet outputArray = accessor.array;","","\t\tif ( accessor.normalized ) {","","\t\t\tconst scale = getNormalizedComponentScale( outputArray.constructor );","\t\t\tconst scaled = new Float32Array( outputArray.length );","","\t\t\tfor ( let j = 0, jl = outputArray.length; j \u003c jl; j ++ ) {","","\t\t\t\tscaled[ j ] = outputArray[ j ] * scale;","","\t\t\t}","","\t\t\toutputArray = scaled;","","\t\t}","","\t\treturn outputArray;","","\t}","","\t_createCubicSplineTrackInterpolant( track ) {","","\t\ttrack.createInterpolant = function InterpolantFactoryMethodGLTFCubicSpline( result ) {","","\t\t\t// A CUBICSPLINE keyframe in glTF has three output values for each input value,","\t\t\t// representing inTangent, splineVertex, and outTangent. As a result, track.getValueSize()","\t\t\t// must be divided by three to get the interpolant's sampleSize argument.","","\t\t\tconst interpolantType = ( this instanceof QuaternionKeyframeTrack ) ? GLTFCubicSplineQuaternionInterpolant : GLTFCubicSplineInterpolant;","","\t\t\treturn new interpolantType( this.times, this.values, this.getValueSize() / 3, result );","","\t\t};","","\t\t// Mark as CUBICSPLINE. `track.getInterpolation()` doesn't support custom interpolants.","\t\ttrack.createInterpolant.isInterpolantFactoryMethodGLTFCubicSpline = true;","","\t}","","}","","/**"," * @param {BufferGeometry} geometry"," * @param {GLTF.Primitive} primitiveDef"," * @param {GLTFParser} parser"," */","function computeBounds( geometry, primitiveDef, parser ) {","","\tconst attributes = primitiveDef.attributes;","","\tconst box = new Box3();","","\tif ( attributes.POSITION !== undefined ) {","","\t\tconst accessor = parser.json.accessors[ attributes.POSITION ];","","\t\tconst min = accessor.min;","\t\tconst max = accessor.max;","","\t\t// glTF requires 'min' and 'max', but VRM (which extends glTF) currently ignores that requirement.","","\t\tif ( min !== undefined \u0026\u0026 max !== undefined ) {","","\t\t\tbox.set(","\t\t\t\tnew Vector3( min[ 0 ], min[ 1 ], min[ 2 ] ),","\t\t\t\tnew Vector3( max[ 0 ], max[ 1 ], max[ 2 ] )","\t\t\t);","","\t\t\tif ( accessor.normalized ) {","","\t\t\t\tconst boxScale = getNormalizedComponentScale( WEBGL_COMPONENT_TYPES[ accessor.componentType ] );","\t\t\t\tbox.min.multiplyScalar( boxScale );","\t\t\t\tbox.max.multiplyScalar( boxScale );","","\t\t\t}","","\t\t} else {","","\t\t\tconsole.warn( 'THREE.GLTFLoader: Missing min/max properties for accessor POSITION.' );","","\t\t\treturn;","","\t\t}","","\t} else {","","\t\treturn;","","\t}","","\tconst targets = primitiveDef.targets;","","\tif ( targets !== undefined ) {","","\t\tconst maxDisplacement = new Vector3();","\t\tconst vector = new Vector3();","","\t\tfor ( let i = 0, il = targets.length; i \u003c il; i ++ ) {","","\t\t\tconst target = targets[ i ];","","\t\t\tif ( target.POSITION !== undefined ) {","","\t\t\t\tconst accessor = parser.json.accessors[ target.POSITION ];","\t\t\t\tconst min = accessor.min;","\t\t\t\tconst max = accessor.max;","","\t\t\t\t// glTF requires 'min' and 'max', but VRM (which extends glTF) currently ignores that requirement.","","\t\t\t\tif ( min !== undefined \u0026\u0026 max !== undefined ) {","","\t\t\t\t\t// we need to get max of absolute components because target weight is [-1,1]","\t\t\t\t\tvector.setX( Math.max( Math.abs( min[ 0 ] ), Math.abs( max[ 0 ] ) ) );","\t\t\t\t\tvector.setY( Math.max( Math.abs( min[ 1 ] ), Math.abs( max[ 1 ] ) ) );","\t\t\t\t\tvector.setZ( Math.max( Math.abs( min[ 2 ] ), Math.abs( max[ 2 ] ) ) );","","","\t\t\t\t\tif ( accessor.normalized ) {","","\t\t\t\t\t\tconst boxScale = getNormalizedComponentScale( WEBGL_COMPONENT_TYPES[ accessor.componentType ] );","\t\t\t\t\t\tvector.multiplyScalar( boxScale );","","\t\t\t\t\t}","","\t\t\t\t\t// Note: this assumes that the sum of all weights is at most 1. This isn't quite correct - it's more conservative","\t\t\t\t\t// to assume that each target can have a max weight of 1. However, for some use cases - notably, when morph targets","\t\t\t\t\t// are used to implement key-frame animations and as such only two are active at a time - this results in very large","\t\t\t\t\t// boxes. So for now we make a box that's sometimes a touch too small but is hopefully mostly of reasonable size.","\t\t\t\t\tmaxDisplacement.max( vector );","","\t\t\t\t} else {","","\t\t\t\t\tconsole.warn( 'THREE.GLTFLoader: Missing min/max properties for accessor POSITION.' );","","\t\t\t\t}","","\t\t\t}","","\t\t}","","\t\t// As per comment above this box isn't conservative, but has a reasonable size for a very large number of morph targets.","\t\tbox.expandByVector( maxDisplacement );","","\t}","","\tgeometry.boundingBox = box;","","\tconst sphere = new Sphere();","","\tbox.getCenter( sphere.center );","\tsphere.radius = box.min.distanceTo( box.max ) / 2;","","\tgeometry.boundingSphere = sphere;","","}","","/**"," * @param {BufferGeometry} geometry"," * @param {GLTF.Primitive} primitiveDef"," * @param {GLTFParser} parser"," * @return {Promise\u003cBufferGeometry\u003e}"," */","function addPrimitiveAttributes( geometry, primitiveDef, parser ) {","","\tconst attributes = primitiveDef.attributes;","","\tconst pending = [];","","\tfunction assignAttributeAccessor( accessorIndex, attributeName ) {","","\t\treturn parser.getDependency( 'accessor', accessorIndex )","\t\t\t.then( function ( accessor ) {","","\t\t\t\tgeometry.setAttribute( attributeName, accessor );","","\t\t\t} );","","\t}","","\tfor ( const gltfAttributeName in attributes ) {","","\t\tconst threeAttributeName = ATTRIBUTES[ gltfAttributeName ] || gltfAttributeName.toLowerCase();","","\t\t// Skip attributes already provided by e.g. Draco extension.","\t\tif ( threeAttributeName in geometry.attributes ) continue;","","\t\tpending.push( assignAttributeAccessor( attributes[ gltfAttributeName ], threeAttributeName ) );","","\t}","","\tif ( primitiveDef.indices !== undefined \u0026\u0026 ! geometry.index ) {","","\t\tconst accessor = parser.getDependency( 'accessor', primitiveDef.indices ).then( function ( accessor ) {","","\t\t\tgeometry.setIndex( accessor );","","\t\t} );","","\t\tpending.push( accessor );","","\t}","","\tif ( ColorManagement.workingColorSpace !== LinearSRGBColorSpace \u0026\u0026 'COLOR_0' in attributes ) {","","\t\tconsole.warn( `THREE.GLTFLoader: Converting vertex colors from \"srgb-linear\" to \"${ColorManagement.workingColorSpace}\" not supported.` );","","\t}","","\tassignExtrasToUserData( geometry, primitiveDef );","","\tcomputeBounds( geometry, primitiveDef, parser );","","\treturn Promise.all( pending ).then( function () {","","\t\treturn primitiveDef.targets !== undefined","\t\t\t? addMorphTargets( geometry, primitiveDef.targets, parser )","\t\t\t: geometry;","","\t} );","","}","","export { GLTFLoader };"],"stylingDirectives":[[[0,6,"pl-k"],[7,8,"pl-kos"]],[[1,14,"pl-v"],[14,15,"pl-kos"]],[[1,5,"pl-v"],[5,6,"pl-kos"]],[[1,5,"pl-v"],[5,6,"pl-kos"]],[[1,16,"pl-v"],[16,17,"pl-kos"]],[[1,15,"pl-v"],[15,16,"pl-kos"]],[[1,20,"pl-v"],[20,21,"pl-kos"]],[[1,6,"pl-v"],[6,7,"pl-kos"]],[[1,16,"pl-v"],[16,17,"pl-kos"]],[[1,17,"pl-v"],[17,18,"pl-kos"]],[[1,11,"pl-v"],[11,12,"pl-kos"]],[[1,11,"pl-v"],[11,12,"pl-kos"]],[[1,10,"pl-v"],[10,11,"pl-kos"]],[[1,6,"pl-v"],[6,7,"pl-kos"]],[[1,18,"pl-v"],[18,19,"pl-kos"]],[[1,14,"pl-v"],[14,15,"pl-kos"]],[[1,18,"pl-v"],[18,19,"pl-kos"]],[[1,27,"pl-v"],[27,28,"pl-kos"]],[[1,12,"pl-v"],[12,13,"pl-kos"]],[[1,20,"pl-v"],[20,21,"pl-kos"]],[[1,18,"pl-v"],[18,19,"pl-kos"]],[[1,5,"pl-v"],[5,6,"pl-kos"]],[[1,18,"pl-v"],[18,19,"pl-kos"]],[[1,9,"pl-v"],[9,10,"pl-kos"]],[[1,13,"pl-v"],[13,14,"pl-kos"]],[[1,13,"pl-v"],[13,14,"pl-kos"]],[[1,25,"pl-v"],[25,26,"pl-kos"]],[[1,26,"pl-v"],[26,27,"pl-kos"]],[[1,21,"pl-v"],[21,22,"pl-kos"]],[[1,7,"pl-v"],[7,8,"pl-kos"]],[[1,12,"pl-v"],[12,13,"pl-kos"]],[[1,9,"pl-v"],[9,10,"pl-kos"]],[[1,10,"pl-v"],[10,11,"pl-kos"]],[[1,8,"pl-v"],[8,9,"pl-kos"]],[[1,5,"pl-v"],[5,6,"pl-kos"]],[[1,18,"pl-v"],[18,19,"pl-kos"]],[[1,21,"pl-v"],[21,22,"pl-kos"]],[[1,21,"pl-v"],[21,22,"pl-kos"]],[[1,23,"pl-v"],[23,24,"pl-kos"]],[[1,14,"pl-v"],[14,15,"pl-kos"]],[[1,26,"pl-v"],[26,27,"pl-kos"]],[[1,27,"pl-v"],[27,28,"pl-kos"]],[[1,20,"pl-v"],[20,21,"pl-kos"]],[[1,9,"pl-v"],[9,10,"pl-kos"]],[[1,19,"pl-v"],[19,20,"pl-kos"]],[[1,18,"pl-v"],[18,19,"pl-kos"]],[[1,11,"pl-v"],[11,12,"pl-kos"]],[[1,7,"pl-v"],[7,8,"pl-kos"]],[[1,15,"pl-v"],[15,16,"pl-kos"]],[[1,16,"pl-v"],[16,17,"pl-kos"]],[[1,11,"pl-v"],[11,12,"pl-kos"]],[[1,24,"pl-v"],[24,25,"pl-kos"]],[[1,15,"pl-v"],[15,16,"pl-kos"]],[[1,9,"pl-v"],[9,10,"pl-kos"]],[[1,12,"pl-v"],[12,13,"pl-kos"]],[[1,7,"pl-v"],[7,8,"pl-kos"]],[[1,10,"pl-v"],[10,11,"pl-kos"]],[[1,8,"pl-v"],[8,9,"pl-kos"]],[[1,14,"pl-v"],[14,15,"pl-kos"]],[[1,20,"pl-v"],[20,21,"pl-kos"]],[[1,22,"pl-v"],[22,23,"pl-kos"]],[[1,8,"pl-v"],[8,9,"pl-kos"]],[[1,8,"pl-v"],[8,9,"pl-kos"]],[[1,20,"pl-v"],[20,21,"pl-kos"]],[[1,15,"pl-v"],[15,16,"pl-kos"]],[[1,25,"pl-v"]],[[0,1,"pl-kos"],[2,6,"pl-k"],[7,14,"pl-s"],[14,15,"pl-kos"]],[[0,6,"pl-k"],[7,8,"pl-kos"],[9,28,"pl-s1"],[29,30,"pl-kos"],[31,35,"pl-k"],[36,69,"pl-s"],[69,70,"pl-kos"]],[],[[0,5,"pl-k"],[6,16,"pl-v"],[17,24,"pl-k"],[25,31,"pl-v"],[32,33,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,21,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[2,7,"pl-smi"],[7,8,"pl-kos"],[9,16,"pl-s1"],[17,18,"pl-kos"],[18,19,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,25,"pl-c1"],[25,26,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[18,19,"pl-c1"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,21,"pl-c1"],[22,23,"pl-c1"],[24,28,"pl-c1"],[28,29,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,22,"pl-c1"],[23,24,"pl-c1"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,45,"pl-v"],[45,46,"pl-kos"],[47,53,"pl-s1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,40,"pl-v"],[40,41,"pl-kos"],[42,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,38,"pl-v"],[38,39,"pl-kos"],[40,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,38,"pl-v"],[38,39,"pl-kos"],[40,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,41,"pl-v"],[41,42,"pl-kos"],[43,49,"pl-s1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,48,"pl-v"],[48,49,"pl-kos"],[50,56,"pl-s1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,42,"pl-v"],[42,43,"pl-kos"],[44,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,39,"pl-v"],[39,40,"pl-kos"],[41,47,"pl-s1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,52,"pl-v"],[52,53,"pl-kos"],[54,60,"pl-s1"],[61,62,"pl-kos"],[62,63,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,44,"pl-v"],[44,45,"pl-kos"],[46,52,"pl-s1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,47,"pl-v"],[47,48,"pl-kos"],[49,55,"pl-s1"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,46,"pl-v"],[46,47,"pl-kos"],[48,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,40,"pl-v"],[40,41,"pl-kos"],[42,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,33,"pl-v"],[33,34,"pl-kos"],[35,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,36,"pl-v"],[36,37,"pl-kos"],[38,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-k"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,35,"pl-v"],[35,36,"pl-kos"],[37,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,5,"pl-en"],[5,6,"pl-kos"],[7,10,"pl-s1"],[10,11,"pl-kos"],[12,18,"pl-s1"],[18,19,"pl-kos"],[20,30,"pl-s1"],[30,31,"pl-kos"],[32,39,"pl-s1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[2,7,"pl-k"],[8,13,"pl-s1"],[14,15,"pl-c1"],[16,20,"pl-smi"],[20,21,"pl-kos"]],[],[[2,5,"pl-k"],[6,18,"pl-s1"],[18,19,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,24,"pl-c1"],[25,28,"pl-c1"],[29,31,"pl-s"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[3,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,35,"pl-c1"],[35,36,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,11,"pl-k"],[12,13,"pl-kos"],[14,18,"pl-smi"],[18,19,"pl-kos"],[19,23,"pl-c1"],[24,27,"pl-c1"],[28,30,"pl-s"],[31,32,"pl-kos"],[33,34,"pl-kos"]],[],[[3,111,"pl-c"]],[[3,84,"pl-c"]],[[3,63,"pl-c"]],[[3,109,"pl-c"]],[[3,127,"pl-c"]],[[3,8,"pl-k"],[9,20,"pl-s1"],[21,22,"pl-c1"],[23,34,"pl-v"],[34,35,"pl-kos"],[35,49,"pl-en"],[49,50,"pl-kos"],[51,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[[3,15,"pl-s1"],[16,17,"pl-c1"],[18,29,"pl-v"],[29,30,"pl-kos"],[30,40,"pl-en"],[40,41,"pl-kos"],[42,53,"pl-s1"],[53,54,"pl-kos"],[55,59,"pl-smi"],[59,60,"pl-kos"],[60,64,"pl-c1"],[65,66,"pl-kos"],[66,67,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,15,"pl-s1"],[16,17,"pl-c1"],[18,29,"pl-v"],[29,30,"pl-kos"],[30,44,"pl-en"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,74,"pl-c"]],[[2,73,"pl-c"]],[[2,68,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,14,"pl-c1"],[14,15,"pl-kos"],[15,24,"pl-en"],[24,25,"pl-kos"],[26,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-en"],[17,18,"pl-c1"],[19,27,"pl-k"],[28,29,"pl-kos"],[30,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[16,17,"pl-kos"],[18,19,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[13,14,"pl-s1"],[15,16,"pl-kos"],[16,17,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,11,"pl-smi"],[11,12,"pl-kos"],[12,17,"pl-en"],[17,18,"pl-kos"],[19,20,"pl-s1"],[21,22,"pl-kos"],[22,23,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,8,"pl-s1"],[8,9,"pl-kos"],[9,16,"pl-c1"],[16,17,"pl-kos"],[17,26,"pl-en"],[26,27,"pl-kos"],[28,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[[3,8,"pl-s1"],[8,9,"pl-kos"],[9,16,"pl-c1"],[16,17,"pl-kos"],[17,24,"pl-en"],[24,25,"pl-kos"],[26,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,31,"pl-v"],[31,32,"pl-kos"],[33,37,"pl-smi"],[37,38,"pl-kos"],[38,45,"pl-c1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,16,"pl-en"],[16,17,"pl-kos"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,27,"pl-c1"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,24,"pl-en"],[24,25,"pl-kos"],[26,39,"pl-s"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,25,"pl-en"],[25,26,"pl-kos"],[27,31,"pl-smi"],[31,32,"pl-kos"],[32,45,"pl-c1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,27,"pl-en"],[27,28,"pl-kos"],[29,33,"pl-smi"],[33,34,"pl-kos"],[34,49,"pl-c1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,13,"pl-en"],[13,14,"pl-kos"],[15,18,"pl-s1"],[18,19,"pl-kos"],[20,28,"pl-k"],[29,30,"pl-kos"],[31,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"]],[],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,15,"pl-en"],[15,16,"pl-kos"],[17,21,"pl-s1"],[21,22,"pl-kos"],[23,35,"pl-s1"],[35,36,"pl-kos"],[37,45,"pl-k"],[46,47,"pl-kos"],[48,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[5,11,"pl-s1"],[11,12,"pl-kos"],[13,17,"pl-s1"],[18,19,"pl-kos"],[19,20,"pl-kos"]],[],[[5,10,"pl-s1"],[10,11,"pl-kos"],[11,18,"pl-c1"],[18,19,"pl-kos"],[19,26,"pl-en"],[26,27,"pl-kos"],[28,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[4,5,"pl-kos"],[5,6,"pl-kos"],[7,15,"pl-en"],[16,17,"pl-kos"],[17,18,"pl-kos"]],[],[[3,4,"pl-kos"],[5,10,"pl-k"],[11,12,"pl-kos"],[13,14,"pl-s1"],[15,16,"pl-kos"],[17,18,"pl-kos"]],[],[[4,12,"pl-en"],[12,13,"pl-kos"],[14,15,"pl-s1"],[16,17,"pl-kos"],[17,18,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"],[5,15,"pl-s1"],[15,16,"pl-kos"],[17,25,"pl-en"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,15,"pl-en"],[15,16,"pl-kos"],[17,28,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,32,"pl-s1"],[32,33,"pl-kos"]],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,13,"pl-en"],[13,14,"pl-kos"],[14,15,"pl-kos"],[16,17,"pl-kos"]],[],[[2,7,"pl-k"],[8,11,"pl-k"],[12,17,"pl-v"],[17,18,"pl-kos"]],[],[[3,101,"pl-s"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"]],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,18,"pl-en"],[18,19,"pl-kos"],[20,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,21,"pl-c1"],[22,23,"pl-c1"],[24,38,"pl-s1"],[38,39,"pl-kos"]],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,9,"pl-en"],[9,10,"pl-kos"],[11,19,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,27,"pl-c1"],[27,28,"pl-kos"],[28,35,"pl-en"],[35,36,"pl-kos"],[37,45,"pl-s1"],[46,47,"pl-kos"],[48,51,"pl-c1"],[52,53,"pl-c1"],[54,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,23,"pl-c1"],[23,24,"pl-kos"],[24,28,"pl-en"],[28,29,"pl-kos"],[30,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,21,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,27,"pl-c1"],[27,28,"pl-kos"],[28,35,"pl-en"],[35,36,"pl-kos"],[37,45,"pl-s1"],[46,47,"pl-kos"],[48,51,"pl-c1"],[52,53,"pl-c1"],[54,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,23,"pl-c1"],[23,24,"pl-kos"],[24,30,"pl-en"],[30,31,"pl-kos"],[32,36,"pl-smi"],[36,37,"pl-kos"],[37,52,"pl-c1"],[52,53,"pl-kos"],[53,60,"pl-en"],[60,61,"pl-kos"],[62,70,"pl-s1"],[71,72,"pl-kos"],[72,73,"pl-kos"],[74,75,"pl-c1"],[76,77,"pl-kos"],[77,78,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,6,"pl-en"],[6,7,"pl-kos"],[8,12,"pl-s1"],[12,13,"pl-kos"],[14,18,"pl-s1"],[18,19,"pl-kos"],[20,26,"pl-s1"],[26,27,"pl-kos"],[28,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[2,5,"pl-k"],[6,10,"pl-s1"],[10,11,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,22,"pl-kos"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,37,"pl-v"],[37,38,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-k"],[14,18,"pl-s1"],[19,22,"pl-c1"],[23,31,"pl-s"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[3,7,"pl-s1"],[8,9,"pl-c1"],[10,14,"pl-c1"],[14,15,"pl-kos"],[15,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-s1"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,11,"pl-k"],[12,13,"pl-kos"],[14,18,"pl-s1"],[19,29,"pl-k"],[30,41,"pl-v"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,28,"pl-s1"],[28,29,"pl-kos"],[29,35,"pl-en"],[35,36,"pl-kos"],[37,40,"pl-k"],[41,51,"pl-v"],[51,52,"pl-kos"],[53,57,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-c1"],[64,65,"pl-kos"],[66,67,"pl-kos"],[67,68,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-s1"],[14,17,"pl-c1"],[18,47,"pl-c1"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[4,7,"pl-k"],[8,9,"pl-kos"]],[],[[5,15,"pl-s1"],[15,16,"pl-kos"],[17,27,"pl-c1"],[27,28,"pl-kos"],[28,43,"pl-c1"],[44,45,"pl-kos"],[46,47,"pl-c1"],[48,51,"pl-k"],[52,71,"pl-v"],[71,72,"pl-kos"],[73,77,"pl-s1"],[78,79,"pl-kos"],[79,80,"pl-kos"]],[],[[4,5,"pl-kos"],[6,11,"pl-k"],[12,13,"pl-kos"],[14,19,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,17,"pl-s1"],[18,19,"pl-kos"],[20,27,"pl-s1"],[27,28,"pl-kos"],[29,34,"pl-s1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[[5,11,"pl-k"],[11,12,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,8,"pl-s1"],[9,10,"pl-c1"],[11,15,"pl-c1"],[15,16,"pl-kos"],[16,21,"pl-en"],[21,22,"pl-kos"],[23,33,"pl-s1"],[33,34,"pl-kos"],[35,45,"pl-c1"],[45,46,"pl-kos"],[46,61,"pl-c1"],[62,63,"pl-kos"],[63,64,"pl-kos"],[64,71,"pl-c1"],[72,73,"pl-kos"],[73,74,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-s1"],[9,10,"pl-c1"],[11,15,"pl-c1"],[15,16,"pl-kos"],[16,21,"pl-en"],[21,22,"pl-kos"],[23,34,"pl-s1"],[34,35,"pl-kos"],[35,41,"pl-en"],[41,42,"pl-kos"],[43,47,"pl-s1"],[48,49,"pl-kos"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-s1"],[8,9,"pl-c1"],[10,14,"pl-s1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-s1"],[11,12,"pl-kos"],[12,17,"pl-c1"],[18,21,"pl-c1"],[22,31,"pl-c1"],[32,34,"pl-c1"],[35,39,"pl-s1"],[39,40,"pl-kos"],[40,45,"pl-c1"],[45,46,"pl-kos"],[46,53,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-c1"],[61,62,"pl-c1"],[63,64,"pl-kos"],[65,66,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[16,17,"pl-kos"],[18,25,"pl-s1"],[25,26,"pl-kos"],[27,30,"pl-k"],[31,36,"pl-v"],[36,37,"pl-kos"],[38,111,"pl-s"],[112,113,"pl-kos"],[114,115,"pl-kos"],[115,116,"pl-kos"]],[[3,9,"pl-k"],[9,10,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,31,"pl-v"],[31,32,"pl-kos"],[33,37,"pl-s1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[3,7,"pl-c1"],[9,13,"pl-s1"],[14,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,34,"pl-c1"],[35,37,"pl-c1"],[38,40,"pl-s"],[40,41,"pl-kos"]],[[3,14,"pl-c1"],[16,20,"pl-smi"],[20,21,"pl-kos"],[21,32,"pl-c1"],[32,33,"pl-kos"]],[[3,16,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,36,"pl-c1"],[36,37,"pl-kos"]],[[3,10,"pl-c1"],[12,16,"pl-smi"],[16,17,"pl-kos"],[17,24,"pl-c1"],[24,25,"pl-kos"]],[[3,13,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,30,"pl-c1"],[30,31,"pl-kos"]],[[3,17,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,38,"pl-c1"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,19,"pl-c1"],[19,20,"pl-kos"],[20,36,"pl-en"],[36,37,"pl-kos"],[38,42,"pl-smi"],[42,43,"pl-kos"],[43,56,"pl-c1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,20,"pl-s1"],[21,22,"pl-c1"],[23,27,"pl-smi"],[27,28,"pl-kos"],[28,43,"pl-c1"],[43,44,"pl-kos"],[44,50,"pl-c1"],[50,51,"pl-kos"],[52,53,"pl-s1"],[54,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,38,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"],[45,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-c1"],[22,23,"pl-kos"],[24,31,"pl-smi"],[31,32,"pl-kos"],[32,37,"pl-en"],[37,38,"pl-kos"],[39,93,"pl-s"],[94,95,"pl-kos"],[95,96,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[12,18,"pl-s1"],[18,19,"pl-kos"],[19,23,"pl-c1"],[24,25,"pl-kos"],[26,27,"pl-c1"],[28,34,"pl-s1"],[34,35,"pl-kos"]],[],[[3,58,"pl-c"]],[[3,42,"pl-c"]],[[3,56,"pl-c"]],[[3,41,"pl-c"]],[[3,13,"pl-s1"],[13,14,"pl-kos"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-c1"],[31,35,"pl-c1"],[35,36,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-s1"],[11,12,"pl-kos"],[12,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,21,"pl-s1"],[22,23,"pl-c1"],[24,28,"pl-s1"],[28,29,"pl-kos"],[29,43,"pl-c1"],[43,44,"pl-kos"],[44,50,"pl-c1"],[50,51,"pl-kos"],[52,54,"pl-c1"],[55,56,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[4,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,30,"pl-s1"],[30,31,"pl-kos"],[31,45,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[[4,9,"pl-k"],[10,28,"pl-s1"],[29,30,"pl-c1"],[31,35,"pl-s1"],[35,36,"pl-kos"],[36,54,"pl-c1"],[55,57,"pl-c1"],[58,59,"pl-kos"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[4,10,"pl-k"],[11,12,"pl-kos"],[13,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[5,9,"pl-k"],[10,20,"pl-c1"],[20,21,"pl-kos"],[21,40,"pl-c1"]],[[6,16,"pl-s1"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,39,"pl-k"],[40,67,"pl-v"],[67,68,"pl-kos"],[68,69,"pl-kos"],[69,70,"pl-kos"]],[[6,11,"pl-k"],[11,12,"pl-kos"]],[],[[5,9,"pl-k"],[10,20,"pl-c1"],[20,21,"pl-kos"],[21,47,"pl-c1"]],[[6,16,"pl-s1"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,39,"pl-k"],[40,73,"pl-v"],[73,74,"pl-kos"],[75,79,"pl-s1"],[79,80,"pl-kos"],[81,85,"pl-smi"],[85,86,"pl-kos"],[86,97,"pl-c1"],[98,99,"pl-kos"],[99,100,"pl-kos"]],[[6,11,"pl-k"],[11,12,"pl-kos"]],[],[[5,9,"pl-k"],[10,20,"pl-c1"],[20,21,"pl-kos"],[21,42,"pl-c1"]],[[6,16,"pl-s1"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,39,"pl-k"],[40,69,"pl-v"],[69,70,"pl-kos"],[70,71,"pl-kos"],[71,72,"pl-kos"]],[[6,11,"pl-k"],[11,12,"pl-kos"]],[],[[5,9,"pl-k"],[10,20,"pl-c1"],[20,21,"pl-kos"],[21,42,"pl-c1"]],[[6,16,"pl-s1"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,39,"pl-k"],[40,69,"pl-v"],[69,70,"pl-kos"],[70,71,"pl-kos"],[71,72,"pl-kos"]],[[6,11,"pl-k"],[11,12,"pl-kos"]],[],[[5,12,"pl-k"]],[],[[6,8,"pl-k"],[9,10,"pl-kos"],[11,29,"pl-s1"],[29,30,"pl-kos"],[30,37,"pl-en"],[37,38,"pl-kos"],[39,52,"pl-s1"],[53,54,"pl-kos"],[55,57,"pl-c1"],[58,59,"pl-c1"],[60,62,"pl-c1"],[63,70,"pl-s1"],[70,71,"pl-kos"],[72,85,"pl-s1"],[86,87,"pl-kos"],[88,91,"pl-c1"],[92,101,"pl-c1"],[102,103,"pl-kos"],[104,105,"pl-kos"]],[],[[7,14,"pl-smi"],[14,15,"pl-kos"],[15,19,"pl-en"],[19,20,"pl-kos"],[21,60,"pl-s"],[61,62,"pl-c1"],[63,76,"pl-s1"],[77,78,"pl-c1"],[79,83,"pl-s"],[84,85,"pl-kos"],[85,86,"pl-kos"]],[],[[6,7,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,22,"pl-en"],[22,23,"pl-kos"],[24,34,"pl-s1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,19,"pl-en"],[19,20,"pl-kos"],[21,28,"pl-s1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,14,"pl-en"],[14,15,"pl-kos"],[16,22,"pl-s1"],[22,23,"pl-kos"],[24,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,17,"pl-s1"],[17,18,"pl-kos"],[19,23,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,13,"pl-s1"],[14,15,"pl-c1"],[16,20,"pl-smi"],[20,21,"pl-kos"]],[],[[2,8,"pl-k"],[9,12,"pl-k"],[13,20,"pl-v"],[20,21,"pl-kos"],[22,30,"pl-k"],[31,32,"pl-kos"],[33,40,"pl-s1"],[40,41,"pl-kos"],[42,48,"pl-s1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,8,"pl-s1"],[8,9,"pl-kos"],[9,14,"pl-en"],[14,15,"pl-kos"],[16,20,"pl-s1"],[20,21,"pl-kos"],[22,26,"pl-s1"],[26,27,"pl-kos"],[28,35,"pl-s1"],[35,36,"pl-kos"],[37,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,18,"pl-c"]],[],[[0,8,"pl-k"],[9,21,"pl-v"],[21,22,"pl-kos"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[1,4,"pl-k"],[5,12,"pl-s1"],[13,14,"pl-c1"],[15,16,"pl-kos"],[16,17,"pl-kos"],[17,18,"pl-kos"]],[],[[1,7,"pl-k"],[8,9,"pl-kos"]],[],[[2,5,"pl-en"],[7,15,"pl-k"],[16,17,"pl-kos"],[18,21,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-s1"],[17,18,"pl-kos"],[19,22,"pl-s1"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,5,"pl-en"],[7,15,"pl-k"],[16,17,"pl-kos"],[18,21,"pl-s1"],[21,22,"pl-kos"],[23,29,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[12,15,"pl-s1"],[16,17,"pl-kos"],[18,19,"pl-c1"],[20,26,"pl-s1"],[26,27,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,8,"pl-en"],[10,18,"pl-k"],[19,20,"pl-kos"],[21,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-s1"],[17,18,"pl-kos"],[19,22,"pl-s1"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,11,"pl-en"],[13,21,"pl-k"],[22,23,"pl-kos"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[3,10,"pl-s1"],[11,12,"pl-c1"],[13,14,"pl-kos"],[14,15,"pl-kos"],[15,16,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"],[2,3,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,35,"pl-c"]],[[0,35,"pl-c"]],[[0,35,"pl-c"]],[],[[0,5,"pl-k"],[6,16,"pl-c1"],[17,18,"pl-c1"],[19,20,"pl-kos"]],[[1,16,"pl-c1"],[18,35,"pl-s"],[35,36,"pl-kos"]],[[1,27,"pl-c1"],[29,57,"pl-s"],[57,58,"pl-kos"]],[[1,20,"pl-c1"],[22,43,"pl-s"],[43,44,"pl-kos"]],[[1,24,"pl-c1"],[26,51,"pl-s"],[51,52,"pl-kos"]],[[1,18,"pl-c1"],[20,39,"pl-s"],[39,40,"pl-kos"]],[[1,20,"pl-c1"],[22,43,"pl-s"],[43,44,"pl-kos"]],[[1,23,"pl-c1"],[25,49,"pl-s"],[49,50,"pl-kos"]],[[1,27,"pl-c1"],[29,57,"pl-s"],[57,58,"pl-kos"]],[[1,26,"pl-c1"],[28,55,"pl-s"],[55,56,"pl-kos"]],[[1,25,"pl-c1"],[27,53,"pl-s"],[53,54,"pl-kos"]],[[1,20,"pl-c1"],[22,43,"pl-s"],[43,44,"pl-kos"]],[[1,21,"pl-c1"],[23,45,"pl-s"],[45,46,"pl-kos"]],[[1,19,"pl-c1"],[21,41,"pl-s"],[41,42,"pl-kos"]],[[1,22,"pl-c1"],[24,47,"pl-s"],[47,48,"pl-kos"]],[[1,22,"pl-c1"],[24,47,"pl-s"],[47,48,"pl-kos"]],[[1,32,"pl-c1"],[34,67,"pl-s"],[67,68,"pl-kos"]],[[1,19,"pl-c1"],[21,41,"pl-s"],[41,42,"pl-kos"]],[[1,17,"pl-c1"],[19,37,"pl-s"],[37,38,"pl-kos"]],[[1,17,"pl-c1"],[19,37,"pl-s"],[37,38,"pl-kos"]],[[1,24,"pl-c1"],[26,51,"pl-s"],[51,52,"pl-kos"]],[[1,24,"pl-c1"],[26,51,"pl-s"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,28,"pl-c"]],[[0,2,"pl-c"]],[[0,109,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,25,"pl-v"],[26,27,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,44,"pl-c1"],[44,45,"pl-kos"]],[],[[2,29,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,12,"pl-c1"],[13,14,"pl-c1"],[15,16,"pl-kos"],[17,21,"pl-c1"],[23,24,"pl-kos"],[24,25,"pl-kos"],[25,26,"pl-kos"],[27,31,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,10,"pl-en"],[10,11,"pl-kos"],[11,12,"pl-kos"],[13,14,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,30,"pl-c1"],[30,31,"pl-kos"],[31,35,"pl-c1"],[35,36,"pl-kos"],[36,41,"pl-c1"],[42,44,"pl-c1"],[45,46,"pl-kos"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,21,"pl-s1"],[22,23,"pl-c1"],[24,25,"pl-c1"],[25,26,"pl-kos"],[27,37,"pl-s1"],[38,39,"pl-c1"],[40,48,"pl-s1"],[48,49,"pl-kos"],[49,55,"pl-c1"],[55,56,"pl-kos"],[57,66,"pl-s1"],[67,68,"pl-c1"],[69,79,"pl-s1"],[79,80,"pl-kos"],[81,90,"pl-s1"],[91,93,"pl-c1"],[94,95,"pl-kos"],[96,97,"pl-kos"]],[],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,27,"pl-s1"],[27,28,"pl-kos"],[29,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"]],[[5,7,"pl-c1"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"],[26,27,"pl-kos"],[28,32,"pl-smi"],[32,33,"pl-kos"],[33,37,"pl-c1"],[38,39,"pl-kos"]],[[5,7,"pl-c1"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"],[26,27,"pl-kos"],[28,32,"pl-smi"],[32,33,"pl-kos"],[33,37,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"],[40,45,"pl-c1"],[46,49,"pl-c1"],[50,59,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,22,"pl-en"],[22,23,"pl-kos"],[24,28,"pl-smi"],[28,29,"pl-kos"],[29,34,"pl-c1"],[34,35,"pl-kos"],[36,43,"pl-s1"],[43,44,"pl-kos"],[44,54,"pl-c1"],[54,55,"pl-kos"],[56,60,"pl-smi"],[60,61,"pl-kos"],[61,65,"pl-c1"],[66,67,"pl-kos"],[67,68,"pl-kos"],[68,73,"pl-c1"],[74,75,"pl-kos"],[75,76,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,23,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,27,"pl-s"],[28,29,"pl-c1"],[30,40,"pl-s1"],[40,41,"pl-kos"]],[[2,5,"pl-k"],[6,16,"pl-s1"],[17,18,"pl-c1"],[19,25,"pl-s1"],[25,26,"pl-kos"],[26,31,"pl-c1"],[31,32,"pl-kos"],[32,35,"pl-en"],[35,36,"pl-kos"],[37,45,"pl-s1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,17,"pl-s1"],[18,19,"pl-kos"],[20,26,"pl-k"],[27,37,"pl-s1"],[37,38,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-c1"],[26,27,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,22,"pl-kos"],[23,27,"pl-s1"],[27,28,"pl-kos"],[28,38,"pl-c1"],[39,41,"pl-c1"],[42,46,"pl-s1"],[46,47,"pl-kos"],[47,57,"pl-c1"],[57,58,"pl-kos"],[59,63,"pl-smi"],[63,64,"pl-kos"],[64,68,"pl-c1"],[69,70,"pl-kos"],[71,72,"pl-kos"],[73,75,"pl-c1"],[76,77,"pl-kos"],[77,78,"pl-kos"],[78,79,"pl-kos"]],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"],[31,37,"pl-c1"],[38,40,"pl-c1"],[41,42,"pl-kos"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,28,"pl-s1"],[28,29,"pl-kos"],[30,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[[2,5,"pl-k"],[6,15,"pl-s1"],[15,16,"pl-kos"]],[],[[2,7,"pl-k"],[8,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-k"],[20,25,"pl-v"],[25,26,"pl-kos"],[27,35,"pl-c1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,15,"pl-s1"],[15,16,"pl-kos"],[16,21,"pl-c1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,43,"pl-s1"],[43,44,"pl-kos"],[44,50,"pl-en"],[50,51,"pl-kos"],[52,60,"pl-s1"],[60,61,"pl-kos"],[61,66,"pl-c1"],[66,67,"pl-kos"],[68,69,"pl-c1"],[70,71,"pl-kos"],[71,72,"pl-kos"],[73,81,"pl-s1"],[81,82,"pl-kos"],[82,87,"pl-c1"],[87,88,"pl-kos"],[89,90,"pl-c1"],[91,92,"pl-kos"],[92,93,"pl-kos"],[94,102,"pl-s1"],[102,103,"pl-kos"],[103,108,"pl-c1"],[108,109,"pl-kos"],[110,111,"pl-c1"],[112,113,"pl-kos"],[113,114,"pl-kos"],[115,135,"pl-v"],[136,137,"pl-kos"],[137,138,"pl-kos"]],[],[[2,7,"pl-k"],[8,13,"pl-s1"],[14,15,"pl-c1"],[16,24,"pl-s1"],[24,25,"pl-kos"],[25,30,"pl-c1"],[31,34,"pl-c1"],[35,44,"pl-c1"],[47,55,"pl-s1"],[55,56,"pl-kos"],[56,61,"pl-c1"],[64,65,"pl-c1"],[65,66,"pl-kos"]],[],[[2,8,"pl-k"],[9,10,"pl-kos"],[11,19,"pl-s1"],[19,20,"pl-kos"],[20,24,"pl-c1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[3,7,"pl-k"],[8,21,"pl-s"]],[[4,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-k"],[20,36,"pl-v"],[36,37,"pl-kos"],[38,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,20,"pl-c1"],[20,21,"pl-kos"],[21,29,"pl-c1"],[29,30,"pl-kos"],[30,33,"pl-en"],[33,34,"pl-kos"],[35,36,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-c1"],[39,40,"pl-kos"],[41,42,"pl-c1"],[43,44,"pl-c1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,17,"pl-en"],[17,18,"pl-kos"],[19,28,"pl-s1"],[28,29,"pl-kos"],[29,35,"pl-c1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-k"],[8,15,"pl-s"]],[[4,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-k"],[20,30,"pl-v"],[30,31,"pl-kos"],[32,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,22,"pl-c1"],[23,24,"pl-c1"],[25,30,"pl-s1"],[30,31,"pl-kos"]],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-k"],[8,14,"pl-s"]],[[4,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-k"],[20,29,"pl-v"],[29,30,"pl-kos"],[31,36,"pl-s1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,22,"pl-c1"],[23,24,"pl-c1"],[25,30,"pl-s1"],[30,31,"pl-kos"]],[[4,35,"pl-c"]],[[4,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-c1"],[18,19,"pl-c1"],[20,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[34,36,"pl-c1"],[37,38,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[4,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-c1"],[17,18,"pl-kos"],[18,32,"pl-c1"],[33,34,"pl-c1"],[35,43,"pl-s1"],[43,44,"pl-kos"],[44,48,"pl-c1"],[48,49,"pl-kos"],[49,63,"pl-c1"],[64,67,"pl-c1"],[68,77,"pl-c1"],[80,88,"pl-s1"],[88,89,"pl-kos"],[89,93,"pl-c1"],[93,94,"pl-kos"],[94,108,"pl-c1"],[111,112,"pl-c1"],[112,113,"pl-kos"]],[[4,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-c1"],[17,18,"pl-kos"],[18,32,"pl-c1"],[33,34,"pl-c1"],[35,43,"pl-s1"],[43,44,"pl-kos"],[44,48,"pl-c1"],[48,49,"pl-kos"],[49,63,"pl-c1"],[64,67,"pl-c1"],[68,77,"pl-c1"],[80,88,"pl-s1"],[88,89,"pl-kos"],[89,93,"pl-c1"],[93,94,"pl-kos"],[94,108,"pl-c1"],[111,115,"pl-v"],[115,116,"pl-kos"],[116,118,"pl-c1"],[119,120,"pl-c1"],[121,124,"pl-c1"],[124,125,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,19,"pl-c1"],[20,21,"pl-c1"],[22,30,"pl-s1"],[30,31,"pl-kos"],[31,35,"pl-c1"],[35,36,"pl-kos"],[36,50,"pl-c1"],[50,51,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,22,"pl-c1"],[23,24,"pl-c1"],[25,28,"pl-c1"],[29,30,"pl-c1"],[31,39,"pl-s1"],[39,40,"pl-kos"],[40,44,"pl-c1"],[44,45,"pl-kos"],[45,59,"pl-c1"],[60,61,"pl-c1"],[62,70,"pl-s1"],[70,71,"pl-kos"],[71,75,"pl-c1"],[75,76,"pl-kos"],[76,90,"pl-c1"],[90,91,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,20,"pl-c1"],[20,21,"pl-kos"],[21,29,"pl-c1"],[29,30,"pl-kos"],[30,33,"pl-en"],[33,34,"pl-kos"],[35,36,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-c1"],[39,40,"pl-kos"],[41,42,"pl-c1"],[43,44,"pl-c1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[[4,13,"pl-s1"],[13,14,"pl-kos"],[14,17,"pl-en"],[17,18,"pl-kos"],[19,28,"pl-s1"],[28,29,"pl-kos"],[29,35,"pl-c1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[3,10,"pl-k"]],[[4,9,"pl-k"],[10,13,"pl-k"],[14,19,"pl-v"],[19,20,"pl-kos"],[21,64,"pl-s"],[65,66,"pl-c1"],[67,75,"pl-s1"],[75,76,"pl-kos"],[76,80,"pl-c1"],[81,82,"pl-kos"],[82,83,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,92,"pl-c"]],[[2,90,"pl-c"]],[[2,11,"pl-s1"],[11,12,"pl-kos"],[12,20,"pl-c1"],[20,21,"pl-kos"],[21,24,"pl-en"],[24,25,"pl-kos"],[26,27,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-c1"],[30,31,"pl-kos"],[32,33,"pl-c1"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[],[[2,11,"pl-s1"],[11,12,"pl-kos"],[12,17,"pl-c1"],[18,19,"pl-c1"],[20,21,"pl-c1"],[21,22,"pl-kos"]],[],[[2,24,"pl-en"],[24,25,"pl-kos"],[26,35,"pl-s1"],[35,36,"pl-kos"],[37,45,"pl-s1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,15,"pl-s1"],[15,16,"pl-kos"],[16,25,"pl-c1"],[26,29,"pl-c1"],[30,39,"pl-c1"],[40,41,"pl-kos"],[42,51,"pl-s1"],[51,52,"pl-kos"],[52,61,"pl-c1"],[62,63,"pl-c1"],[64,72,"pl-s1"],[72,73,"pl-kos"],[73,82,"pl-c1"],[82,83,"pl-kos"]],[],[[2,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-c1"],[17,18,"pl-c1"],[19,25,"pl-s1"],[25,26,"pl-kos"],[26,42,"pl-en"],[42,43,"pl-kos"],[44,52,"pl-s1"],[52,53,"pl-kos"],[53,57,"pl-c1"],[58,60,"pl-c1"],[61,62,"pl-kos"],[63,71,"pl-s"],[72,73,"pl-c1"],[74,84,"pl-s1"],[85,86,"pl-kos"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[2,12,"pl-s1"],[13,14,"pl-c1"],[15,22,"pl-v"],[22,23,"pl-kos"],[23,30,"pl-en"],[30,31,"pl-kos"],[32,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,14,"pl-c1"],[14,15,"pl-kos"],[15,18,"pl-en"],[18,19,"pl-kos"],[20,28,"pl-s1"],[28,29,"pl-kos"],[30,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[],[[2,8,"pl-k"],[9,19,"pl-s1"],[19,20,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,20,"pl-s1"],[20,21,"pl-kos"],[22,27,"pl-s1"],[28,29,"pl-kos"],[30,31,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-s1"],[12,15,"pl-c1"],[16,23,"pl-s"],[24,25,"pl-kos"],[26,32,"pl-k"],[32,33,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,24,"pl-en"],[24,25,"pl-kos"],[26,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,32,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-c1"],[26,27,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,20,"pl-kos"],[21,28,"pl-s1"],[28,29,"pl-kos"],[29,39,"pl-c1"],[40,42,"pl-c1"],[43,50,"pl-s1"],[50,51,"pl-kos"],[51,61,"pl-c1"],[61,62,"pl-kos"],[63,67,"pl-smi"],[67,68,"pl-kos"],[68,72,"pl-c1"],[73,74,"pl-kos"],[75,76,"pl-kos"],[77,79,"pl-c1"],[80,81,"pl-kos"],[81,82,"pl-kos"],[82,83,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,29,"pl-s1"],[29,30,"pl-kos"],[30,35,"pl-c1"],[35,36,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,17,"pl-s1"],[18,21,"pl-c1"],[22,31,"pl-c1"],[32,33,"pl-kos"],[34,40,"pl-k"],[41,45,"pl-c1"],[45,46,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,24,"pl-en"],[24,25,"pl-kos"],[26,36,"pl-s1"],[37,38,"pl-kos"],[38,39,"pl-kos"],[39,43,"pl-en"],[43,44,"pl-kos"],[45,53,"pl-k"],[54,55,"pl-kos"],[56,61,"pl-s1"],[62,63,"pl-kos"],[64,65,"pl-kos"]],[],[[3,9,"pl-k"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,28,"pl-en"],[28,29,"pl-kos"],[30,34,"pl-s1"],[34,35,"pl-kos"],[35,40,"pl-c1"],[40,41,"pl-kos"],[42,52,"pl-s1"],[52,53,"pl-kos"],[54,59,"pl-s1"],[60,61,"pl-kos"],[61,62,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,28,"pl-c"]],[[0,2,"pl-c"]],[[0,109,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,33,"pl-v"],[34,35,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[13,14,"pl-kos"],[15,16,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,44,"pl-c1"],[44,45,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[17,18,"pl-kos"],[19,20,"pl-kos"]],[],[[2,8,"pl-k"],[9,26,"pl-v"],[26,27,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,13,"pl-en"],[13,14,"pl-kos"],[15,29,"pl-s1"],[29,30,"pl-kos"],[31,42,"pl-s1"],[42,43,"pl-kos"],[44,50,"pl-s1"],[51,52,"pl-kos"],[53,54,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,22,"pl-c1"],[23,24,"pl-c1"],[25,28,"pl-k"],[29,34,"pl-v"],[34,35,"pl-kos"],[36,39,"pl-c1"],[39,40,"pl-kos"],[41,44,"pl-c1"],[44,45,"pl-kos"],[46,49,"pl-c1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,24,"pl-c1"],[25,26,"pl-c1"],[27,30,"pl-c1"],[30,31,"pl-kos"]],[],[[2,7,"pl-k"],[8,25,"pl-s1"],[26,27,"pl-c1"],[28,39,"pl-s1"],[39,40,"pl-kos"],[40,60,"pl-c1"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-v"],[13,14,"pl-kos"],[14,21,"pl-en"],[21,22,"pl-kos"],[23,40,"pl-s1"],[40,41,"pl-kos"],[41,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,35,"pl-s1"],[35,36,"pl-kos"],[36,51,"pl-c1"],[51,52,"pl-kos"]],[],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,24,"pl-c1"],[24,25,"pl-kos"],[25,31,"pl-en"],[31,32,"pl-kos"],[33,38,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-c1"],[42,43,"pl-kos"],[43,44,"pl-kos"],[45,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"],[57,62,"pl-s1"],[62,63,"pl-kos"],[64,65,"pl-c1"],[66,67,"pl-kos"],[67,68,"pl-kos"],[69,89,"pl-v"],[90,91,"pl-kos"],[91,92,"pl-kos"]],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,26,"pl-c1"],[27,28,"pl-c1"],[29,34,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,25,"pl-s1"],[25,26,"pl-kos"],[26,42,"pl-c1"],[43,46,"pl-c1"],[47,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[25,38,"pl-en"],[38,39,"pl-kos"],[40,54,"pl-s1"],[54,55,"pl-kos"],[56,61,"pl-s"],[61,62,"pl-kos"],[63,80,"pl-s1"],[80,81,"pl-kos"],[81,97,"pl-c1"],[97,98,"pl-kos"],[99,113,"pl-v"],[114,115,"pl-kos"],[116,117,"pl-kos"],[117,118,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,40,"pl-c"]],[[0,2,"pl-c"]],[[0,165,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,44,"pl-v"],[45,46,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,56,"pl-c1"],[56,57,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,24,"pl-s1"],[25,26,"pl-c1"],[27,38,"pl-s1"],[38,39,"pl-kos"],[39,49,"pl-c1"],[49,50,"pl-kos"],[51,55,"pl-smi"],[55,56,"pl-kos"],[56,60,"pl-c1"],[61,62,"pl-kos"],[62,63,"pl-kos"],[63,79,"pl-c1"],[79,80,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,23,"pl-s1"],[24,27,"pl-c1"],[28,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,35,"pl-c1"],[36,37,"pl-c1"],[38,54,"pl-s1"],[54,55,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,24,"pl-en"],[24,25,"pl-kos"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,32,"pl-c"]],[[0,2,"pl-c"]],[[0,113,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,37,"pl-v"],[38,39,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,48,"pl-c1"],[48,49,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,32,"pl-c1"],[33,36,"pl-c1"],[37,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,27,"pl-c1"],[28,29,"pl-c1"],[30,39,"pl-s1"],[39,40,"pl-kos"],[40,55,"pl-c1"],[55,56,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,33,"pl-c1"],[34,37,"pl-c1"],[38,47,"pl-c1"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,69,"pl-s"],[69,70,"pl-kos"],[71,80,"pl-s1"],[80,81,"pl-kos"],[81,97,"pl-c1"],[98,99,"pl-kos"],[100,101,"pl-kos"],[101,102,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,41,"pl-c1"],[42,45,"pl-c1"],[46,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,36,"pl-c1"],[37,38,"pl-c1"],[39,48,"pl-s1"],[48,49,"pl-kos"],[49,73,"pl-c1"],[73,74,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,42,"pl-c1"],[43,46,"pl-c1"],[47,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,78,"pl-s"],[78,79,"pl-kos"],[80,89,"pl-s1"],[89,90,"pl-kos"],[90,115,"pl-c1"],[116,117,"pl-kos"],[118,119,"pl-kos"],[119,120,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,39,"pl-c1"],[40,43,"pl-c1"],[44,53,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,75,"pl-s"],[75,76,"pl-kos"],[77,86,"pl-s1"],[86,87,"pl-kos"],[87,109,"pl-c1"],[110,111,"pl-kos"],[112,113,"pl-kos"],[113,114,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,17,"pl-s1"],[17,18,"pl-kos"],[18,40,"pl-c1"],[40,41,"pl-kos"],[41,46,"pl-c1"],[47,50,"pl-c1"],[51,60,"pl-c1"],[61,62,"pl-kos"],[63,64,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,27,"pl-s1"],[27,28,"pl-kos"],[28,50,"pl-c1"],[50,51,"pl-kos"],[51,56,"pl-c1"],[56,57,"pl-kos"]],[],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,39,"pl-c1"],[40,41,"pl-c1"],[42,45,"pl-k"],[46,53,"pl-v"],[53,54,"pl-kos"],[55,60,"pl-s1"],[60,61,"pl-kos"],[62,67,"pl-s1"],[68,69,"pl-kos"],[69,70,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,34,"pl-c"]],[[0,2,"pl-c"]],[[0,115,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,39,"pl-v"],[40,41,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,50,"pl-c1"],[50,51,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,34,"pl-c1"],[35,38,"pl-c1"],[39,48,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,29,"pl-c1"],[30,31,"pl-c1"],[32,41,"pl-s1"],[41,42,"pl-kos"],[42,59,"pl-c1"],[59,60,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,35,"pl-c1"],[36,39,"pl-c1"],[40,49,"pl-c1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,71,"pl-s"],[71,72,"pl-kos"],[73,82,"pl-s1"],[82,83,"pl-kos"],[83,101,"pl-c1"],[102,103,"pl-kos"],[104,105,"pl-kos"],[105,106,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,31,"pl-c1"],[32,35,"pl-c1"],[36,45,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,32,"pl-c1"],[33,34,"pl-c1"],[35,44,"pl-s1"],[44,45,"pl-kos"],[45,59,"pl-c1"],[59,60,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,21,"pl-s1"],[21,22,"pl-kos"],[22,47,"pl-c1"],[48,51,"pl-c1"],[52,61,"pl-c1"],[62,63,"pl-kos"],[64,65,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,43,"pl-c1"],[44,45,"pl-c1"],[46,47,"pl-kos"],[48,51,"pl-c1"],[51,52,"pl-kos"],[53,56,"pl-c1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,44,"pl-c1"],[45,48,"pl-c1"],[49,58,"pl-c1"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,43,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-c1"],[51,60,"pl-s1"],[60,61,"pl-kos"],[61,88,"pl-c1"],[88,89,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,44,"pl-c1"],[45,48,"pl-c1"],[49,58,"pl-c1"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,43,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-c1"],[51,60,"pl-s1"],[60,61,"pl-kos"],[61,88,"pl-c1"],[88,89,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,44,"pl-c1"],[45,48,"pl-c1"],[49,58,"pl-c1"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,80,"pl-s"],[80,81,"pl-kos"],[82,91,"pl-s1"],[91,92,"pl-kos"],[92,119,"pl-c1"],[120,121,"pl-kos"],[122,123,"pl-kos"],[123,124,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,28,"pl-c"]],[[0,2,"pl-c"]],[[0,107,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,33,"pl-v"],[34,35,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,44,"pl-c1"],[44,45,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,27,"pl-c1"],[28,29,"pl-c1"],[30,33,"pl-k"],[34,39,"pl-v"],[39,40,"pl-kos"],[41,42,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-c1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,31,"pl-c1"],[32,33,"pl-c1"],[34,35,"pl-c1"],[35,36,"pl-kos"]],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,22,"pl-c1"],[23,24,"pl-c1"],[25,26,"pl-c1"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,33,"pl-c1"],[34,37,"pl-c1"],[38,47,"pl-c1"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[3,8,"pl-k"],[9,20,"pl-s1"],[21,22,"pl-c1"],[23,32,"pl-s1"],[32,33,"pl-kos"],[33,49,"pl-c1"],[49,50,"pl-kos"]],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,28,"pl-c1"],[28,29,"pl-kos"],[29,35,"pl-en"],[35,36,"pl-kos"],[37,48,"pl-s1"],[48,49,"pl-kos"],[50,51,"pl-c1"],[52,53,"pl-kos"],[53,54,"pl-kos"],[55,66,"pl-s1"],[66,67,"pl-kos"],[68,69,"pl-c1"],[70,71,"pl-kos"],[71,72,"pl-kos"],[73,84,"pl-s1"],[84,85,"pl-kos"],[86,87,"pl-c1"],[88,89,"pl-kos"],[89,90,"pl-kos"],[91,111,"pl-v"],[112,113,"pl-kos"],[113,114,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,37,"pl-c1"],[38,41,"pl-c1"],[42,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,32,"pl-c1"],[33,34,"pl-c1"],[35,44,"pl-s1"],[44,45,"pl-kos"],[45,65,"pl-c1"],[65,66,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,34,"pl-c1"],[35,38,"pl-c1"],[39,48,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,70,"pl-s"],[70,71,"pl-kos"],[72,81,"pl-s1"],[81,82,"pl-kos"],[82,99,"pl-c1"],[99,100,"pl-kos"],[101,115,"pl-v"],[116,117,"pl-kos"],[118,119,"pl-kos"],[119,120,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,38,"pl-c1"],[39,42,"pl-c1"],[43,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,74,"pl-s"],[74,75,"pl-kos"],[76,85,"pl-s1"],[85,86,"pl-kos"],[86,107,"pl-c1"],[108,109,"pl-kos"],[110,111,"pl-kos"],[111,112,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,35,"pl-c"]],[[0,2,"pl-c"]],[[0,116,"pl-c"]],[[0,56,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,40,"pl-v"],[41,42,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,51,"pl-c1"],[51,52,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,35,"pl-c1"],[36,39,"pl-c1"],[40,49,"pl-c1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,30,"pl-c1"],[31,32,"pl-c1"],[33,42,"pl-s1"],[42,43,"pl-kos"],[43,61,"pl-c1"],[61,62,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,36,"pl-c1"],[37,40,"pl-c1"],[41,50,"pl-c1"],[51,52,"pl-kos"],[53,54,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,72,"pl-s"],[72,73,"pl-kos"],[74,83,"pl-s1"],[83,84,"pl-kos"],[84,103,"pl-c1"],[104,105,"pl-kos"],[106,107,"pl-kos"],[107,108,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,29,"pl-c"]],[[0,2,"pl-c"]],[[0,110,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,34,"pl-v"],[35,36,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,45,"pl-c1"],[45,46,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,26,"pl-c1"],[27,28,"pl-c1"],[29,38,"pl-s1"],[38,39,"pl-kos"],[39,54,"pl-c1"],[55,58,"pl-c1"],[59,68,"pl-c1"],[71,80,"pl-s1"],[80,81,"pl-kos"],[81,96,"pl-c1"],[99,100,"pl-c1"],[100,101,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,33,"pl-c1"],[34,37,"pl-c1"],[38,47,"pl-c1"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,69,"pl-s"],[69,70,"pl-kos"],[71,80,"pl-s1"],[80,81,"pl-kos"],[81,97,"pl-c1"],[98,99,"pl-kos"],[100,101,"pl-kos"],[101,102,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,36,"pl-c1"],[37,38,"pl-c1"],[39,48,"pl-s1"],[48,49,"pl-kos"],[49,68,"pl-c1"],[69,71,"pl-c1"],[72,80,"pl-v"],[80,81,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,30,"pl-s1"],[30,31,"pl-kos"],[31,47,"pl-c1"],[48,50,"pl-c1"],[51,52,"pl-kos"],[53,54,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-c1"],[61,62,"pl-kos"],[62,63,"pl-kos"]],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,33,"pl-c1"],[34,35,"pl-c1"],[36,39,"pl-k"],[40,45,"pl-v"],[45,46,"pl-kos"],[46,47,"pl-kos"],[47,48,"pl-kos"],[48,54,"pl-en"],[54,55,"pl-kos"],[56,66,"pl-s1"],[66,67,"pl-kos"],[68,69,"pl-c1"],[70,71,"pl-kos"],[71,72,"pl-kos"],[73,83,"pl-s1"],[83,84,"pl-kos"],[85,86,"pl-c1"],[87,88,"pl-kos"],[88,89,"pl-kos"],[90,100,"pl-s1"],[100,101,"pl-kos"],[102,103,"pl-c1"],[104,105,"pl-kos"],[105,106,"pl-kos"],[107,127,"pl-v"],[128,129,"pl-kos"],[129,130,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,26,"pl-c"]],[[0,2,"pl-c"]],[[0,107,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,31,"pl-v"],[32,33,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,42,"pl-c1"],[42,43,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,20,"pl-c1"],[21,22,"pl-c1"],[23,32,"pl-s1"],[32,33,"pl-kos"],[33,36,"pl-c1"],[37,40,"pl-c1"],[41,50,"pl-c1"],[53,62,"pl-s1"],[62,63,"pl-kos"],[63,66,"pl-c1"],[69,72,"pl-c1"],[72,73,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,24,"pl-en"],[24,25,"pl-kos"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,31,"pl-c"]],[[0,2,"pl-c"]],[[0,112,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,36,"pl-v"],[37,38,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,47,"pl-c1"],[47,48,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,34,"pl-c1"],[35,36,"pl-c1"],[37,46,"pl-s1"],[46,47,"pl-kos"],[47,61,"pl-c1"],[62,65,"pl-c1"],[66,75,"pl-c1"],[78,87,"pl-s1"],[87,88,"pl-kos"],[88,102,"pl-c1"],[105,108,"pl-c1"],[108,109,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,32,"pl-c1"],[33,36,"pl-c1"],[37,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,77,"pl-s"],[77,78,"pl-kos"],[79,88,"pl-s1"],[88,89,"pl-kos"],[89,104,"pl-c1"],[105,106,"pl-kos"],[107,108,"pl-kos"],[108,109,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,30,"pl-s1"],[30,31,"pl-kos"],[31,50,"pl-c1"],[51,53,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-c1"],[64,65,"pl-kos"],[65,66,"pl-kos"]],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,30,"pl-c1"],[31,32,"pl-c1"],[33,36,"pl-k"],[37,42,"pl-v"],[42,43,"pl-kos"],[43,44,"pl-kos"],[44,45,"pl-kos"],[45,51,"pl-en"],[51,52,"pl-kos"],[53,63,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-c1"],[67,68,"pl-kos"],[68,69,"pl-kos"],[70,80,"pl-s1"],[80,81,"pl-kos"],[82,83,"pl-c1"],[84,85,"pl-kos"],[85,86,"pl-kos"],[87,97,"pl-s1"],[97,98,"pl-kos"],[99,100,"pl-c1"],[101,102,"pl-kos"],[102,103,"pl-kos"],[104,124,"pl-v"],[125,126,"pl-kos"],[126,127,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,37,"pl-c1"],[38,41,"pl-c1"],[42,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,73,"pl-s"],[73,74,"pl-kos"],[75,84,"pl-s1"],[84,85,"pl-kos"],[85,105,"pl-c1"],[105,106,"pl-kos"],[107,121,"pl-v"],[122,123,"pl-kos"],[124,125,"pl-kos"],[125,126,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[],[[0,3,"pl-c"]],[[0,27,"pl-c"]],[[0,2,"pl-c"]],[[0,108,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,32,"pl-v"],[33,34,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,43,"pl-c1"],[43,44,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,16,"pl-s1"],[16,17,"pl-kos"],[17,26,"pl-c1"],[27,28,"pl-c1"],[29,38,"pl-s1"],[38,39,"pl-kos"],[39,49,"pl-c1"],[50,53,"pl-c1"],[54,63,"pl-c1"],[66,75,"pl-s1"],[75,76,"pl-kos"],[76,86,"pl-c1"],[89,92,"pl-c1"],[92,93,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,28,"pl-c1"],[29,32,"pl-c1"],[33,42,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,64,"pl-s"],[64,65,"pl-kos"],[66,75,"pl-s1"],[75,76,"pl-kos"],[76,87,"pl-c1"],[88,89,"pl-kos"],[90,91,"pl-kos"],[91,92,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,33,"pl-c"]],[[0,2,"pl-c"]],[[0,114,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,38,"pl-v"],[39,40,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,49,"pl-c1"],[49,50,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,81,"pl-k"],[82,86,"pl-c1"],[86,87,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,21,"pl-en"],[21,22,"pl-kos"],[23,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[20,21,"pl-kos"],[21,31,"pl-c1"],[32,34,"pl-c1"],[35,36,"pl-c1"],[37,48,"pl-s1"],[48,49,"pl-kos"],[49,59,"pl-c1"],[59,60,"pl-kos"],[61,65,"pl-smi"],[65,66,"pl-kos"],[66,70,"pl-c1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,48,"pl-smi"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,35,"pl-c1"],[36,39,"pl-c1"],[40,49,"pl-c1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,28,"pl-c1"],[29,30,"pl-c1"],[31,40,"pl-s1"],[40,41,"pl-kos"],[41,59,"pl-c1"],[59,60,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,35,"pl-c1"],[36,39,"pl-c1"],[40,49,"pl-c1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,36,"pl-c1"],[37,38,"pl-c1"],[39,48,"pl-s1"],[48,49,"pl-kos"],[49,67,"pl-c1"],[67,68,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,34,"pl-c1"],[35,38,"pl-c1"],[39,48,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,70,"pl-s"],[70,71,"pl-kos"],[72,81,"pl-s1"],[81,82,"pl-kos"],[82,99,"pl-c1"],[100,101,"pl-kos"],[102,103,"pl-kos"],[103,104,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,27,"pl-c"]],[[0,2,"pl-c"]],[[0,108,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,32,"pl-v"],[33,34,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,43,"pl-c1"],[43,44,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-c1"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,34,"pl-c1"],[34,35,"pl-kos"],[36,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,19,"pl-s1"],[19,20,"pl-kos"],[20,30,"pl-c1"],[31,33,"pl-c1"],[34,35,"pl-c1"],[36,46,"pl-s1"],[46,47,"pl-kos"],[47,57,"pl-c1"],[57,58,"pl-kos"],[59,63,"pl-smi"],[63,64,"pl-kos"],[64,68,"pl-c1"],[69,70,"pl-kos"],[71,72,"pl-kos"],[73,74,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"],[31,41,"pl-c1"],[41,42,"pl-kos"],[43,47,"pl-smi"],[47,48,"pl-kos"],[48,52,"pl-c1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,31,"pl-c1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,15,"pl-s1"],[16,17,"pl-kos"],[18,19,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,12,"pl-s1"],[12,13,"pl-kos"],[13,31,"pl-c1"],[32,34,"pl-c1"],[35,39,"pl-s1"],[39,40,"pl-kos"],[40,58,"pl-c1"],[58,59,"pl-kos"],[59,66,"pl-en"],[66,67,"pl-kos"],[68,72,"pl-smi"],[72,73,"pl-kos"],[73,77,"pl-c1"],[78,79,"pl-kos"],[80,82,"pl-c1"],[83,84,"pl-c1"],[85,86,"pl-kos"],[87,88,"pl-kos"]],[],[[4,9,"pl-k"],[10,13,"pl-k"],[14,19,"pl-v"],[19,20,"pl-kos"],[21,98,"pl-s"],[99,100,"pl-kos"],[100,101,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,84,"pl-c"]],[[4,10,"pl-k"],[11,15,"pl-c1"],[15,16,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"],[16,32,"pl-en"],[32,33,"pl-kos"],[34,46,"pl-s1"],[46,47,"pl-kos"],[48,57,"pl-s1"],[57,58,"pl-kos"],[58,64,"pl-c1"],[64,65,"pl-kos"],[66,72,"pl-s1"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,25,"pl-c"]],[[0,2,"pl-c"]],[[0,105,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,30,"pl-v"],[31,32,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,41,"pl-c1"],[41,42,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,25,"pl-c1"],[25,26,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-c1"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,34,"pl-c1"],[34,35,"pl-kos"],[36,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,19,"pl-s1"],[19,20,"pl-kos"],[20,30,"pl-c1"],[31,33,"pl-c1"],[34,35,"pl-c1"],[36,46,"pl-s1"],[46,47,"pl-kos"],[47,57,"pl-c1"],[57,58,"pl-kos"],[59,63,"pl-s1"],[64,65,"pl-kos"],[66,67,"pl-kos"],[68,69,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"],[31,41,"pl-c1"],[41,42,"pl-kos"],[43,47,"pl-s1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-s1"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[39,40,"pl-kos"],[40,46,"pl-c1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[2,5,"pl-k"],[6,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,35,"pl-c1"],[35,36,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-s1"],[13,14,"pl-kos"],[14,17,"pl-c1"],[18,19,"pl-kos"],[20,21,"pl-kos"]],[],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,25,"pl-s1"],[25,26,"pl-kos"],[26,33,"pl-c1"],[33,34,"pl-kos"],[34,41,"pl-c1"],[41,42,"pl-kos"],[42,52,"pl-en"],[52,53,"pl-kos"],[54,60,"pl-s1"],[60,61,"pl-kos"],[61,64,"pl-c1"],[65,66,"pl-kos"],[66,67,"pl-kos"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[16,19,"pl-c1"],[20,24,"pl-c1"],[25,26,"pl-kos"],[27,33,"pl-s1"],[34,35,"pl-c1"],[36,43,"pl-s1"],[43,44,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,27,"pl-en"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,34,"pl-en"],[34,35,"pl-kos"],[36,44,"pl-k"],[45,46,"pl-kos"],[47,58,"pl-s1"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[20,21,"pl-kos"],[22,28,"pl-k"],[29,35,"pl-s1"],[35,36,"pl-kos"],[36,52,"pl-en"],[52,53,"pl-kos"],[54,66,"pl-s1"],[66,67,"pl-kos"],[68,77,"pl-s1"],[77,78,"pl-kos"],[78,84,"pl-c1"],[84,85,"pl-kos"],[86,92,"pl-s1"],[93,94,"pl-kos"],[94,95,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,12,"pl-s1"],[12,13,"pl-kos"],[13,31,"pl-c1"],[32,34,"pl-c1"],[35,39,"pl-s1"],[39,40,"pl-kos"],[40,58,"pl-c1"],[58,59,"pl-kos"],[59,66,"pl-en"],[66,67,"pl-kos"],[68,72,"pl-s1"],[73,74,"pl-kos"],[75,77,"pl-c1"],[78,79,"pl-c1"],[80,81,"pl-kos"],[82,83,"pl-kos"]],[],[[4,9,"pl-k"],[10,13,"pl-k"],[14,19,"pl-v"],[19,20,"pl-kos"],[21,80,"pl-s"],[81,82,"pl-kos"],[82,83,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,31,"pl-c"]],[[3,9,"pl-k"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,28,"pl-en"],[28,29,"pl-kos"],[30,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[15,16,"pl-kos"],[17,18,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,25,"pl-c1"],[26,27,"pl-kos"],[28,29,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,19,"pl-c1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,33,"pl-v"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,53,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,21,"pl-k"],[22,27,"pl-v"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[4,83,"pl-c"]],[[4,34,"pl-c"]],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,13,"pl-c1"],[14,15,"pl-c1"],[16,97,"pl-s"],[97,98,"pl-kos"]],[],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,16,"pl-c1"],[17,18,"pl-c1"],[19,24,"pl-s1"],[24,25,"pl-kos"],[25,32,"pl-en"],[33,34,"pl-c1"],[35,43,"pl-k"],[44,45,"pl-kos"],[45,46,"pl-kos"],[47,48,"pl-kos"]],[],[[5,12,"pl-s1"],[12,13,"pl-kos"],[14,19,"pl-s1"],[19,20,"pl-kos"],[20,26,"pl-c1"],[27,30,"pl-c1"],[31,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,25,"pl-c1"],[25,26,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,25,"pl-c"]],[[0,2,"pl-c"]],[[0,105,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,30,"pl-v"],[31,32,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,41,"pl-c1"],[41,42,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,25,"pl-c1"],[25,26,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-c1"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,34,"pl-c1"],[34,35,"pl-kos"],[36,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,19,"pl-s1"],[19,20,"pl-kos"],[20,30,"pl-c1"],[31,33,"pl-c1"],[34,35,"pl-c1"],[36,46,"pl-s1"],[46,47,"pl-kos"],[47,57,"pl-c1"],[57,58,"pl-kos"],[59,63,"pl-s1"],[64,65,"pl-kos"],[66,67,"pl-kos"],[68,69,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"],[31,41,"pl-c1"],[41,42,"pl-kos"],[43,47,"pl-s1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-s1"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[39,40,"pl-kos"],[40,46,"pl-c1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[2,5,"pl-k"],[6,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,35,"pl-c1"],[35,36,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-s1"],[13,14,"pl-kos"],[14,17,"pl-c1"],[18,19,"pl-kos"],[20,21,"pl-kos"]],[],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,25,"pl-s1"],[25,26,"pl-kos"],[26,33,"pl-c1"],[33,34,"pl-kos"],[34,41,"pl-c1"],[41,42,"pl-kos"],[42,52,"pl-en"],[52,53,"pl-kos"],[54,60,"pl-s1"],[60,61,"pl-kos"],[61,64,"pl-c1"],[65,66,"pl-kos"],[66,67,"pl-kos"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[16,19,"pl-c1"],[20,24,"pl-c1"],[25,26,"pl-kos"],[27,33,"pl-s1"],[34,35,"pl-c1"],[36,43,"pl-s1"],[43,44,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,27,"pl-en"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,34,"pl-en"],[34,35,"pl-kos"],[36,44,"pl-k"],[45,46,"pl-kos"],[47,58,"pl-s1"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[20,21,"pl-kos"],[22,28,"pl-k"],[29,35,"pl-s1"],[35,36,"pl-kos"],[36,52,"pl-en"],[52,53,"pl-kos"],[54,66,"pl-s1"],[66,67,"pl-kos"],[68,77,"pl-s1"],[77,78,"pl-kos"],[78,84,"pl-c1"],[84,85,"pl-kos"],[86,92,"pl-s1"],[93,94,"pl-kos"],[94,95,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,12,"pl-s1"],[12,13,"pl-kos"],[13,31,"pl-c1"],[32,34,"pl-c1"],[35,39,"pl-s1"],[39,40,"pl-kos"],[40,58,"pl-c1"],[58,59,"pl-kos"],[59,66,"pl-en"],[66,67,"pl-kos"],[68,72,"pl-s1"],[73,74,"pl-kos"],[75,77,"pl-c1"],[78,79,"pl-c1"],[80,81,"pl-kos"],[82,83,"pl-kos"]],[],[[4,9,"pl-k"],[10,13,"pl-k"],[14,19,"pl-v"],[19,20,"pl-kos"],[21,80,"pl-s"],[81,82,"pl-kos"],[82,83,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,31,"pl-c"]],[[3,9,"pl-k"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,28,"pl-en"],[28,29,"pl-kos"],[30,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[15,16,"pl-kos"],[17,18,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,25,"pl-c1"],[26,27,"pl-kos"],[28,29,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,19,"pl-c1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,33,"pl-v"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,53,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,21,"pl-k"],[22,27,"pl-v"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[4,24,"pl-c"]],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,13,"pl-c1"],[14,15,"pl-c1"],[16,449,"pl-s"],[449,450,"pl-kos"]],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,16,"pl-c1"],[17,18,"pl-c1"],[19,24,"pl-s1"],[24,25,"pl-kos"],[25,32,"pl-en"],[33,34,"pl-c1"],[35,43,"pl-k"],[44,45,"pl-kos"],[45,46,"pl-kos"],[47,48,"pl-kos"]],[],[[5,12,"pl-s1"],[12,13,"pl-kos"],[14,19,"pl-s1"],[19,20,"pl-kos"],[20,26,"pl-c1"],[27,30,"pl-c1"],[31,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,25,"pl-c1"],[25,26,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,43,"pl-c"]],[[0,2,"pl-c"]],[[0,112,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,28,"pl-v"],[29,30,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,48,"pl-c1"],[48,49,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,15,"pl-en"],[15,16,"pl-kos"],[17,22,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,26,"pl-c1"],[26,27,"pl-kos"],[27,31,"pl-c1"],[31,32,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,37,"pl-c1"],[37,38,"pl-kos"],[39,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,17,"pl-s1"],[17,18,"pl-kos"],[18,28,"pl-c1"],[29,31,"pl-c1"],[32,42,"pl-s1"],[42,43,"pl-kos"],[43,53,"pl-c1"],[53,54,"pl-kos"],[55,59,"pl-smi"],[59,60,"pl-kos"],[60,64,"pl-c1"],[65,66,"pl-kos"],[67,68,"pl-kos"],[69,70,"pl-kos"]],[],[[3,8,"pl-k"],[9,21,"pl-s1"],[22,23,"pl-c1"],[24,34,"pl-s1"],[34,35,"pl-kos"],[35,45,"pl-c1"],[45,46,"pl-kos"],[47,51,"pl-smi"],[51,52,"pl-kos"],[52,56,"pl-c1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,29,"pl-c1"],[29,30,"pl-kos"],[30,43,"pl-en"],[43,44,"pl-kos"],[45,53,"pl-s"],[53,54,"pl-kos"],[55,67,"pl-s1"],[67,68,"pl-kos"],[68,74,"pl-c1"],[75,76,"pl-kos"],[76,77,"pl-kos"]],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,30,"pl-c1"],[30,31,"pl-kos"],[31,38,"pl-c1"],[38,39,"pl-kos"],[39,53,"pl-c1"],[53,54,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,17,"pl-s1"],[18,20,"pl-c1"],[21,22,"pl-c1"],[23,30,"pl-s1"],[30,31,"pl-kos"],[31,40,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,13,"pl-s1"],[13,14,"pl-kos"],[14,32,"pl-c1"],[33,35,"pl-c1"],[36,40,"pl-s1"],[40,41,"pl-kos"],[41,59,"pl-c1"],[59,60,"pl-kos"],[60,67,"pl-en"],[67,68,"pl-kos"],[69,73,"pl-smi"],[73,74,"pl-kos"],[74,78,"pl-c1"],[79,80,"pl-kos"],[81,83,"pl-c1"],[84,85,"pl-c1"],[86,87,"pl-kos"],[88,89,"pl-kos"]],[],[[5,10,"pl-k"],[11,14,"pl-k"],[15,20,"pl-v"],[20,21,"pl-kos"],[22,106,"pl-s"],[107,108,"pl-kos"],[108,109,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,87,"pl-c"]],[[5,11,"pl-k"],[12,16,"pl-c1"],[16,17,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-en"],[21,22,"pl-kos"],[23,31,"pl-k"],[32,33,"pl-kos"],[34,37,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[4,9,"pl-k"],[10,20,"pl-s1"],[21,22,"pl-c1"],[23,35,"pl-s1"],[35,36,"pl-kos"],[36,46,"pl-c1"],[47,49,"pl-c1"],[50,51,"pl-c1"],[51,52,"pl-kos"]],[[4,9,"pl-k"],[10,20,"pl-s1"],[21,22,"pl-c1"],[23,35,"pl-s1"],[35,36,"pl-kos"],[36,46,"pl-c1"],[47,49,"pl-c1"],[50,51,"pl-c1"],[51,52,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,30,"pl-s1"],[30,31,"pl-kos"],[31,36,"pl-c1"],[36,37,"pl-kos"]],[[4,9,"pl-k"],[10,16,"pl-s1"],[17,18,"pl-c1"],[19,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"]],[],[[4,9,"pl-k"],[10,16,"pl-s1"],[17,18,"pl-c1"],[19,22,"pl-k"],[23,33,"pl-v"],[33,34,"pl-kos"],[35,38,"pl-s1"],[38,39,"pl-kos"],[40,50,"pl-s1"],[50,51,"pl-kos"],[52,62,"pl-s1"],[63,64,"pl-kos"],[64,65,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,38,"pl-c1"],[39,40,"pl-kos"],[41,42,"pl-kos"]],[],[[5,11,"pl-k"],[12,19,"pl-s1"],[19,20,"pl-kos"],[20,41,"pl-en"],[41,42,"pl-kos"],[43,48,"pl-s1"],[48,49,"pl-kos"],[50,56,"pl-s1"],[56,57,"pl-kos"],[58,64,"pl-s1"],[64,65,"pl-kos"],[66,78,"pl-s1"],[78,79,"pl-kos"],[79,83,"pl-c1"],[83,84,"pl-kos"],[85,97,"pl-s1"],[97,98,"pl-kos"],[98,104,"pl-c1"],[105,106,"pl-kos"],[106,107,"pl-kos"],[107,111,"pl-en"],[111,112,"pl-kos"],[113,121,"pl-k"],[122,123,"pl-kos"],[124,127,"pl-s1"],[128,129,"pl-kos"],[130,131,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,23,"pl-c1"],[23,24,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,81,"pl-c"]],[[5,11,"pl-k"],[12,19,"pl-s1"],[19,20,"pl-kos"],[20,25,"pl-c1"],[25,26,"pl-kos"],[26,30,"pl-en"],[30,31,"pl-kos"],[32,40,"pl-k"],[41,42,"pl-kos"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[6,11,"pl-k"],[12,18,"pl-s1"],[19,20,"pl-c1"],[21,24,"pl-k"],[25,36,"pl-v"],[36,37,"pl-kos"],[38,43,"pl-s1"],[44,45,"pl-c1"],[46,52,"pl-s1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[[6,13,"pl-s1"],[13,14,"pl-kos"],[14,30,"pl-en"],[30,31,"pl-kos"],[32,35,"pl-k"],[36,46,"pl-v"],[46,47,"pl-kos"],[48,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"],[58,63,"pl-s1"],[63,64,"pl-kos"],[65,71,"pl-s1"],[71,72,"pl-kos"],[73,79,"pl-s1"],[79,80,"pl-kos"],[81,93,"pl-s1"],[93,94,"pl-kos"],[94,98,"pl-c1"],[98,99,"pl-kos"],[100,112,"pl-s1"],[112,113,"pl-kos"],[113,119,"pl-c1"],[120,121,"pl-kos"],[121,122,"pl-kos"]],[[6,12,"pl-k"],[13,19,"pl-s1"],[19,20,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,27,"pl-c"]],[[0,2,"pl-c"]],[[0,112,"pl-c"]],[[0,2,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,27,"pl-v"],[28,29,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,48,"pl-c1"],[48,49,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,15,"pl-en"],[15,16,"pl-kos"],[17,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,26,"pl-c1"],[26,27,"pl-kos"],[27,31,"pl-c1"],[31,32,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,27,"pl-c1"],[28,30,"pl-c1"],[31,32,"pl-c1"],[33,40,"pl-s1"],[40,41,"pl-kos"],[41,51,"pl-c1"],[51,52,"pl-kos"],[53,57,"pl-smi"],[57,58,"pl-kos"],[58,62,"pl-c1"],[63,64,"pl-kos"],[65,67,"pl-c1"]],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-c1"],[16,19,"pl-c1"],[20,29,"pl-c1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,29,"pl-c1"],[29,30,"pl-kos"],[31,38,"pl-s1"],[38,39,"pl-kos"],[39,43,"pl-c1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,48,"pl-c"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-k"],[14,23,"pl-s1"],[24,26,"pl-k"],[27,34,"pl-s1"],[34,35,"pl-kos"],[35,45,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,17,"pl-s1"],[17,18,"pl-kos"],[18,22,"pl-c1"],[23,26,"pl-c1"],[27,42,"pl-c1"],[42,43,"pl-kos"],[43,52,"pl-c1"],[53,55,"pl-c1"]],[[5,14,"pl-s1"],[14,15,"pl-kos"],[15,19,"pl-c1"],[20,23,"pl-c1"],[24,39,"pl-c1"],[39,40,"pl-kos"],[40,54,"pl-c1"],[55,57,"pl-c1"]],[[5,14,"pl-s1"],[14,15,"pl-kos"],[15,19,"pl-c1"],[20,23,"pl-c1"],[24,39,"pl-c1"],[39,40,"pl-kos"],[40,52,"pl-c1"],[53,55,"pl-c1"]],[[5,14,"pl-s1"],[14,15,"pl-kos"],[15,19,"pl-c1"],[20,23,"pl-c1"],[24,33,"pl-c1"],[34,35,"pl-kos"],[36,37,"pl-kos"]],[],[[4,10,"pl-k"],[11,15,"pl-c1"],[15,16,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,20,"pl-s1"],[21,22,"pl-c1"],[23,30,"pl-s1"],[30,31,"pl-kos"],[31,41,"pl-c1"],[41,42,"pl-kos"],[43,47,"pl-smi"],[47,48,"pl-kos"],[48,52,"pl-c1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[[2,7,"pl-k"],[8,21,"pl-s1"],[22,23,"pl-c1"],[24,36,"pl-s1"],[36,37,"pl-kos"],[37,47,"pl-c1"],[47,48,"pl-kos"]],[],[[2,55,"pl-c"],[5,10,"pl-k"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,22,"pl-kos"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-k"],[14,17,"pl-s1"],[18,20,"pl-k"],[21,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,28,"pl-c1"],[28,29,"pl-kos"],[29,42,"pl-en"],[42,43,"pl-kos"],[44,54,"pl-s"],[54,55,"pl-kos"],[56,69,"pl-s1"],[69,70,"pl-kos"],[71,74,"pl-s1"],[75,76,"pl-kos"],[77,78,"pl-kos"],[78,79,"pl-kos"],[79,83,"pl-en"],[83,84,"pl-kos"],[85,93,"pl-s1"],[94,96,"pl-c1"],[97,98,"pl-kos"]],[],[[4,14,"pl-s1"],[14,15,"pl-kos"],[16,19,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-c1"],[24,32,"pl-s1"],[32,33,"pl-kos"]],[[4,10,"pl-k"],[11,21,"pl-s1"],[21,22,"pl-kos"],[23,26,"pl-s1"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,14,"pl-s1"],[14,15,"pl-kos"],[15,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-c1"],[26,27,"pl-kos"],[28,29,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,20,"pl-smi"],[20,21,"pl-kos"],[21,27,"pl-c1"],[27,28,"pl-kos"],[28,42,"pl-en"],[42,43,"pl-kos"],[44,53,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"],[32,36,"pl-en"],[36,37,"pl-kos"],[38,45,"pl-s1"],[46,48,"pl-c1"],[49,50,"pl-kos"]],[],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,29,"pl-s1"],[29,30,"pl-kos"],[30,33,"pl-en"],[33,34,"pl-kos"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,28,"pl-s1"],[28,29,"pl-kos"],[29,36,"pl-c1"],[39,49,"pl-s1"],[49,50,"pl-kos"],[50,58,"pl-c1"],[61,62,"pl-kos"],[63,73,"pl-s1"],[74,75,"pl-kos"],[75,76,"pl-kos"]],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-c1"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,35,"pl-c1"],[35,36,"pl-kos"],[37,75,"pl-c"]],[[3,8,"pl-k"],[9,24,"pl-s1"],[25,26,"pl-c1"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,14,"pl-k"],[15,19,"pl-s1"],[20,22,"pl-k"],[23,29,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[4,25,"pl-c"]],[[4,9,"pl-k"],[10,11,"pl-s1"],[12,13,"pl-c1"],[14,17,"pl-k"],[18,25,"pl-v"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[[4,9,"pl-k"],[10,11,"pl-s1"],[12,13,"pl-c1"],[14,17,"pl-k"],[18,25,"pl-v"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[[4,9,"pl-k"],[10,11,"pl-s1"],[12,13,"pl-c1"],[14,17,"pl-k"],[18,28,"pl-v"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[[4,9,"pl-k"],[10,11,"pl-s1"],[12,13,"pl-c1"],[14,17,"pl-k"],[18,25,"pl-v"],[25,26,"pl-kos"],[27,28,"pl-c1"],[28,29,"pl-kos"],[30,31,"pl-c1"],[31,32,"pl-kos"],[33,34,"pl-c1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[],[[4,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,29,"pl-k"],[30,43,"pl-v"],[43,44,"pl-kos"],[45,49,"pl-s1"],[49,50,"pl-kos"],[50,58,"pl-c1"],[58,59,"pl-kos"],[60,64,"pl-s1"],[64,65,"pl-kos"],[65,73,"pl-c1"],[73,74,"pl-kos"],[75,80,"pl-s1"],[81,82,"pl-kos"],[82,83,"pl-kos"]],[],[[4,7,"pl-k"],[8,9,"pl-kos"],[10,13,"pl-k"],[14,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-c1"],[19,20,"pl-kos"],[21,22,"pl-s1"],[23,24,"pl-c1"],[25,30,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-s1"],[34,36,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,20,"pl-s1"],[20,21,"pl-kos"],[21,32,"pl-c1"],[33,34,"pl-kos"],[35,36,"pl-kos"]],[],[[6,7,"pl-s1"],[7,8,"pl-kos"],[8,27,"pl-en"],[27,28,"pl-kos"],[29,39,"pl-s1"],[39,40,"pl-kos"],[40,51,"pl-c1"],[51,52,"pl-kos"],[53,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,20,"pl-s1"],[20,21,"pl-kos"],[21,29,"pl-c1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[6,7,"pl-s1"],[7,8,"pl-kos"],[8,27,"pl-en"],[27,28,"pl-kos"],[29,39,"pl-s1"],[39,40,"pl-kos"],[40,48,"pl-c1"],[48,49,"pl-kos"],[50,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,20,"pl-s1"],[20,21,"pl-kos"],[21,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[6,7,"pl-s1"],[7,8,"pl-kos"],[8,27,"pl-en"],[27,28,"pl-kos"],[29,39,"pl-s1"],[39,40,"pl-kos"],[40,45,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,18,"pl-s1"],[18,19,"pl-kos"],[19,30,"pl-en"],[30,31,"pl-kos"],[32,33,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-s1"],[36,37,"pl-kos"],[37,44,"pl-en"],[44,45,"pl-kos"],[46,47,"pl-s1"],[47,48,"pl-kos"],[49,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,62,"pl-c"]],[[4,7,"pl-k"],[8,9,"pl-kos"],[10,15,"pl-k"],[16,29,"pl-s1"],[30,32,"pl-k"],[33,43,"pl-s1"],[44,45,"pl-kos"],[46,47,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,23,"pl-s1"],[24,27,"pl-c1"],[28,38,"pl-s"],[39,40,"pl-kos"],[41,42,"pl-kos"]],[],[[6,11,"pl-k"],[12,16,"pl-s1"],[17,18,"pl-c1"],[19,29,"pl-s1"],[29,30,"pl-kos"],[31,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[[6,19,"pl-s1"],[19,20,"pl-kos"],[20,33,"pl-c1"],[34,35,"pl-c1"],[36,39,"pl-k"],[40,64,"pl-v"],[64,65,"pl-kos"],[66,70,"pl-s1"],[70,71,"pl-kos"],[71,76,"pl-c1"],[76,77,"pl-kos"],[78,82,"pl-s1"],[82,83,"pl-kos"],[83,91,"pl-c1"],[91,92,"pl-kos"],[93,97,"pl-s1"],[97,98,"pl-kos"],[98,108,"pl-c1"],[109,110,"pl-kos"],[110,111,"pl-kos"]],[],[[5,6,"pl-kos"],[7,11,"pl-k"],[12,14,"pl-k"],[15,16,"pl-kos"],[17,30,"pl-s1"],[31,34,"pl-c1"],[35,48,"pl-s"],[49,51,"pl-c1"]],[[7,20,"pl-s1"],[21,24,"pl-c1"],[25,35,"pl-s"],[36,38,"pl-c1"]],[[7,20,"pl-s1"],[21,24,"pl-c1"],[25,32,"pl-s"],[33,34,"pl-kos"],[35,36,"pl-kos"]],[],[[6,10,"pl-s1"],[10,11,"pl-kos"],[11,19,"pl-c1"],[19,20,"pl-kos"],[20,32,"pl-en"],[32,33,"pl-kos"],[34,47,"pl-s1"],[47,48,"pl-kos"],[49,59,"pl-s1"],[59,60,"pl-kos"],[61,74,"pl-s1"],[75,76,"pl-kos"],[77,78,"pl-kos"],[78,79,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,19,"pl-c"]],[[4,12,"pl-v"],[12,13,"pl-kos"],[13,22,"pl-c1"],[22,23,"pl-kos"],[23,27,"pl-c1"],[27,28,"pl-kos"],[28,32,"pl-en"],[32,33,"pl-kos"],[34,47,"pl-s1"],[47,48,"pl-kos"],[49,53,"pl-s1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,15,"pl-c1"],[15,16,"pl-kos"],[16,35,"pl-en"],[35,36,"pl-kos"],[37,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[4,19,"pl-s1"],[19,20,"pl-kos"],[20,24,"pl-en"],[24,25,"pl-kos"],[26,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,18,"pl-s1"],[18,19,"pl-kos"],[19,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[4,14,"pl-s1"],[14,15,"pl-kos"],[15,20,"pl-en"],[20,21,"pl-kos"],[21,22,"pl-kos"],[22,23,"pl-kos"]],[],[[4,14,"pl-s1"],[14,15,"pl-kos"],[15,18,"pl-en"],[18,19,"pl-kos"],[24,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[4,10,"pl-k"],[11,21,"pl-s1"],[21,22,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,25,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-c1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,22,"pl-c"]],[[0,5,"pl-k"],[6,35,"pl-c1"],[36,37,"pl-c1"],[38,44,"pl-s"],[44,45,"pl-kos"]],[[0,5,"pl-k"],[6,36,"pl-c1"],[37,38,"pl-c1"],[39,41,"pl-c1"],[41,42,"pl-kos"]],[[0,5,"pl-k"],[6,34,"pl-c1"],[35,36,"pl-c1"],[37,38,"pl-kos"],[39,43,"pl-c1"],[45,55,"pl-c1"],[55,56,"pl-kos"],[57,60,"pl-c1"],[62,72,"pl-c1"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[[0,5,"pl-k"],[6,25,"pl-v"],[26,27,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,18,"pl-s1"],[19,20,"pl-kos"],[21,22,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,40,"pl-c1"],[40,41,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,14,"pl-c1"],[15,16,"pl-c1"],[17,21,"pl-c1"],[21,22,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,18,"pl-c1"],[18,19,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,24,"pl-k"],[25,33,"pl-v"],[33,34,"pl-kos"],[35,39,"pl-s1"],[39,40,"pl-kos"],[41,42,"pl-c1"],[42,43,"pl-kos"],[44,74,"pl-c1"],[75,76,"pl-kos"],[76,77,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,37,"pl-v"],[37,38,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,13,"pl-c1"],[14,15,"pl-c1"],[16,17,"pl-kos"]],[[3,8,"pl-c1"],[10,21,"pl-s1"],[21,22,"pl-kos"],[22,28,"pl-en"],[28,29,"pl-kos"],[30,33,"pl-k"],[34,44,"pl-v"],[44,45,"pl-kos"],[46,50,"pl-s1"],[50,51,"pl-kos"],[51,56,"pl-en"],[56,57,"pl-kos"],[58,59,"pl-c1"],[59,60,"pl-kos"],[61,62,"pl-c1"],[63,64,"pl-kos"],[65,66,"pl-kos"],[67,68,"pl-kos"],[68,69,"pl-kos"]],[[3,10,"pl-c1"],[12,22,"pl-s1"],[22,23,"pl-kos"],[23,32,"pl-en"],[32,33,"pl-kos"],[34,35,"pl-c1"],[35,36,"pl-kos"],[37,41,"pl-c1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[[3,9,"pl-c1"],[11,21,"pl-s1"],[21,22,"pl-kos"],[22,31,"pl-en"],[31,32,"pl-kos"],[33,34,"pl-c1"],[34,35,"pl-kos"],[36,40,"pl-c1"],[41,42,"pl-kos"]],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,18,"pl-c1"],[18,19,"pl-kos"],[19,24,"pl-c1"],[25,28,"pl-c1"],[29,58,"pl-c1"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,71,"pl-s"],[72,73,"pl-kos"],[73,74,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,11,"pl-k"],[12,13,"pl-kos"],[14,18,"pl-smi"],[18,19,"pl-kos"],[19,25,"pl-c1"],[25,26,"pl-kos"],[26,33,"pl-c1"],[34,35,"pl-c1"],[36,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,68,"pl-s"],[69,70,"pl-kos"],[70,71,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,27,"pl-s1"],[28,29,"pl-c1"],[30,34,"pl-smi"],[34,35,"pl-kos"],[35,41,"pl-c1"],[41,42,"pl-kos"],[42,48,"pl-c1"],[49,50,"pl-c1"],[51,81,"pl-c1"],[81,82,"pl-kos"]],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,23,"pl-k"],[24,32,"pl-v"],[32,33,"pl-kos"],[34,38,"pl-s1"],[38,39,"pl-kos"],[40,70,"pl-c1"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[[2,5,"pl-k"],[6,16,"pl-s1"],[17,18,"pl-c1"],[19,20,"pl-c1"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,9,"pl-kos"],[10,20,"pl-s1"],[21,22,"pl-c1"],[23,42,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[3,8,"pl-k"],[9,20,"pl-s1"],[21,22,"pl-c1"],[23,32,"pl-s1"],[32,33,"pl-kos"],[33,42,"pl-en"],[42,43,"pl-kos"],[44,54,"pl-s1"],[54,55,"pl-kos"],[56,60,"pl-c1"],[61,62,"pl-kos"],[62,63,"pl-kos"]],[[3,13,"pl-s1"],[14,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"]],[],[[3,8,"pl-k"],[9,18,"pl-s1"],[19,20,"pl-c1"],[21,30,"pl-s1"],[30,31,"pl-kos"],[31,40,"pl-en"],[40,41,"pl-kos"],[42,52,"pl-s1"],[52,53,"pl-kos"],[54,58,"pl-c1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[[3,13,"pl-s1"],[14,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,17,"pl-s1"],[18,21,"pl-c1"],[22,50,"pl-c1"],[50,51,"pl-kos"],[51,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[4,9,"pl-k"],[10,22,"pl-s1"],[23,24,"pl-c1"],[25,28,"pl-k"],[29,39,"pl-v"],[39,40,"pl-kos"],[41,45,"pl-s1"],[45,46,"pl-kos"],[47,77,"pl-c1"],[78,79,"pl-c1"],[80,90,"pl-s1"],[90,91,"pl-kos"],[92,103,"pl-s1"],[104,105,"pl-kos"],[105,106,"pl-kos"]],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,16,"pl-c1"],[17,18,"pl-c1"],[19,30,"pl-s1"],[30,31,"pl-kos"],[31,37,"pl-en"],[37,38,"pl-kos"],[39,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,12,"pl-k"],[13,14,"pl-kos"],[15,24,"pl-s1"],[25,28,"pl-c1"],[29,57,"pl-c1"],[57,58,"pl-kos"],[58,61,"pl-c1"],[62,63,"pl-kos"],[64,65,"pl-kos"]],[],[[4,9,"pl-k"],[10,20,"pl-s1"],[21,22,"pl-c1"],[23,53,"pl-c1"],[54,55,"pl-c1"],[56,66,"pl-s1"],[66,67,"pl-kos"]],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,13,"pl-c1"],[14,15,"pl-c1"],[16,20,"pl-s1"],[20,21,"pl-kos"],[21,26,"pl-en"],[26,27,"pl-kos"],[28,38,"pl-s1"],[38,39,"pl-kos"],[40,50,"pl-s1"],[51,52,"pl-c1"],[53,64,"pl-s1"],[65,66,"pl-kos"],[66,67,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,52,"pl-c"]],[],[[3,13,"pl-s1"],[14,16,"pl-c1"],[17,28,"pl-s1"],[28,29,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,19,"pl-c1"],[20,23,"pl-c1"],[24,28,"pl-c1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,63,"pl-s"],[64,65,"pl-kos"],[65,66,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,35,"pl-c"]],[[0,2,"pl-c"]],[[0,116,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,39,"pl-v"],[40,41,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,18,"pl-s1"],[18,19,"pl-kos"],[20,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,73,"pl-s"],[74,75,"pl-kos"],[75,76,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,51,"pl-c1"],[51,52,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,18,"pl-s1"],[18,19,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,32,"pl-s1"],[32,33,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[18,19,"pl-kos"],[19,26,"pl-en"],[26,27,"pl-kos"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,27,"pl-s1"],[27,28,"pl-kos"],[29,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,38,"pl-c1"],[38,39,"pl-kos"]],[[2,7,"pl-k"],[8,23,"pl-s1"],[24,25,"pl-c1"],[26,35,"pl-s1"],[35,36,"pl-kos"],[36,46,"pl-c1"],[46,47,"pl-kos"],[48,52,"pl-smi"],[52,53,"pl-kos"],[53,57,"pl-c1"],[58,59,"pl-kos"],[59,60,"pl-kos"],[60,70,"pl-c1"],[70,71,"pl-kos"]],[[2,7,"pl-k"],[8,24,"pl-s1"],[25,26,"pl-c1"],[27,36,"pl-s1"],[36,37,"pl-kos"],[37,47,"pl-c1"],[47,48,"pl-kos"],[49,53,"pl-smi"],[53,54,"pl-kos"],[54,58,"pl-c1"],[59,60,"pl-kos"],[60,61,"pl-kos"],[61,71,"pl-c1"],[71,72,"pl-kos"]],[[2,7,"pl-k"],[8,25,"pl-s1"],[26,27,"pl-c1"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[[2,7,"pl-k"],[8,30,"pl-s1"],[31,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[[2,7,"pl-k"],[8,24,"pl-s1"],[25,26,"pl-c1"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-k"],[14,27,"pl-s1"],[28,30,"pl-k"],[31,47,"pl-s1"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[3,8,"pl-k"],[9,27,"pl-s1"],[28,29,"pl-c1"],[30,40,"pl-c1"],[40,41,"pl-kos"],[42,55,"pl-s1"],[56,57,"pl-kos"],[58,60,"pl-c1"],[61,74,"pl-s1"],[74,75,"pl-kos"],[75,86,"pl-en"],[86,87,"pl-kos"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[3,20,"pl-s1"],[20,21,"pl-kos"],[22,40,"pl-s1"],[41,42,"pl-kos"],[43,44,"pl-c1"],[45,61,"pl-s1"],[61,62,"pl-kos"],[63,76,"pl-s1"],[77,78,"pl-kos"],[78,79,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-k"],[14,27,"pl-s1"],[28,30,"pl-k"],[31,40,"pl-s1"],[40,41,"pl-kos"],[41,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[3,8,"pl-k"],[9,27,"pl-s1"],[28,29,"pl-c1"],[30,40,"pl-c1"],[40,41,"pl-kos"],[42,55,"pl-s1"],[56,57,"pl-kos"],[58,60,"pl-c1"],[61,74,"pl-s1"],[74,75,"pl-kos"],[75,86,"pl-en"],[86,87,"pl-kos"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,24,"pl-s1"],[24,25,"pl-kos"],[26,39,"pl-s1"],[40,41,"pl-kos"],[42,45,"pl-c1"],[46,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[4,9,"pl-k"],[10,21,"pl-s1"],[22,23,"pl-c1"],[24,28,"pl-s1"],[28,29,"pl-kos"],[29,38,"pl-c1"],[38,39,"pl-kos"],[40,49,"pl-s1"],[49,50,"pl-kos"],[50,60,"pl-c1"],[60,61,"pl-kos"],[62,75,"pl-s1"],[76,77,"pl-kos"],[78,79,"pl-kos"],[79,80,"pl-kos"]],[[4,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,47,"pl-c1"],[47,48,"pl-kos"],[49,60,"pl-s1"],[60,61,"pl-kos"],[61,74,"pl-c1"],[75,76,"pl-kos"],[76,77,"pl-kos"]],[],[[4,20,"pl-s1"],[20,21,"pl-kos"],[22,40,"pl-s1"],[41,42,"pl-kos"],[43,44,"pl-c1"],[45,58,"pl-s1"],[58,59,"pl-kos"],[59,63,"pl-c1"],[63,64,"pl-kos"]],[[4,26,"pl-s1"],[26,27,"pl-kos"],[28,46,"pl-s1"],[47,48,"pl-kos"],[49,50,"pl-c1"],[51,62,"pl-s1"],[62,63,"pl-kos"],[63,73,"pl-c1"],[74,77,"pl-c1"],[78,82,"pl-c1"],[82,83,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"],[16,29,"pl-en"],[29,30,"pl-kos"],[31,43,"pl-s"],[43,44,"pl-kos"],[45,60,"pl-s1"],[61,62,"pl-kos"],[62,63,"pl-kos"],[63,67,"pl-en"],[67,68,"pl-kos"],[69,77,"pl-k"],[78,79,"pl-kos"],[80,90,"pl-s1"],[91,92,"pl-kos"],[93,94,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,21,"pl-v"],[21,22,"pl-kos"],[23,31,"pl-k"],[32,33,"pl-kos"],[34,41,"pl-s1"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[4,15,"pl-s1"],[15,16,"pl-kos"],[16,31,"pl-en"],[31,32,"pl-kos"],[33,43,"pl-s1"],[43,44,"pl-kos"],[45,53,"pl-k"],[54,55,"pl-kos"],[56,64,"pl-s1"],[65,66,"pl-kos"],[67,68,"pl-kos"]],[],[[5,8,"pl-k"],[9,10,"pl-kos"],[11,16,"pl-k"],[17,30,"pl-s1"],[31,33,"pl-k"],[34,42,"pl-s1"],[42,43,"pl-kos"],[43,53,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[6,11,"pl-k"],[12,21,"pl-s1"],[22,23,"pl-c1"],[24,32,"pl-s1"],[32,33,"pl-kos"],[33,43,"pl-c1"],[43,44,"pl-kos"],[45,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[[6,11,"pl-k"],[12,22,"pl-s1"],[23,24,"pl-c1"],[25,47,"pl-s1"],[47,48,"pl-kos"],[49,62,"pl-s1"],[63,64,"pl-kos"],[64,65,"pl-kos"]],[],[[6,8,"pl-k"],[9,10,"pl-kos"],[11,21,"pl-s1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,47,"pl-s1"],[47,48,"pl-kos"],[48,58,"pl-c1"],[59,60,"pl-c1"],[61,71,"pl-s1"],[71,72,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,12,"pl-s1"],[12,13,"pl-kos"],[14,22,"pl-s1"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[4,5,"pl-kos"],[5,6,"pl-kos"],[7,24,"pl-s1"],[24,25,"pl-kos"],[26,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,30,"pl-c"]],[[0,2,"pl-c"]],[[0,111,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,35,"pl-v"],[36,37,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[13,14,"pl-kos"],[15,16,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,46,"pl-c1"],[46,47,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,23,"pl-s1"],[23,24,"pl-kos"],[25,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-kos"],[9,18,"pl-s1"],[18,19,"pl-kos"],[19,27,"pl-c1"],[28,31,"pl-c1"],[32,41,"pl-c1"],[42,44,"pl-c1"],[45,54,"pl-s1"],[54,55,"pl-kos"],[55,63,"pl-c1"],[64,67,"pl-c1"],[68,75,"pl-s1"],[75,76,"pl-kos"],[76,83,"pl-c1"],[84,85,"pl-kos"]],[[3,5,"pl-c1"],[6,15,"pl-s1"],[15,16,"pl-kos"],[16,22,"pl-c1"],[23,26,"pl-c1"],[27,36,"pl-c1"]],[[3,5,"pl-c1"],[6,15,"pl-s1"],[15,16,"pl-kos"],[16,24,"pl-c1"],[25,28,"pl-c1"],[29,38,"pl-c1"]],[[3,5,"pl-c1"],[6,15,"pl-s1"],[15,16,"pl-kos"],[16,21,"pl-c1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[3,58,"pl-c"]],[[3,9,"pl-k"],[10,17,"pl-s1"],[17,18,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,9,"pl-s1"],[10,11,"pl-c1"],[12,19,"pl-s1"],[19,20,"pl-kos"],[20,25,"pl-en"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,25,"pl-c1"],[26,29,"pl-c1"],[30,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,18,"pl-c1"],[19,20,"pl-c1"],[21,30,"pl-s1"],[30,31,"pl-kos"],[31,39,"pl-c1"],[39,40,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,23,"pl-c1"],[24,27,"pl-c1"],[28,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,17,"pl-c1"],[17,18,"pl-kos"],[18,27,"pl-en"],[27,28,"pl-kos"],[29,38,"pl-s1"],[38,39,"pl-kos"],[39,45,"pl-c1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,25,"pl-c1"],[26,29,"pl-c1"],[30,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,19,"pl-c1"],[20,21,"pl-c1"],[22,31,"pl-s1"],[31,32,"pl-kos"],[32,40,"pl-c1"],[40,41,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,22,"pl-c1"],[23,26,"pl-c1"],[27,36,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,17,"pl-c1"],[17,18,"pl-kos"],[18,27,"pl-en"],[27,28,"pl-kos"],[29,38,"pl-s1"],[38,39,"pl-kos"],[39,44,"pl-c1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,9,"pl-s1"],[9,10,"pl-kos"],[10,21,"pl-c1"],[22,23,"pl-c1"],[24,28,"pl-c1"],[28,29,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-s1"],[16,17,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,30,"pl-c"]],[[0,2,"pl-c"]],[[0,111,"pl-c"]],[[0,3,"pl-c"]],[[0,5,"pl-k"],[6,35,"pl-v"],[36,37,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[13,14,"pl-kos"],[15,16,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,24,"pl-c1"],[24,25,"pl-kos"],[25,46,"pl-c1"],[46,47,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,35,"pl-c"]],[[0,35,"pl-c"]],[[0,35,"pl-c"]],[],[[0,23,"pl-c"]],[[0,126,"pl-c"]],[[0,5,"pl-k"],[6,32,"pl-v"],[33,40,"pl-k"],[41,52,"pl-v"],[53,54,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,32,"pl-s1"],[32,33,"pl-kos"],[34,46,"pl-s1"],[46,47,"pl-kos"],[48,58,"pl-s1"],[58,59,"pl-kos"],[60,72,"pl-s1"],[73,74,"pl-kos"],[75,76,"pl-kos"]],[],[[2,7,"pl-smi"],[7,8,"pl-kos"],[9,27,"pl-s1"],[27,28,"pl-kos"],[29,41,"pl-s1"],[41,42,"pl-kos"],[43,53,"pl-s1"],[53,54,"pl-kos"],[55,67,"pl-s1"],[68,69,"pl-kos"],[69,70,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,17,"pl-en"],[17,18,"pl-kos"],[19,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[2,72,"pl-c"]],[[2,64,"pl-c"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,34,"pl-c1"],[34,35,"pl-kos"]],[[3,9,"pl-s1"],[10,11,"pl-c1"],[12,16,"pl-smi"],[16,17,"pl-kos"],[17,29,"pl-c1"],[29,30,"pl-kos"]],[[3,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,29,"pl-c1"],[29,30,"pl-kos"]],[[3,9,"pl-s1"],[10,11,"pl-c1"],[12,17,"pl-s1"],[18,19,"pl-c1"],[20,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-c1"],[34,35,"pl-c1"],[36,45,"pl-s1"],[45,46,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,20,"pl-s1"],[21,24,"pl-c1"],[25,34,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-s1"],[38,40,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[11,12,"pl-s1"],[13,14,"pl-kos"],[15,16,"pl-c1"],[17,23,"pl-s1"],[23,24,"pl-kos"],[25,31,"pl-s1"],[32,33,"pl-c1"],[34,35,"pl-s1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,13,"pl-en"],[13,14,"pl-kos"],[15,17,"pl-s1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-s1"],[24,25,"pl-kos"],[26,28,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,34,"pl-c1"],[34,35,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,34,"pl-c1"],[34,35,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,31,"pl-c1"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,24,"pl-s1"],[25,26,"pl-c1"],[27,28,"pl-c1"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,24,"pl-s1"],[25,26,"pl-c1"],[27,28,"pl-c1"],[28,29,"pl-kos"]],[],[[2,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,15,"pl-s1"],[16,17,"pl-c1"],[18,20,"pl-s1"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,9,"pl-s1"],[10,11,"pl-c1"],[12,13,"pl-kos"],[14,15,"pl-s1"],[16,17,"pl-c1"],[18,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-c1"],[25,27,"pl-s1"],[27,28,"pl-kos"]],[[2,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-s1"],[18,19,"pl-kos"]],[[2,7,"pl-k"],[8,11,"pl-s1"],[12,13,"pl-c1"],[14,16,"pl-s1"],[17,18,"pl-c1"],[19,20,"pl-s1"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,20,"pl-s1"],[21,22,"pl-c1"],[23,30,"pl-s1"],[30,31,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,25,"pl-s1"],[26,27,"pl-c1"],[28,35,"pl-s1"],[35,36,"pl-kos"]],[],[[2,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,14,"pl-c1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[19,22,"pl-s1"],[23,24,"pl-c1"],[25,26,"pl-c1"],[27,28,"pl-c1"],[29,31,"pl-s1"],[31,32,"pl-kos"]],[[2,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,16,"pl-s1"],[17,18,"pl-c1"],[19,21,"pl-s1"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,14,"pl-c1"],[15,16,"pl-c1"],[17,19,"pl-s1"],[19,20,"pl-kos"]],[[2,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,15,"pl-s1"],[16,17,"pl-c1"],[18,20,"pl-s1"],[21,22,"pl-c1"],[23,24,"pl-s1"],[24,25,"pl-kos"]],[],[[2,65,"pl-c"]],[[2,86,"pl-c"]],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,20,"pl-s1"],[21,24,"pl-c1"],[25,31,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-s1"],[35,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[3,8,"pl-k"],[9,11,"pl-s1"],[12,13,"pl-c1"],[14,20,"pl-s1"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-s1"],[34,35,"pl-c1"],[36,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"],[46,63,"pl-c"]],[[3,8,"pl-k"],[9,11,"pl-s1"],[12,13,"pl-c1"],[14,20,"pl-s1"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-s1"],[34,35,"pl-c1"],[36,43,"pl-s1"],[44,45,"pl-kos"],[46,47,"pl-c1"],[48,50,"pl-s1"],[50,51,"pl-kos"],[52,83,"pl-c"]],[[3,8,"pl-k"],[9,11,"pl-s1"],[12,13,"pl-c1"],[14,20,"pl-s1"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-s1"],[34,35,"pl-c1"],[36,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"],[46,65,"pl-c"]],[[3,8,"pl-k"],[9,11,"pl-s1"],[12,13,"pl-c1"],[14,20,"pl-s1"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-c1"],[38,40,"pl-s1"],[40,41,"pl-kos"],[42,74,"pl-c"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[11,12,"pl-s1"],[13,14,"pl-kos"],[15,16,"pl-c1"],[17,19,"pl-s1"],[20,21,"pl-c1"],[22,24,"pl-s1"],[25,26,"pl-c1"],[27,29,"pl-s1"],[30,31,"pl-c1"],[32,34,"pl-s1"],[35,36,"pl-c1"],[37,39,"pl-s1"],[40,41,"pl-c1"],[42,44,"pl-s1"],[45,46,"pl-c1"],[47,49,"pl-s1"],[50,51,"pl-c1"],[52,54,"pl-s1"],[54,55,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,5,"pl-k"],[6,8,"pl-s1"],[9,10,"pl-c1"],[11,14,"pl-k"],[15,25,"pl-v"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[0,5,"pl-k"],[6,42,"pl-v"],[43,50,"pl-k"],[51,77,"pl-v"],[78,79,"pl-kos"]],[],[[1,13,"pl-en"],[13,14,"pl-kos"],[15,17,"pl-s1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-s1"],[24,25,"pl-kos"],[26,28,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,22,"pl-smi"],[22,23,"pl-kos"],[23,35,"pl-en"],[35,36,"pl-kos"],[37,39,"pl-s1"],[39,40,"pl-kos"],[41,43,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-s1"],[46,47,"pl-kos"],[48,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[2,4,"pl-s1"],[4,5,"pl-kos"],[5,14,"pl-en"],[14,15,"pl-kos"],[16,22,"pl-s1"],[23,24,"pl-kos"],[24,25,"pl-kos"],[25,34,"pl-en"],[34,35,"pl-kos"],[35,36,"pl-kos"],[36,37,"pl-kos"],[37,44,"pl-en"],[44,45,"pl-kos"],[46,52,"pl-s1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[],[[0,35,"pl-c"]],[[0,35,"pl-c"]],[[0,35,"pl-c"]],[],[[0,15,"pl-c"]],[],[[0,5,"pl-k"],[6,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"]],[[1,6,"pl-c1"],[8,12,"pl-c1"],[12,13,"pl-kos"]],[[1,21,"pl-c"]],[[1,11,"pl-c1"],[13,18,"pl-c1"],[18,19,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-c1"],[18,19,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-c1"],[18,19,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-c1"],[18,19,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-c1"],[18,19,"pl-kos"]],[[1,7,"pl-c1"],[9,13,"pl-c1"],[13,14,"pl-kos"]],[[1,7,"pl-c1"],[9,14,"pl-c1"],[14,15,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-c1"],[18,19,"pl-kos"]],[[1,7,"pl-c1"],[9,10,"pl-c1"],[10,11,"pl-kos"]],[[1,6,"pl-c1"],[8,9,"pl-c1"],[9,10,"pl-kos"]],[[1,10,"pl-c1"],[12,13,"pl-c1"],[13,14,"pl-kos"]],[[1,11,"pl-c1"],[13,14,"pl-c1"],[14,15,"pl-kos"]],[[1,10,"pl-c1"],[12,13,"pl-c1"],[13,14,"pl-kos"]],[[1,15,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"]],[[1,13,"pl-c1"],[15,16,"pl-c1"],[16,17,"pl-kos"]],[[1,14,"pl-c1"],[16,20,"pl-c1"],[20,21,"pl-kos"]],[[1,15,"pl-c1"],[17,21,"pl-c1"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,27,"pl-c1"],[28,29,"pl-c1"],[30,31,"pl-kos"]],[[1,5,"pl-c1"],[7,16,"pl-v"],[16,17,"pl-kos"]],[[1,5,"pl-c1"],[7,17,"pl-v"],[17,18,"pl-kos"]],[[1,5,"pl-c1"],[7,17,"pl-v"],[17,18,"pl-kos"]],[[1,5,"pl-c1"],[7,18,"pl-v"],[18,19,"pl-kos"]],[[1,5,"pl-c1"],[7,18,"pl-v"],[18,19,"pl-kos"]],[[1,5,"pl-c1"],[7,19,"pl-v"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,19,"pl-c1"],[20,21,"pl-c1"],[22,23,"pl-kos"]],[[1,5,"pl-c1"],[7,20,"pl-v"],[20,21,"pl-kos"]],[[1,5,"pl-c1"],[7,19,"pl-v"],[19,20,"pl-kos"]],[[1,5,"pl-c1"],[7,33,"pl-v"],[33,34,"pl-kos"]],[[1,5,"pl-c1"],[7,32,"pl-v"],[32,33,"pl-kos"]],[[1,5,"pl-c1"],[7,32,"pl-v"],[32,33,"pl-kos"]],[[1,5,"pl-c1"],[7,31,"pl-v"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"]],[[1,6,"pl-c1"],[8,27,"pl-v"],[27,28,"pl-kos"]],[[1,6,"pl-c1"],[8,30,"pl-v"],[30,31,"pl-kos"]],[[1,6,"pl-c1"],[8,22,"pl-v"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,22,"pl-c1"],[23,24,"pl-c1"],[25,26,"pl-kos"]],[[1,9,"pl-s"],[11,12,"pl-c1"],[12,13,"pl-kos"]],[[1,7,"pl-s"],[9,10,"pl-c1"],[10,11,"pl-kos"]],[[1,7,"pl-s"],[9,10,"pl-c1"],[10,11,"pl-kos"]],[[1,7,"pl-s"],[9,10,"pl-c1"],[10,11,"pl-kos"]],[[1,7,"pl-s"],[9,10,"pl-c1"],[10,11,"pl-kos"]],[[1,7,"pl-s"],[9,10,"pl-c1"],[10,11,"pl-kos"]],[[1,7,"pl-s"],[9,11,"pl-c1"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,16,"pl-c1"],[17,18,"pl-c1"],[19,20,"pl-kos"]],[[1,9,"pl-c1"],[11,21,"pl-s"],[21,22,"pl-kos"]],[[1,7,"pl-c1"],[9,17,"pl-s"],[17,18,"pl-kos"]],[[1,8,"pl-c1"],[10,19,"pl-s"],[19,20,"pl-kos"]],[[1,11,"pl-c1"],[13,17,"pl-s"],[17,18,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-s"],[18,19,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-s"],[18,19,"pl-kos"]],[[1,11,"pl-c1"],[13,18,"pl-s"],[18,19,"pl-kos"]],[[1,8,"pl-c1"],[10,17,"pl-s"],[17,18,"pl-kos"]],[[1,10,"pl-c1"],[12,24,"pl-s"],[24,25,"pl-kos"]],[[1,9,"pl-c1"],[11,22,"pl-s"],[22,23,"pl-kos"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"]],[[1,6,"pl-c1"],[8,15,"pl-s"],[15,16,"pl-kos"]],[[1,12,"pl-c1"],[14,24,"pl-s"],[24,25,"pl-kos"]],[[1,9,"pl-c1"],[11,23,"pl-s"],[23,24,"pl-kos"]],[[1,8,"pl-c1"],[10,33,"pl-s"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,19,"pl-c1"],[20,21,"pl-c1"],[22,23,"pl-kos"]],[[1,12,"pl-c1"],[14,23,"pl-c1"],[23,24,"pl-kos"],[25,115,"pl-c"]],[[26,113,"pl-c"]],[[1,7,"pl-c1"],[9,26,"pl-v"],[26,27,"pl-kos"]],[[1,5,"pl-c1"],[7,26,"pl-v"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,5,"pl-k"],[6,17,"pl-c1"],[18,19,"pl-c1"],[20,21,"pl-kos"]],[[1,7,"pl-c1"],[9,17,"pl-s"],[17,18,"pl-kos"]],[[1,5,"pl-c1"],[7,13,"pl-s"],[13,14,"pl-kos"]],[[1,6,"pl-c1"],[8,15,"pl-s"]],[[0,1,"pl-kos"],[1,2,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,111,"pl-c"]],[[0,3,"pl-c"]],[[0,8,"pl-k"],[9,30,"pl-en"],[30,31,"pl-kos"],[32,37,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,11,"pl-s1"],[11,12,"pl-kos"],[13,30,"pl-s"],[31,32,"pl-kos"],[33,36,"pl-c1"],[37,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[2,7,"pl-s1"],[7,8,"pl-kos"],[9,26,"pl-s"],[27,28,"pl-kos"],[29,30,"pl-c1"],[31,34,"pl-k"],[35,55,"pl-v"],[55,56,"pl-kos"],[57,58,"pl-kos"]],[[3,8,"pl-c1"],[10,18,"pl-c1"],[18,19,"pl-kos"]],[[3,11,"pl-c1"],[13,21,"pl-c1"],[21,22,"pl-kos"]],[[3,12,"pl-c1"],[14,15,"pl-c1"],[15,16,"pl-kos"]],[[3,12,"pl-c1"],[14,15,"pl-c1"],[15,16,"pl-kos"]],[[3,14,"pl-c1"],[16,21,"pl-c1"],[21,22,"pl-kos"]],[[3,12,"pl-c1"],[14,18,"pl-c1"],[18,19,"pl-kos"]],[[3,7,"pl-c1"],[9,18,"pl-v"]],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,7,"pl-k"],[8,13,"pl-s1"],[13,14,"pl-kos"],[15,32,"pl-s"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,8,"pl-k"],[9,39,"pl-en"],[39,40,"pl-kos"],[41,56,"pl-s1"],[56,57,"pl-kos"],[58,64,"pl-s1"],[64,65,"pl-kos"],[66,75,"pl-s1"],[76,77,"pl-kos"],[78,79,"pl-kos"]],[],[[1,56,"pl-c"]],[],[[1,4,"pl-k"],[5,6,"pl-kos"],[7,12,"pl-k"],[13,17,"pl-s1"],[18,20,"pl-k"],[21,30,"pl-s1"],[30,31,"pl-kos"],[31,41,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,22,"pl-s1"],[22,23,"pl-kos"],[24,28,"pl-s1"],[29,30,"pl-kos"],[31,34,"pl-c1"],[35,44,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,18,"pl-c1"],[18,19,"pl-kos"],[19,33,"pl-c1"],[34,35,"pl-c1"],[36,42,"pl-s1"],[42,43,"pl-kos"],[43,51,"pl-c1"],[51,52,"pl-kos"],[52,66,"pl-c1"],[67,69,"pl-c1"],[70,71,"pl-kos"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,18,"pl-c1"],[18,19,"pl-kos"],[19,33,"pl-c1"],[33,34,"pl-kos"],[35,39,"pl-s1"],[40,41,"pl-kos"],[42,43,"pl-c1"],[44,53,"pl-s1"],[53,54,"pl-kos"],[54,64,"pl-c1"],[64,65,"pl-kos"],[66,70,"pl-s1"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,51,"pl-c"],[3,9,"pl-k"],[11,43,"pl-smi"]],[[0,35,"pl-c"],[3,9,"pl-k"],[11,26,"pl-smi"]],[[0,3,"pl-c"]],[[0,8,"pl-k"],[9,31,"pl-en"],[31,32,"pl-kos"],[33,39,"pl-s1"],[39,40,"pl-kos"],[41,48,"pl-s1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,13,"pl-s1"],[13,14,"pl-kos"],[14,20,"pl-c1"],[21,24,"pl-c1"],[25,34,"pl-c1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-k"],[14,21,"pl-s1"],[21,22,"pl-kos"],[22,28,"pl-c1"],[29,32,"pl-c1"],[33,41,"pl-s"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[3,9,"pl-v"],[9,10,"pl-kos"],[10,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[25,33,"pl-c1"],[33,34,"pl-kos"],[35,42,"pl-s1"],[42,43,"pl-kos"],[43,49,"pl-c1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,10,"pl-smi"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,70,"pl-s"],[71,72,"pl-c1"],[73,80,"pl-s1"],[80,81,"pl-kos"],[81,87,"pl-c1"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,108,"pl-c"]],[[0,2,"pl-c"]],[[0,35,"pl-c"],[3,9,"pl-k"],[11,25,"pl-smi"]],[[0,38,"pl-c"],[3,9,"pl-k"],[11,29,"pl-smi"]],[[0,29,"pl-c"],[3,9,"pl-k"],[11,21,"pl-smi"]],[[0,36,"pl-c"],[3,10,"pl-k"],[12,35,"pl-smi"]],[[0,3,"pl-c"]],[[0,8,"pl-k"],[9,24,"pl-en"],[24,25,"pl-kos"],[26,34,"pl-s1"],[34,35,"pl-kos"],[36,43,"pl-s1"],[43,44,"pl-kos"],[45,51,"pl-s1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[1,4,"pl-k"],[5,21,"pl-s1"],[22,23,"pl-c1"],[24,29,"pl-c1"],[29,30,"pl-kos"]],[[1,4,"pl-k"],[5,19,"pl-s1"],[20,21,"pl-c1"],[22,27,"pl-c1"],[27,28,"pl-kos"]],[[1,4,"pl-k"],[5,18,"pl-s1"],[19,20,"pl-c1"],[21,26,"pl-c1"],[26,27,"pl-kos"]],[],[[1,4,"pl-k"],[5,6,"pl-kos"],[7,10,"pl-k"],[11,12,"pl-s1"],[13,14,"pl-c1"],[15,16,"pl-c1"],[16,17,"pl-kos"],[18,20,"pl-s1"],[21,22,"pl-c1"],[23,30,"pl-s1"],[30,31,"pl-kos"],[31,37,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-s1"],[41,42,"pl-c1"],[43,45,"pl-s1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-s1"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-s1"],[13,14,"pl-kos"],[14,22,"pl-c1"],[23,26,"pl-c1"],[27,36,"pl-c1"],[37,38,"pl-kos"],[39,55,"pl-s1"],[56,57,"pl-c1"],[58,62,"pl-c1"],[62,63,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-s1"],[13,14,"pl-kos"],[14,20,"pl-c1"],[21,24,"pl-c1"],[25,34,"pl-c1"],[35,36,"pl-kos"],[37,51,"pl-s1"],[52,53,"pl-c1"],[54,58,"pl-c1"],[58,59,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-s1"],[13,14,"pl-kos"],[14,21,"pl-c1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,51,"pl-s1"],[52,53,"pl-c1"],[54,58,"pl-c1"],[58,59,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,23,"pl-s1"],[24,26,"pl-c1"],[27,41,"pl-s1"],[42,44,"pl-c1"],[45,58,"pl-s1"],[59,60,"pl-kos"],[61,66,"pl-k"],[66,67,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,7,"pl-c1"],[8,24,"pl-s1"],[25,27,"pl-c1"],[28,29,"pl-c1"],[30,44,"pl-s1"],[45,47,"pl-c1"],[48,49,"pl-c1"],[50,63,"pl-s1"],[64,65,"pl-kos"],[66,72,"pl-k"],[73,80,"pl-v"],[80,81,"pl-kos"],[81,88,"pl-en"],[88,89,"pl-kos"],[90,98,"pl-s1"],[99,100,"pl-kos"],[100,101,"pl-kos"]],[],[[1,6,"pl-k"],[7,31,"pl-s1"],[32,33,"pl-c1"],[34,35,"pl-kos"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[[1,6,"pl-k"],[7,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-kos"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[[1,6,"pl-k"],[7,28,"pl-s1"],[29,30,"pl-c1"],[31,32,"pl-kos"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[1,4,"pl-k"],[5,6,"pl-kos"],[7,10,"pl-k"],[11,12,"pl-s1"],[13,14,"pl-c1"],[15,16,"pl-c1"],[16,17,"pl-kos"],[18,20,"pl-s1"],[21,22,"pl-c1"],[23,30,"pl-s1"],[30,31,"pl-kos"],[31,37,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-s1"],[41,42,"pl-c1"],[43,45,"pl-s1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-s1"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,23,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-kos"]],[],[[3,8,"pl-k"],[9,24,"pl-s1"],[25,26,"pl-c1"],[27,33,"pl-s1"],[33,34,"pl-kos"],[34,42,"pl-c1"],[43,46,"pl-c1"],[47,56,"pl-c1"]],[[6,12,"pl-s1"],[12,13,"pl-kos"],[13,26,"pl-en"],[26,27,"pl-kos"],[28,38,"pl-s"],[38,39,"pl-kos"],[40,46,"pl-s1"],[46,47,"pl-kos"],[47,55,"pl-c1"],[56,57,"pl-kos"]],[[6,14,"pl-s1"],[14,15,"pl-kos"],[15,25,"pl-c1"],[25,26,"pl-kos"],[26,34,"pl-c1"],[34,35,"pl-kos"]],[],[[3,27,"pl-s1"],[27,28,"pl-kos"],[28,32,"pl-en"],[32,33,"pl-kos"],[34,49,"pl-s1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,21,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[3,8,"pl-k"],[9,24,"pl-s1"],[25,26,"pl-c1"],[27,33,"pl-s1"],[33,34,"pl-kos"],[34,40,"pl-c1"],[41,44,"pl-c1"],[45,54,"pl-c1"]],[[6,12,"pl-s1"],[12,13,"pl-kos"],[13,26,"pl-en"],[26,27,"pl-kos"],[28,38,"pl-s"],[38,39,"pl-kos"],[40,46,"pl-s1"],[46,47,"pl-kos"],[47,53,"pl-c1"],[54,55,"pl-kos"]],[[6,14,"pl-s1"],[14,15,"pl-kos"],[15,25,"pl-c1"],[25,26,"pl-kos"],[26,32,"pl-c1"],[32,33,"pl-kos"]],[],[[3,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-en"],[30,31,"pl-kos"],[32,47,"pl-s1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[3,8,"pl-k"],[9,24,"pl-s1"],[25,26,"pl-c1"],[27,33,"pl-s1"],[33,34,"pl-kos"],[34,41,"pl-c1"],[42,45,"pl-c1"],[46,55,"pl-c1"]],[[6,12,"pl-s1"],[12,13,"pl-kos"],[13,26,"pl-en"],[26,27,"pl-kos"],[28,38,"pl-s"],[38,39,"pl-kos"],[40,46,"pl-s1"],[46,47,"pl-kos"],[47,54,"pl-c1"],[55,56,"pl-kos"]],[[6,14,"pl-s1"],[14,15,"pl-kos"],[15,25,"pl-c1"],[25,26,"pl-kos"],[26,31,"pl-c1"],[31,32,"pl-kos"]],[],[[3,24,"pl-s1"],[24,25,"pl-kos"],[25,29,"pl-en"],[29,30,"pl-kos"],[31,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,7,"pl-k"],[8,15,"pl-v"],[15,16,"pl-kos"],[16,19,"pl-en"],[19,20,"pl-kos"],[21,22,"pl-kos"]],[[2,9,"pl-v"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[2,9,"pl-v"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[2,9,"pl-v"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,36,"pl-s1"],[37,38,"pl-kos"]],[[1,2,"pl-kos"],[3,4,"pl-kos"],[4,5,"pl-kos"],[5,9,"pl-en"],[9,10,"pl-kos"],[11,19,"pl-k"],[20,21,"pl-kos"],[22,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,22,"pl-s1"],[23,24,"pl-c1"],[25,34,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[2,7,"pl-k"],[8,20,"pl-s1"],[21,22,"pl-c1"],[23,32,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,31,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-c1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,23,"pl-s1"],[24,25,"pl-kos"],[26,34,"pl-s1"],[34,35,"pl-kos"],[35,50,"pl-c1"],[50,51,"pl-kos"],[51,59,"pl-c1"],[60,61,"pl-c1"],[62,76,"pl-s1"],[76,77,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,21,"pl-s1"],[22,23,"pl-kos"],[24,32,"pl-s1"],[32,33,"pl-kos"],[33,48,"pl-c1"],[48,49,"pl-kos"],[49,55,"pl-c1"],[56,57,"pl-c1"],[58,70,"pl-s1"],[70,71,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,20,"pl-s1"],[21,22,"pl-kos"],[23,31,"pl-s1"],[31,32,"pl-kos"],[32,47,"pl-c1"],[47,48,"pl-kos"],[48,53,"pl-c1"],[54,55,"pl-c1"],[56,67,"pl-s1"],[67,68,"pl-kos"]],[[2,10,"pl-s1"],[10,11,"pl-kos"],[11,31,"pl-c1"],[32,33,"pl-c1"],[34,38,"pl-c1"],[38,39,"pl-kos"]],[],[[2,8,"pl-k"],[9,17,"pl-s1"],[17,18,"pl-kos"]],[],[[1,2,"pl-kos"],[3,4,"pl-kos"],[4,5,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,21,"pl-c"],[3,9,"pl-k"],[11,15,"pl-smi"]],[[0,29,"pl-c"],[3,9,"pl-k"],[11,20,"pl-smi"]],[[0,3,"pl-c"]],[[0,8,"pl-k"],[9,27,"pl-en"],[27,28,"pl-kos"],[29,33,"pl-s1"],[33,34,"pl-kos"],[35,42,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[1,5,"pl-s1"],[5,6,"pl-kos"],[6,24,"pl-en"],[24,25,"pl-kos"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,13,"pl-s1"],[13,14,"pl-kos"],[14,21,"pl-c1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,31,"pl-s1"],[31,32,"pl-kos"],[32,39,"pl-c1"],[39,40,"pl-kos"],[40,46,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,51,"pl-c1"],[52,54,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-s1"],[58,60,"pl-c1"],[61,62,"pl-kos"],[63,64,"pl-kos"]],[],[[3,7,"pl-s1"],[7,8,"pl-kos"],[8,29,"pl-c1"],[29,30,"pl-kos"],[31,32,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-c1"],[37,44,"pl-s1"],[44,45,"pl-kos"],[45,52,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-s1"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,81,"pl-c"]],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,13,"pl-s1"],[13,14,"pl-kos"],[14,20,"pl-c1"],[21,23,"pl-c1"],[24,29,"pl-v"],[29,30,"pl-kos"],[30,37,"pl-en"],[37,38,"pl-kos"],[39,46,"pl-s1"],[46,47,"pl-kos"],[47,53,"pl-c1"],[53,54,"pl-kos"],[54,65,"pl-c1"],[66,67,"pl-kos"],[68,69,"pl-kos"],[70,71,"pl-kos"]],[],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,29,"pl-s1"],[29,30,"pl-kos"],[30,36,"pl-c1"],[36,37,"pl-kos"],[37,48,"pl-c1"],[48,49,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-s1"],[11,12,"pl-kos"],[12,33,"pl-c1"],[33,34,"pl-kos"],[34,40,"pl-c1"],[41,44,"pl-c1"],[45,56,"pl-s1"],[56,57,"pl-kos"],[57,63,"pl-c1"],[64,65,"pl-kos"],[66,67,"pl-kos"]],[],[[3,7,"pl-s1"],[7,8,"pl-kos"],[8,29,"pl-c1"],[30,31,"pl-c1"],[32,33,"pl-kos"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,36,"pl-s1"],[36,37,"pl-kos"],[37,43,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-s1"],[47,48,"pl-c1"],[49,51,"pl-s1"],[51,52,"pl-kos"],[53,54,"pl-s1"],[55,57,"pl-c1"],[58,59,"pl-kos"],[60,61,"pl-kos"]],[],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,30,"pl-c1"],[30,31,"pl-kos"],[32,43,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-s1"],[47,48,"pl-kos"],[49,50,"pl-kos"],[51,52,"pl-c1"],[53,54,"pl-s1"],[54,55,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,10,"pl-smi"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,87,"pl-s"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,8,"pl-k"],[9,27,"pl-en"],[27,28,"pl-kos"],[29,41,"pl-s1"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[1,4,"pl-k"],[5,16,"pl-s1"],[16,17,"pl-kos"]],[],[[1,6,"pl-k"],[7,21,"pl-s1"],[22,23,"pl-c1"],[24,36,"pl-s1"],[36,37,"pl-kos"],[37,47,"pl-c1"],[48,50,"pl-c1"],[51,63,"pl-s1"],[63,64,"pl-kos"],[64,74,"pl-c1"],[74,75,"pl-kos"],[76,86,"pl-c1"],[86,87,"pl-kos"],[87,113,"pl-c1"],[114,115,"pl-kos"],[115,116,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,13,"pl-s1"],[14,15,"pl-c1"],[16,24,"pl-s"],[25,26,"pl-c1"],[27,41,"pl-s1"],[41,42,"pl-kos"],[42,52,"pl-c1"]],[[4,5,"pl-c1"],[6,9,"pl-s"],[10,11,"pl-c1"],[12,26,"pl-s1"],[26,27,"pl-kos"],[27,34,"pl-c1"]],[[4,5,"pl-c1"],[6,9,"pl-s"],[10,11,"pl-c1"],[12,31,"pl-en"],[31,32,"pl-kos"],[33,47,"pl-s1"],[47,48,"pl-kos"],[48,58,"pl-c1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[1,2,"pl-kos"],[3,7,"pl-k"],[8,9,"pl-kos"]],[],[[2,13,"pl-s1"],[14,15,"pl-c1"],[16,28,"pl-s1"],[28,29,"pl-kos"],[29,36,"pl-c1"],[37,38,"pl-c1"],[39,42,"pl-s"],[43,44,"pl-c1"],[45,64,"pl-en"],[64,65,"pl-kos"],[66,78,"pl-s1"],[78,79,"pl-kos"],[79,89,"pl-c1"],[90,91,"pl-kos"],[92,93,"pl-c1"],[94,97,"pl-s"],[98,99,"pl-c1"],[100,112,"pl-s1"],[112,113,"pl-kos"],[113,117,"pl-c1"],[117,118,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,18,"pl-s1"],[18,19,"pl-kos"],[19,26,"pl-c1"],[27,30,"pl-c1"],[31,40,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,36,"pl-s1"],[36,37,"pl-kos"],[37,44,"pl-c1"],[44,45,"pl-kos"],[45,51,"pl-c1"],[51,52,"pl-kos"],[53,54,"pl-s1"],[55,56,"pl-c1"],[57,59,"pl-s1"],[59,60,"pl-kos"],[61,62,"pl-s1"],[63,65,"pl-c1"],[66,67,"pl-kos"],[68,69,"pl-kos"]],[],[[3,14,"pl-s1"],[15,17,"pl-c1"],[18,21,"pl-s"],[22,23,"pl-c1"],[24,43,"pl-en"],[43,44,"pl-kos"],[45,57,"pl-s1"],[57,58,"pl-kos"],[58,65,"pl-c1"],[65,66,"pl-kos"],[67,68,"pl-s1"],[69,70,"pl-kos"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,7,"pl-k"],[8,19,"pl-s1"],[19,20,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,8,"pl-k"],[9,28,"pl-en"],[28,29,"pl-kos"],[30,40,"pl-s1"],[41,42,"pl-kos"],[43,44,"pl-kos"]],[],[[1,4,"pl-k"],[5,18,"pl-s1"],[19,20,"pl-c1"],[21,23,"pl-s"],[23,24,"pl-kos"]],[],[[1,6,"pl-k"],[7,11,"pl-s1"],[12,13,"pl-c1"],[14,20,"pl-v"],[20,21,"pl-kos"],[21,25,"pl-en"],[25,26,"pl-kos"],[27,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"],[40,44,"pl-en"],[44,45,"pl-kos"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[1,4,"pl-k"],[5,6,"pl-kos"],[7,10,"pl-k"],[11,12,"pl-s1"],[13,14,"pl-c1"],[15,16,"pl-c1"],[16,17,"pl-kos"],[18,20,"pl-s1"],[21,22,"pl-c1"],[23,27,"pl-s1"],[27,28,"pl-kos"],[28,34,"pl-c1"],[34,35,"pl-kos"],[36,37,"pl-s1"],[38,39,"pl-c1"],[40,42,"pl-s1"],[42,43,"pl-kos"],[44,45,"pl-s1"],[46,48,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[2,15,"pl-s1"],[16,18,"pl-c1"],[19,23,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-c1"],[31,34,"pl-s"],[35,36,"pl-c1"],[37,47,"pl-s1"],[47,48,"pl-kos"],[49,53,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-kos"],[61,62,"pl-c1"],[63,66,"pl-s"],[66,67,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,7,"pl-k"],[8,21,"pl-s1"],[21,22,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,8,"pl-k"],[9,36,"pl-en"],[36,37,"pl-kos"],[38,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[1,14,"pl-c"]],[[1,121,"pl-c"]],[],[[1,7,"pl-k"],[8,9,"pl-kos"],[10,21,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[2,6,"pl-k"],[7,16,"pl-v"]],[[3,9,"pl-k"],[10,11,"pl-c1"],[12,13,"pl-c1"],[14,17,"pl-c1"],[17,18,"pl-kos"]],[],[[2,6,"pl-k"],[7,17,"pl-v"]],[[3,9,"pl-k"],[10,11,"pl-c1"],[12,13,"pl-c1"],[14,17,"pl-c1"],[17,18,"pl-kos"]],[],[[2,6,"pl-k"],[7,17,"pl-v"]],[[3,9,"pl-k"],[10,11,"pl-c1"],[12,13,"pl-c1"],[14,19,"pl-c1"],[19,20,"pl-kos"]],[],[[2,6,"pl-k"],[7,18,"pl-v"]],[[3,9,"pl-k"],[10,11,"pl-c1"],[12,13,"pl-c1"],[14,19,"pl-c1"],[19,20,"pl-kos"]],[],[[2,9,"pl-k"]],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,87,"pl-s"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,8,"pl-k"],[9,28,"pl-en"],[28,29,"pl-kos"],[30,33,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,9,"pl-s1"],[9,10,"pl-kos"],[10,16,"pl-en"],[16,17,"pl-kos"],[18,34,"pl-pds"],[18,19,"pl-c1"],[19,21,"pl-cce"],[21,22,"pl-s"],[22,23,"pl-s"],[23,24,"pl-s"],[24,25,"pl-c1"],[25,26,"pl-s"],[26,27,"pl-kos"],[27,28,"pl-cce"],[28,29,"pl-c1"],[29,31,"pl-cce"],[31,32,"pl-kos"],[32,33,"pl-c1"],[35,36,"pl-kos"],[37,38,"pl-c1"],[39,40,"pl-c1"],[41,43,"pl-c1"],[44,47,"pl-s1"],[47,48,"pl-kos"],[48,54,"pl-en"],[54,55,"pl-kos"],[56,76,"pl-pds"],[56,57,"pl-c1"],[57,58,"pl-cce"],[58,59,"pl-s"],[59,60,"pl-s"],[60,61,"pl-s"],[61,62,"pl-s"],[62,64,"pl-cce"],[64,65,"pl-s"],[65,66,"pl-s"],[66,67,"pl-s"],[67,68,"pl-s"],[68,69,"pl-s"],[69,71,"pl-cce"],[71,72,"pl-s"],[72,73,"pl-s"],[73,74,"pl-s"],[74,75,"pl-s"],[75,76,"pl-c1"],[77,78,"pl-kos"],[79,82,"pl-c1"],[83,84,"pl-c1"],[85,86,"pl-kos"],[87,93,"pl-k"],[94,106,"pl-s"],[106,107,"pl-kos"]],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,9,"pl-s1"],[9,10,"pl-kos"],[10,16,"pl-en"],[16,17,"pl-kos"],[18,33,"pl-pds"],[18,19,"pl-c1"],[19,21,"pl-cce"],[21,22,"pl-s"],[22,23,"pl-s"],[23,24,"pl-s"],[24,25,"pl-s"],[25,26,"pl-kos"],[26,27,"pl-cce"],[27,28,"pl-c1"],[28,30,"pl-cce"],[30,31,"pl-kos"],[31,32,"pl-c1"],[34,35,"pl-kos"],[36,37,"pl-c1"],[38,39,"pl-c1"],[40,42,"pl-c1"],[43,46,"pl-s1"],[46,47,"pl-kos"],[47,53,"pl-en"],[53,54,"pl-kos"],[55,75,"pl-pds"],[55,56,"pl-c1"],[56,57,"pl-cce"],[57,58,"pl-s"],[58,59,"pl-s"],[59,60,"pl-s"],[60,61,"pl-s"],[61,63,"pl-cce"],[63,64,"pl-s"],[64,65,"pl-s"],[65,66,"pl-s"],[66,67,"pl-s"],[67,68,"pl-s"],[68,70,"pl-cce"],[70,71,"pl-s"],[71,72,"pl-s"],[72,73,"pl-s"],[73,74,"pl-s"],[74,75,"pl-c1"],[76,77,"pl-kos"],[78,81,"pl-c1"],[82,83,"pl-c1"],[84,85,"pl-kos"],[86,92,"pl-k"],[93,105,"pl-s"],[105,106,"pl-kos"]],[],[[1,7,"pl-k"],[8,19,"pl-s"],[19,20,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,5,"pl-k"],[6,21,"pl-s1"],[22,23,"pl-c1"],[24,27,"pl-k"],[28,35,"pl-v"],[35,36,"pl-kos"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[0,17,"pl-c"]],[],[[0,5,"pl-k"],[6,16,"pl-v"],[17,18,"pl-kos"]],[],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,18,"pl-s1"],[19,20,"pl-c1"],[21,22,"pl-kos"],[22,23,"pl-kos"],[23,24,"pl-kos"],[25,32,"pl-s1"],[33,34,"pl-c1"],[35,36,"pl-kos"],[36,37,"pl-kos"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,11,"pl-c1"],[12,13,"pl-c1"],[14,18,"pl-s1"],[18,19,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[18,19,"pl-c1"],[20,21,"pl-kos"],[21,22,"pl-kos"],[22,23,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,14,"pl-c1"],[15,16,"pl-c1"],[17,18,"pl-kos"],[18,19,"pl-kos"],[19,20,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,14,"pl-c1"],[15,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"]],[],[[2,24,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,12,"pl-c1"],[13,14,"pl-c1"],[15,18,"pl-k"],[19,31,"pl-v"],[31,32,"pl-kos"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[2,60,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,19,"pl-c1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,29,"pl-v"],[29,30,"pl-kos"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[2,27,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[2,15,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,16,"pl-c1"],[17,18,"pl-c1"],[19,20,"pl-kos"],[20,21,"pl-kos"],[21,22,"pl-kos"]],[],[[2,29,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,16,"pl-c1"],[17,18,"pl-c1"],[19,20,"pl-kos"],[21,25,"pl-c1"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"],[31,35,"pl-c1"],[37,38,"pl-kos"],[38,39,"pl-kos"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,22,"pl-kos"],[23,27,"pl-c1"],[29,30,"pl-kos"],[30,31,"pl-kos"],[31,32,"pl-kos"],[33,37,"pl-c1"],[39,40,"pl-kos"],[40,41,"pl-kos"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[18,19,"pl-c1"],[20,21,"pl-kos"],[22,26,"pl-c1"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,31,"pl-kos"],[32,36,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[19,20,"pl-c1"],[21,22,"pl-kos"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,19,"pl-c1"],[20,21,"pl-c1"],[22,23,"pl-kos"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[2,46,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,20,"pl-c1"],[21,22,"pl-c1"],[23,24,"pl-kos"],[24,25,"pl-kos"],[25,26,"pl-kos"]],[],[[2,78,"pl-c"]],[[2,74,"pl-c"]],[],[[2,5,"pl-k"],[6,14,"pl-s1"],[15,16,"pl-c1"],[17,22,"pl-c1"],[22,23,"pl-kos"]],[[2,5,"pl-k"],[6,15,"pl-s1"],[16,17,"pl-c1"],[18,23,"pl-c1"],[23,24,"pl-kos"]],[[2,5,"pl-k"],[6,20,"pl-s1"],[21,22,"pl-c1"],[23,24,"pl-c1"],[25,26,"pl-c1"],[26,27,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-k"],[14,23,"pl-s1"],[24,27,"pl-c1"],[28,39,"pl-s"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,11,"pl-s1"],[12,13,"pl-c1"],[14,46,"pl-pds"],[14,15,"pl-c1"],[15,16,"pl-cce"],[16,17,"pl-kos"],[17,19,"pl-kos"],[19,20,"pl-c1"],[20,21,"pl-s"],[21,22,"pl-s"],[22,23,"pl-s"],[23,24,"pl-s"],[24,25,"pl-s"],[25,26,"pl-s"],[26,27,"pl-c1"],[27,28,"pl-s"],[28,29,"pl-s"],[29,30,"pl-s"],[30,31,"pl-s"],[31,32,"pl-s"],[32,33,"pl-s"],[33,34,"pl-s"],[34,35,"pl-kos"],[36,37,"pl-kos"],[37,38,"pl-c1"],[38,39,"pl-s"],[39,40,"pl-s"],[40,41,"pl-s"],[41,42,"pl-s"],[42,43,"pl-s"],[43,44,"pl-s"],[44,45,"pl-c1"],[46,47,"pl-kos"],[47,51,"pl-en"],[51,52,"pl-kos"],[53,62,"pl-s1"],[62,63,"pl-kos"],[63,72,"pl-c1"],[73,74,"pl-kos"],[75,78,"pl-c1"],[79,83,"pl-c1"],[83,84,"pl-kos"]],[[3,12,"pl-s1"],[13,14,"pl-c1"],[15,24,"pl-s1"],[24,25,"pl-kos"],[25,34,"pl-c1"],[34,35,"pl-kos"],[35,42,"pl-en"],[42,43,"pl-kos"],[44,53,"pl-s"],[54,55,"pl-kos"],[56,57,"pl-c1"],[58,59,"pl-c1"],[60,61,"pl-c1"],[61,62,"pl-kos"]],[[3,17,"pl-s1"],[18,19,"pl-c1"],[20,29,"pl-s1"],[32,41,"pl-s1"],[41,42,"pl-kos"],[42,51,"pl-c1"],[51,52,"pl-kos"],[52,57,"pl-en"],[57,58,"pl-kos"],[59,80,"pl-pds"],[59,60,"pl-c1"],[60,61,"pl-s"],[61,62,"pl-s"],[62,63,"pl-s"],[63,64,"pl-s"],[64,65,"pl-s"],[65,66,"pl-s"],[66,67,"pl-s"],[67,69,"pl-cce"],[69,70,"pl-kos"],[70,71,"pl-kos"],[71,72,"pl-c1"],[72,73,"pl-c1"],[73,74,"pl-c1"],[74,75,"pl-kos"],[75,76,"pl-c1"],[76,77,"pl-kos"],[77,79,"pl-cce"],[79,80,"pl-c1"],[81,82,"pl-kos"],[82,83,"pl-kos"],[84,85,"pl-c1"],[86,87,"pl-kos"],[90,91,"pl-c1"],[92,93,"pl-c1"],[93,94,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,13,"pl-k"],[14,31,"pl-s1"],[32,35,"pl-c1"],[36,47,"pl-s"],[48,50,"pl-c1"],[51,59,"pl-s1"],[60,62,"pl-c1"],[63,64,"pl-kos"],[65,74,"pl-s1"],[75,77,"pl-c1"],[78,92,"pl-s1"],[93,94,"pl-c1"],[95,97,"pl-c1"],[98,99,"pl-kos"],[100,101,"pl-kos"],[102,103,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,21,"pl-c1"],[22,23,"pl-c1"],[24,27,"pl-k"],[28,41,"pl-v"],[41,42,"pl-kos"],[43,47,"pl-smi"],[47,48,"pl-kos"],[48,55,"pl-c1"],[55,56,"pl-kos"],[56,63,"pl-c1"],[64,65,"pl-kos"],[65,66,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,21,"pl-c1"],[22,23,"pl-c1"],[24,27,"pl-k"],[28,45,"pl-v"],[45,46,"pl-kos"],[47,51,"pl-smi"],[51,52,"pl-kos"],[52,59,"pl-c1"],[59,60,"pl-kos"],[60,67,"pl-c1"],[68,69,"pl-kos"],[69,70,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,20,"pl-c1"],[20,21,"pl-kos"],[21,35,"pl-en"],[35,36,"pl-kos"],[37,41,"pl-smi"],[41,42,"pl-kos"],[42,49,"pl-c1"],[49,50,"pl-kos"],[50,61,"pl-c1"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,20,"pl-c1"],[20,21,"pl-kos"],[21,37,"pl-en"],[37,38,"pl-kos"],[39,43,"pl-smi"],[43,44,"pl-kos"],[44,51,"pl-c1"],[51,52,"pl-kos"],[52,65,"pl-c1"],[66,67,"pl-kos"],[67,68,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[18,19,"pl-c1"],[20,23,"pl-k"],[24,34,"pl-v"],[34,35,"pl-kos"],[36,40,"pl-smi"],[40,41,"pl-kos"],[41,48,"pl-c1"],[48,49,"pl-kos"],[49,56,"pl-c1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[17,18,"pl-kos"],[18,33,"pl-en"],[33,34,"pl-kos"],[35,48,"pl-s"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,19,"pl-c1"],[19,20,"pl-kos"],[20,31,"pl-c1"],[32,35,"pl-c1"],[36,53,"pl-s"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,18,"pl-c1"],[18,19,"pl-kos"],[19,37,"pl-en"],[37,38,"pl-kos"],[39,43,"pl-c1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-c1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,14,"pl-c1"],[15,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,6,"pl-en"],[6,7,"pl-kos"],[8,14,"pl-s1"],[14,15,"pl-kos"],[16,23,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,36,"pl-c1"],[36,37,"pl-kos"]],[],[[2,27,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,12,"pl-c1"],[12,13,"pl-kos"],[13,22,"pl-en"],[22,23,"pl-kos"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,16,"pl-c1"],[17,18,"pl-c1"],[19,20,"pl-kos"],[20,21,"pl-kos"],[21,22,"pl-kos"]],[],[[2,62,"pl-c"]],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,17,"pl-en"],[17,18,"pl-kos"],[19,27,"pl-k"],[28,29,"pl-kos"],[30,33,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-s1"],[13,14,"pl-kos"],[14,23,"pl-c1"],[24,26,"pl-c1"],[27,30,"pl-s1"],[30,31,"pl-kos"],[31,40,"pl-en"],[40,41,"pl-kos"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,9,"pl-v"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,30,"pl-en"],[30,31,"pl-kos"],[32,40,"pl-k"],[41,42,"pl-kos"],[43,46,"pl-s1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-s1"],[13,14,"pl-kos"],[14,24,"pl-c1"],[25,27,"pl-c1"],[28,31,"pl-s1"],[31,32,"pl-kos"],[32,42,"pl-en"],[42,43,"pl-kos"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[6,7,"pl-kos"],[7,8,"pl-kos"],[8,12,"pl-en"],[12,13,"pl-kos"],[14,22,"pl-k"],[23,24,"pl-kos"],[24,25,"pl-kos"],[26,27,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,21,"pl-en"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,26,"pl-en"],[26,27,"pl-kos"],[28,35,"pl-s"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,26,"pl-en"],[26,27,"pl-kos"],[28,39,"pl-s"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,26,"pl-en"],[26,27,"pl-kos"],[28,36,"pl-s"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,10,"pl-en"],[10,11,"pl-kos"],[12,20,"pl-k"],[21,22,"pl-kos"],[23,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"]],[[4,9,"pl-c1"],[11,23,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-c1"],[27,28,"pl-kos"],[28,29,"pl-kos"],[30,34,"pl-s1"],[34,35,"pl-kos"],[35,40,"pl-c1"],[41,43,"pl-c1"],[44,45,"pl-c1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[[4,10,"pl-c1"],[12,24,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-c1"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[[4,14,"pl-c1"],[16,28,"pl-s1"],[28,29,"pl-kos"],[30,31,"pl-c1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[[4,11,"pl-c1"],[13,25,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-c1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[[4,9,"pl-c1"],[11,15,"pl-s1"],[15,16,"pl-kos"],[16,21,"pl-c1"],[21,22,"pl-kos"]],[[4,10,"pl-c1"],[12,18,"pl-s1"],[18,19,"pl-kos"]],[[4,12,"pl-c1"],[14,15,"pl-kos"],[15,16,"pl-kos"]],[[3,4,"pl-kos"],[4,5,"pl-kos"]],[],[[3,33,"pl-en"],[33,34,"pl-kos"],[35,45,"pl-s1"],[45,46,"pl-kos"],[47,53,"pl-s1"],[53,54,"pl-kos"],[55,59,"pl-s1"],[60,61,"pl-kos"],[61,62,"pl-kos"]],[],[[3,25,"pl-en"],[25,26,"pl-kos"],[27,33,"pl-s1"],[33,34,"pl-kos"],[35,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,21,"pl-en"],[21,22,"pl-kos"],[23,29,"pl-s1"],[29,30,"pl-kos"],[30,40,"pl-en"],[40,41,"pl-kos"],[42,50,"pl-k"],[51,52,"pl-kos"],[53,56,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[4,10,"pl-k"],[11,14,"pl-s1"],[14,15,"pl-kos"],[15,24,"pl-c1"],[25,27,"pl-c1"],[28,31,"pl-s1"],[31,32,"pl-kos"],[32,41,"pl-en"],[41,42,"pl-kos"],[43,49,"pl-s1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"],[9,13,"pl-en"],[13,14,"pl-kos"],[15,23,"pl-k"],[24,25,"pl-kos"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[12,18,"pl-s1"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,11,"pl-en"],[11,12,"pl-kos"],[13,20,"pl-s1"],[21,22,"pl-kos"],[22,23,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,63,"pl-c"]],[[0,4,"pl-c"]],[[1,10,"pl-en"],[10,11,"pl-kos"],[11,12,"pl-kos"],[13,14,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,28,"pl-c1"],[28,29,"pl-kos"],[29,34,"pl-c1"],[35,37,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,28,"pl-c1"],[28,29,"pl-kos"],[29,34,"pl-c1"],[35,37,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,28,"pl-c1"],[28,29,"pl-kos"],[29,35,"pl-c1"],[36,38,"pl-c1"],[39,40,"pl-kos"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[2,72,"pl-c"]],[[2,61,"pl-c"]],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,21,"pl-s1"],[22,23,"pl-c1"],[24,25,"pl-c1"],[25,26,"pl-kos"],[27,37,"pl-s1"],[38,39,"pl-c1"],[40,48,"pl-s1"],[48,49,"pl-kos"],[49,55,"pl-c1"],[55,56,"pl-kos"],[57,66,"pl-s1"],[67,68,"pl-c1"],[69,79,"pl-s1"],[79,80,"pl-kos"],[81,90,"pl-s1"],[91,93,"pl-c1"],[94,95,"pl-kos"],[96,97,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,26,"pl-s1"],[26,27,"pl-kos"],[28,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"],[40,46,"pl-c1"],[46,47,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,31,"pl-s1"],[31,32,"pl-kos"],[32,38,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-s1"],[42,43,"pl-c1"],[44,46,"pl-s1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[4,12,"pl-s1"],[12,13,"pl-kos"],[14,20,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"],[28,34,"pl-c1"],[35,36,"pl-c1"],[37,41,"pl-c1"],[41,42,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,68,"pl-c"]],[[2,32,"pl-c"]],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,21,"pl-s1"],[22,23,"pl-c1"],[24,25,"pl-c1"],[25,26,"pl-kos"],[27,37,"pl-s1"],[38,39,"pl-c1"],[40,48,"pl-s1"],[48,49,"pl-kos"],[49,55,"pl-c1"],[55,56,"pl-kos"],[57,66,"pl-s1"],[67,68,"pl-c1"],[69,79,"pl-s1"],[79,80,"pl-kos"],[81,90,"pl-s1"],[91,93,"pl-c1"],[94,95,"pl-kos"],[96,97,"pl-kos"]],[],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,27,"pl-s1"],[27,28,"pl-kos"],[29,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,24,"pl-c1"],[25,34,"pl-c1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,36,"pl-c1"],[36,37,"pl-kos"],[38,45,"pl-s1"],[45,46,"pl-kos"],[46,50,"pl-c1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[4,61,"pl-c"]],[[4,59,"pl-c"]],[[4,44,"pl-c"]],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-c1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[5,13,"pl-s1"],[13,14,"pl-kos"],[15,22,"pl-s1"],[22,23,"pl-kos"],[23,27,"pl-c1"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,43,"pl-c1"],[44,45,"pl-c1"],[46,50,"pl-c1"],[50,51,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,22,"pl-c1"],[23,26,"pl-c1"],[27,36,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,38,"pl-c1"],[38,39,"pl-kos"],[40,47,"pl-s1"],[47,48,"pl-kos"],[48,54,"pl-c1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,74,"pl-c"]],[[0,68,"pl-c"]],[[0,74,"pl-c"]],[[0,72,"pl-c"]],[[0,61,"pl-c"]],[[0,3,"pl-c"]],[[0,64,"pl-c"]],[[0,4,"pl-c"]],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,19,"pl-s1"],[19,20,"pl-kos"],[21,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,12,"pl-s1"],[13,16,"pl-c1"],[17,26,"pl-c1"],[27,28,"pl-kos"],[29,35,"pl-k"],[35,36,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-c1"],[17,18,"pl-kos"],[19,24,"pl-s1"],[25,26,"pl-kos"],[27,30,"pl-c1"],[31,40,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-kos"]],[],[[3,8,"pl-s1"],[8,9,"pl-kos"],[9,13,"pl-c1"],[13,14,"pl-kos"],[15,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-c1"],[25,30,"pl-s1"],[30,31,"pl-kos"],[31,35,"pl-c1"],[35,36,"pl-kos"],[37,42,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-c1"],[47,48,"pl-c1"],[48,49,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-s1"],[7,8,"pl-kos"],[8,12,"pl-c1"],[12,13,"pl-kos"],[14,19,"pl-s1"],[20,21,"pl-kos"],[22,24,"pl-c1"],[24,25,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,74,"pl-c"]],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,19,"pl-s1"],[19,20,"pl-kos"],[21,26,"pl-s1"],[26,27,"pl-kos"],[28,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-c1"],[17,18,"pl-kos"],[19,24,"pl-s1"],[25,26,"pl-kos"],[27,29,"pl-c1"],[30,31,"pl-c1"],[32,33,"pl-kos"],[34,40,"pl-k"],[41,47,"pl-s1"],[47,48,"pl-kos"]],[],[[2,7,"pl-k"],[8,11,"pl-s1"],[12,13,"pl-c1"],[14,20,"pl-s1"],[20,21,"pl-kos"],[21,26,"pl-en"],[26,27,"pl-kos"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[2,71,"pl-c"]],[[2,37,"pl-c"]],[[2,7,"pl-k"],[8,22,"pl-en"],[23,24,"pl-c1"],[25,26,"pl-kos"],[27,35,"pl-s1"],[35,36,"pl-kos"],[37,42,"pl-s1"],[43,44,"pl-kos"],[45,47,"pl-c1"],[48,49,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-smi"],[24,25,"pl-kos"],[25,37,"pl-c1"],[37,38,"pl-kos"],[38,41,"pl-en"],[41,42,"pl-kos"],[43,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,16,"pl-s1"],[17,19,"pl-c1"],[20,24,"pl-c1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,21,"pl-c1"],[21,22,"pl-kos"],[22,25,"pl-en"],[25,26,"pl-kos"],[27,32,"pl-s1"],[32,33,"pl-kos"],[34,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,14,"pl-k"],[15,16,"pl-kos"],[17,18,"pl-s1"],[18,19,"pl-kos"],[20,25,"pl-s1"],[26,27,"pl-kos"],[28,30,"pl-k"],[31,39,"pl-s1"],[39,40,"pl-kos"],[40,48,"pl-c1"],[48,49,"pl-kos"],[49,56,"pl-en"],[56,57,"pl-kos"],[57,58,"pl-kos"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[4,18,"pl-en"],[18,19,"pl-kos"],[20,25,"pl-s1"],[25,26,"pl-kos"],[27,32,"pl-s1"],[32,33,"pl-kos"],[33,41,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-s1"],[45,46,"pl-kos"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[26,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[2,5,"pl-s1"],[5,6,"pl-kos"],[6,10,"pl-c1"],[11,13,"pl-c1"],[14,26,"pl-s"],[27,28,"pl-c1"],[29,30,"pl-kos"],[31,36,"pl-s1"],[36,37,"pl-kos"],[37,41,"pl-c1"],[41,42,"pl-kos"],[43,48,"pl-s1"],[49,50,"pl-kos"],[51,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[2,8,"pl-k"],[9,12,"pl-s1"],[12,13,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,17,"pl-s1"],[18,19,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,27,"pl-v"],[27,28,"pl-kos"],[28,34,"pl-en"],[34,35,"pl-kos"],[36,40,"pl-smi"],[40,41,"pl-kos"],[41,48,"pl-c1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[[2,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-en"],[17,18,"pl-kos"],[19,23,"pl-smi"],[24,25,"pl-kos"],[25,26,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,20,"pl-s1"],[21,22,"pl-c1"],[23,33,"pl-s1"],[33,34,"pl-kos"],[34,40,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-s1"],[44,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[24,34,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[15,16,"pl-kos"],[17,23,"pl-k"],[24,30,"pl-s1"],[30,31,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-c1"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,17,"pl-s1"],[18,19,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,27,"pl-v"],[27,28,"pl-kos"],[28,34,"pl-en"],[34,35,"pl-kos"],[36,40,"pl-smi"],[40,41,"pl-kos"],[41,48,"pl-c1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[[2,12,"pl-s1"],[12,13,"pl-kos"],[13,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-smi"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,20,"pl-s1"],[21,22,"pl-c1"],[23,33,"pl-s1"],[33,34,"pl-kos"],[34,40,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-s1"],[44,46,"pl-c1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[24,34,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[15,16,"pl-kos"],[17,24,"pl-s1"],[24,25,"pl-kos"],[25,29,"pl-en"],[29,30,"pl-kos"],[31,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-s1"],[16,17,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,67,"pl-c"]],[[0,24,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,25,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,87,"pl-c"],[4,11,"pl-k"],[13,86,"pl-smi"]],[[0,4,"pl-c"]],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,20,"pl-s1"],[20,21,"pl-kos"],[22,27,"pl-s1"],[28,29,"pl-kos"],[30,31,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-s1"],[24,25,"pl-c1"],[26,29,"pl-s"],[30,31,"pl-c1"],[32,37,"pl-s1"],[37,38,"pl-kos"]],[[2,5,"pl-k"],[6,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,29,"pl-c1"],[29,30,"pl-kos"],[30,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,19,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-kos"]],[],[[3,9,"pl-k"],[10,11,"pl-kos"],[12,16,"pl-s1"],[17,18,"pl-kos"],[19,20,"pl-kos"]],[],[[4,8,"pl-k"],[9,16,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,32,"pl-en"],[32,33,"pl-kos"],[34,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,15,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,25,"pl-c1"],[26,28,"pl-c1"],[29,32,"pl-s1"],[32,33,"pl-kos"],[33,41,"pl-en"],[41,42,"pl-kos"],[43,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,15,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,25,"pl-c1"],[26,28,"pl-c1"],[29,32,"pl-s1"],[32,33,"pl-kos"],[33,41,"pl-en"],[41,42,"pl-kos"],[43,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,19,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,35,"pl-en"],[35,36,"pl-kos"],[37,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,21,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,31,"pl-c1"],[32,34,"pl-c1"],[35,38,"pl-s1"],[38,39,"pl-kos"],[39,53,"pl-en"],[53,54,"pl-kos"],[55,60,"pl-s1"],[61,62,"pl-kos"],[62,63,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,17,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,19,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,29,"pl-c1"],[30,32,"pl-c1"],[33,36,"pl-s1"],[36,37,"pl-kos"],[37,49,"pl-en"],[49,50,"pl-kos"],[51,56,"pl-s1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,18,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,28,"pl-c1"],[29,31,"pl-c1"],[32,35,"pl-s1"],[35,36,"pl-kos"],[36,47,"pl-en"],[47,48,"pl-kos"],[49,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,15,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,31,"pl-en"],[31,32,"pl-kos"],[33,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,20,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[16,17,"pl-kos"],[17,30,"pl-c1"],[31,33,"pl-c1"],[34,37,"pl-s1"],[37,38,"pl-kos"],[38,51,"pl-en"],[51,52,"pl-kos"],[53,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-k"],[9,17,"pl-s"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[4,11,"pl-k"]],[[5,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[6,12,"pl-k"],[13,16,"pl-s1"],[17,19,"pl-c1"],[20,24,"pl-smi"],[25,27,"pl-c1"],[28,31,"pl-s1"],[31,32,"pl-kos"],[32,45,"pl-c1"],[46,48,"pl-c1"],[49,52,"pl-s1"],[52,53,"pl-kos"],[53,66,"pl-en"],[66,67,"pl-kos"],[68,72,"pl-s1"],[72,73,"pl-kos"],[74,79,"pl-s1"],[80,81,"pl-kos"],[81,82,"pl-kos"]],[],[[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,11,"pl-c1"],[12,22,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[6,11,"pl-k"],[12,15,"pl-k"],[16,21,"pl-v"],[21,22,"pl-kos"],[23,39,"pl-s"],[40,41,"pl-c1"],[42,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,10,"pl-k"],[10,11,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,13,"pl-c1"],[13,14,"pl-kos"],[14,17,"pl-en"],[17,18,"pl-kos"],[19,27,"pl-s1"],[27,28,"pl-kos"],[29,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,19,"pl-s1"],[19,20,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,81,"pl-c"]],[[0,24,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,36,"pl-c"],[4,11,"pl-k"],[13,35,"pl-smi"]],[[0,4,"pl-c"]],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,22,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[2,5,"pl-k"],[6,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,31,"pl-c1"],[31,32,"pl-kos"],[32,35,"pl-en"],[35,36,"pl-kos"],[37,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,21,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"]],[[3,8,"pl-k"],[9,13,"pl-s1"],[14,15,"pl-c1"],[16,20,"pl-smi"],[20,21,"pl-kos"],[21,25,"pl-c1"],[25,26,"pl-kos"],[27,31,"pl-s1"],[32,33,"pl-c1"],[34,35,"pl-kos"],[36,40,"pl-s1"],[41,44,"pl-c1"],[45,51,"pl-s"],[54,58,"pl-s"],[61,64,"pl-s"],[65,66,"pl-kos"],[67,68,"pl-kos"],[69,71,"pl-c1"],[72,73,"pl-kos"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[[3,15,"pl-s1"],[16,17,"pl-c1"],[18,25,"pl-v"],[25,26,"pl-kos"],[26,29,"pl-en"],[29,30,"pl-kos"],[31,35,"pl-s1"],[35,36,"pl-kos"],[36,39,"pl-en"],[39,40,"pl-kos"],[41,49,"pl-k"],[50,51,"pl-kos"],[52,55,"pl-s1"],[55,56,"pl-kos"],[57,62,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-kos"]],[],[[4,10,"pl-k"],[11,17,"pl-s1"],[17,18,"pl-kos"],[18,31,"pl-en"],[31,32,"pl-kos"],[33,37,"pl-s1"],[37,38,"pl-kos"],[39,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,13,"pl-c1"],[13,14,"pl-kos"],[14,17,"pl-en"],[17,18,"pl-kos"],[19,23,"pl-s1"],[23,24,"pl-kos"],[25,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,21,"pl-s1"],[21,22,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,120,"pl-c"]],[[0,31,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,34,"pl-c"],[4,11,"pl-k"],[13,33,"pl-smi"]],[[0,4,"pl-c"]],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-smi"],[24,25,"pl-kos"],[25,29,"pl-c1"],[29,30,"pl-kos"],[30,37,"pl-c1"],[37,38,"pl-kos"],[39,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,32,"pl-c1"],[32,33,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-c1"],[22,24,"pl-c1"],[25,34,"pl-s1"],[34,35,"pl-kos"],[35,39,"pl-c1"],[40,43,"pl-c1"],[44,57,"pl-s"],[58,59,"pl-kos"],[60,61,"pl-kos"]],[],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,40,"pl-s"],[41,42,"pl-c1"],[43,52,"pl-s1"],[52,53,"pl-kos"],[53,57,"pl-c1"],[58,59,"pl-c1"],[60,92,"pl-s"],[93,94,"pl-kos"],[94,95,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,66,"pl-c"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,20,"pl-c1"],[21,24,"pl-c1"],[25,34,"pl-c1"],[35,37,"pl-c1"],[38,49,"pl-s1"],[50,53,"pl-c1"],[54,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[27,31,"pl-smi"],[31,32,"pl-kos"],[32,42,"pl-c1"],[42,43,"pl-kos"],[44,54,"pl-c1"],[54,55,"pl-kos"],[55,70,"pl-c1"],[71,72,"pl-kos"],[72,73,"pl-kos"],[73,77,"pl-c1"],[78,79,"pl-kos"],[79,80,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,30,"pl-c1"],[30,31,"pl-kos"]],[],[[2,8,"pl-k"],[9,12,"pl-k"],[13,20,"pl-v"],[20,21,"pl-kos"],[22,30,"pl-k"],[31,32,"pl-kos"],[33,40,"pl-s1"],[40,41,"pl-kos"],[42,48,"pl-s1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,27,"pl-v"],[27,28,"pl-kos"],[28,38,"pl-en"],[38,39,"pl-kos"],[40,49,"pl-s1"],[49,50,"pl-kos"],[50,53,"pl-c1"],[53,54,"pl-kos"],[55,62,"pl-s1"],[62,63,"pl-kos"],[63,67,"pl-c1"],[68,69,"pl-kos"],[69,70,"pl-kos"],[71,78,"pl-s1"],[78,79,"pl-kos"],[80,89,"pl-c1"],[89,90,"pl-kos"],[91,99,"pl-k"],[100,101,"pl-kos"],[101,102,"pl-kos"],[103,104,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[12,15,"pl-k"],[16,21,"pl-v"],[21,22,"pl-kos"],[23,66,"pl-s"],[67,68,"pl-c1"],[69,78,"pl-s1"],[78,79,"pl-kos"],[79,82,"pl-c1"],[83,84,"pl-c1"],[85,89,"pl-s"],[90,91,"pl-kos"],[92,93,"pl-kos"],[93,94,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,120,"pl-c"]],[[0,35,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,34,"pl-c"],[4,11,"pl-k"],[13,33,"pl-smi"]],[[0,4,"pl-c"]],[[1,15,"pl-en"],[15,16,"pl-kos"],[17,32,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-kos"]],[],[[2,7,"pl-k"],[8,21,"pl-s1"],[22,23,"pl-c1"],[24,28,"pl-smi"],[28,29,"pl-kos"],[29,33,"pl-c1"],[33,34,"pl-kos"],[34,45,"pl-c1"],[45,46,"pl-kos"],[47,62,"pl-s1"],[63,64,"pl-kos"],[64,65,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,27,"pl-en"],[27,28,"pl-kos"],[29,37,"pl-s"],[37,38,"pl-kos"],[39,52,"pl-s1"],[52,53,"pl-kos"],[53,59,"pl-c1"],[60,61,"pl-kos"],[61,62,"pl-kos"],[62,66,"pl-en"],[66,67,"pl-kos"],[68,76,"pl-k"],[77,78,"pl-kos"],[79,85,"pl-s1"],[86,87,"pl-kos"],[88,89,"pl-kos"]],[],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,35,"pl-s1"],[35,36,"pl-kos"],[36,46,"pl-c1"],[47,49,"pl-c1"],[50,51,"pl-c1"],[51,52,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,35,"pl-s1"],[35,36,"pl-kos"],[36,46,"pl-c1"],[47,49,"pl-c1"],[50,51,"pl-c1"],[51,52,"pl-kos"]],[[3,9,"pl-k"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,22,"pl-en"],[22,23,"pl-kos"],[24,34,"pl-s1"],[34,35,"pl-kos"],[36,46,"pl-s1"],[47,48,"pl-c1"],[49,59,"pl-s1"],[60,61,"pl-kos"],[61,62,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,105,"pl-c"]],[[0,33,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,65,"pl-c"],[4,11,"pl-k"],[13,64,"pl-smi"]],[[0,4,"pl-c"]],[[1,13,"pl-en"],[13,14,"pl-kos"],[15,28,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,31,"pl-c1"],[31,32,"pl-kos"],[32,41,"pl-c1"],[41,42,"pl-kos"],[43,56,"pl-s1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,29,"pl-c1"],[30,33,"pl-c1"],[34,43,"pl-c1"],[44,46,"pl-c1"],[47,58,"pl-s1"],[58,59,"pl-kos"],[59,65,"pl-c1"],[66,69,"pl-c1"],[70,79,"pl-c1"],[80,81,"pl-kos"],[82,83,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,36,"pl-c1"],[36,37,"pl-kos"],[38,49,"pl-s1"],[49,50,"pl-kos"],[50,54,"pl-c1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-v"],[20,21,"pl-c1"],[22,43,"pl-c1"],[43,44,"pl-kos"],[45,56,"pl-s1"],[56,57,"pl-kos"],[57,70,"pl-c1"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,33,"pl-s1"],[33,34,"pl-kos"],[34,44,"pl-c1"],[45,48,"pl-c1"],[49,53,"pl-c1"],[53,54,"pl-kos"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,31,"pl-v"],[31,32,"pl-kos"],[33,44,"pl-s1"],[44,45,"pl-kos"],[45,50,"pl-c1"],[51,52,"pl-c1"],[53,61,"pl-s1"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[[3,9,"pl-k"],[10,17,"pl-v"],[17,18,"pl-kos"],[18,25,"pl-en"],[25,26,"pl-kos"],[27,30,"pl-k"],[31,46,"pl-v"],[46,47,"pl-kos"],[48,53,"pl-s1"],[53,54,"pl-kos"],[55,63,"pl-s1"],[63,64,"pl-kos"],[65,75,"pl-s1"],[76,77,"pl-kos"],[78,79,"pl-kos"],[79,80,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,26,"pl-s1"],[27,28,"pl-c1"],[29,30,"pl-kos"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,29,"pl-c1"],[30,33,"pl-c1"],[34,43,"pl-c1"],[44,45,"pl-kos"],[46,47,"pl-kos"]],[],[[3,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-smi"],[32,33,"pl-kos"],[33,46,"pl-en"],[46,47,"pl-kos"],[48,60,"pl-s"],[60,61,"pl-kos"],[62,73,"pl-s1"],[73,74,"pl-kos"],[74,84,"pl-c1"],[85,86,"pl-kos"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,25,"pl-c1"],[26,29,"pl-c1"],[30,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-smi"],[32,33,"pl-kos"],[33,46,"pl-en"],[46,47,"pl-kos"],[48,60,"pl-s"],[60,61,"pl-kos"],[62,73,"pl-s1"],[73,74,"pl-kos"],[74,80,"pl-c1"],[80,81,"pl-kos"],[81,88,"pl-c1"],[88,89,"pl-kos"],[89,99,"pl-c1"],[100,101,"pl-kos"],[102,103,"pl-kos"],[103,104,"pl-kos"]],[[3,21,"pl-s1"],[21,22,"pl-kos"],[22,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-smi"],[32,33,"pl-kos"],[33,46,"pl-en"],[46,47,"pl-kos"],[48,60,"pl-s"],[60,61,"pl-kos"],[62,73,"pl-s1"],[73,74,"pl-kos"],[74,80,"pl-c1"],[80,81,"pl-kos"],[81,87,"pl-c1"],[87,88,"pl-kos"],[88,98,"pl-c1"],[99,100,"pl-kos"],[101,102,"pl-kos"],[102,103,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"],[43,47,"pl-en"],[47,48,"pl-kos"],[49,57,"pl-k"],[58,59,"pl-kos"],[60,71,"pl-s1"],[72,73,"pl-kos"],[74,75,"pl-kos"]],[],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,33,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-c1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,36,"pl-c1"],[36,37,"pl-kos"],[38,49,"pl-s1"],[49,50,"pl-kos"],[50,54,"pl-c1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-v"],[20,21,"pl-c1"],[22,43,"pl-c1"],[43,44,"pl-kos"],[45,56,"pl-s1"],[56,57,"pl-kos"],[57,70,"pl-c1"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[],[[3,66,"pl-c"]],[[3,8,"pl-k"],[9,21,"pl-s1"],[22,23,"pl-c1"],[24,34,"pl-v"],[34,35,"pl-kos"],[35,52,"pl-c1"],[52,53,"pl-kos"]],[[3,8,"pl-k"],[9,18,"pl-s1"],[19,20,"pl-c1"],[21,33,"pl-s1"],[34,35,"pl-c1"],[36,44,"pl-s1"],[44,45,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,33,"pl-s1"],[33,34,"pl-kos"],[34,44,"pl-c1"],[45,47,"pl-c1"],[48,49,"pl-c1"],[49,50,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,33,"pl-s1"],[33,34,"pl-kos"],[34,44,"pl-c1"],[45,48,"pl-c1"],[49,58,"pl-c1"],[61,65,"pl-s1"],[65,66,"pl-kos"],[66,77,"pl-c1"],[77,78,"pl-kos"],[79,90,"pl-s1"],[90,91,"pl-kos"],[91,101,"pl-c1"],[102,103,"pl-kos"],[103,104,"pl-kos"],[104,114,"pl-c1"],[117,126,"pl-c1"],[126,127,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,33,"pl-s1"],[33,34,"pl-kos"],[34,44,"pl-c1"],[45,48,"pl-c1"],[49,53,"pl-c1"],[53,54,"pl-kos"]],[[3,6,"pl-k"],[7,12,"pl-s1"],[12,13,"pl-kos"],[14,29,"pl-s1"],[29,30,"pl-kos"]],[],[[3,76,"pl-c"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,18,"pl-s1"],[19,21,"pl-c1"],[22,32,"pl-s1"],[33,36,"pl-c1"],[37,46,"pl-s1"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[4,119,"pl-c"]],[[4,70,"pl-c"]],[[4,9,"pl-k"],[10,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-v"],[24,25,"pl-kos"],[25,30,"pl-en"],[30,31,"pl-kos"],[32,42,"pl-s1"],[43,44,"pl-c1"],[45,55,"pl-s1"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[[4,9,"pl-k"],[10,20,"pl-s1"],[21,22,"pl-c1"],[23,43,"pl-s"],[44,45,"pl-c1"],[46,57,"pl-s1"],[57,58,"pl-kos"],[58,68,"pl-c1"],[69,70,"pl-c1"],[71,74,"pl-s"],[75,76,"pl-c1"],[77,88,"pl-s1"],[88,89,"pl-kos"],[89,102,"pl-c1"],[103,104,"pl-c1"],[105,108,"pl-s"],[109,110,"pl-c1"],[111,118,"pl-s1"],[119,120,"pl-c1"],[121,124,"pl-s"],[125,126,"pl-c1"],[127,138,"pl-s1"],[138,139,"pl-kos"],[139,144,"pl-c1"],[144,145,"pl-kos"]],[[4,7,"pl-k"],[8,10,"pl-s1"],[11,12,"pl-c1"],[13,19,"pl-s1"],[19,20,"pl-kos"],[20,25,"pl-c1"],[25,26,"pl-kos"],[26,29,"pl-en"],[29,30,"pl-kos"],[31,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,10,"pl-c1"],[11,13,"pl-s1"],[14,15,"pl-kos"],[16,17,"pl-kos"]],[],[[5,10,"pl-s1"],[11,12,"pl-c1"],[13,16,"pl-k"],[17,27,"pl-v"],[27,28,"pl-kos"],[29,39,"pl-s1"],[39,40,"pl-kos"],[41,48,"pl-s1"],[49,50,"pl-c1"],[51,61,"pl-s1"],[61,62,"pl-kos"],[63,74,"pl-s1"],[74,75,"pl-kos"],[75,80,"pl-c1"],[81,82,"pl-c1"],[83,93,"pl-s1"],[94,95,"pl-c1"],[96,108,"pl-s1"],[109,110,"pl-kos"],[110,111,"pl-kos"]],[],[[5,70,"pl-c"]],[[5,7,"pl-s1"],[8,9,"pl-c1"],[10,13,"pl-k"],[14,31,"pl-v"],[31,32,"pl-kos"],[33,38,"pl-s1"],[38,39,"pl-kos"],[40,50,"pl-s1"],[51,52,"pl-c1"],[53,65,"pl-s1"],[66,67,"pl-kos"],[67,68,"pl-kos"]],[],[[5,11,"pl-s1"],[11,12,"pl-kos"],[12,17,"pl-c1"],[17,18,"pl-kos"],[18,21,"pl-en"],[21,22,"pl-kos"],[23,33,"pl-s1"],[33,34,"pl-kos"],[35,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,19,"pl-s1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,52,"pl-v"],[52,53,"pl-kos"],[54,56,"pl-s1"],[56,57,"pl-kos"],[58,66,"pl-s1"],[66,67,"pl-kos"],[68,69,"pl-kos"],[70,80,"pl-s1"],[81,82,"pl-c1"],[83,93,"pl-s1"],[94,95,"pl-kos"],[96,97,"pl-c1"],[98,110,"pl-s1"],[110,111,"pl-kos"],[112,122,"pl-s1"],[123,124,"pl-kos"],[124,125,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,19,"pl-s1"],[20,23,"pl-c1"],[24,28,"pl-c1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[5,10,"pl-s1"],[11,12,"pl-c1"],[13,16,"pl-k"],[17,27,"pl-v"],[27,28,"pl-kos"],[29,40,"pl-s1"],[40,41,"pl-kos"],[41,46,"pl-c1"],[47,48,"pl-c1"],[49,57,"pl-s1"],[58,59,"pl-kos"],[59,60,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,10,"pl-s1"],[11,12,"pl-c1"],[13,16,"pl-k"],[17,27,"pl-v"],[27,28,"pl-kos"],[29,39,"pl-s1"],[39,40,"pl-kos"],[41,51,"pl-s1"],[51,52,"pl-kos"],[53,64,"pl-s1"],[64,65,"pl-kos"],[65,70,"pl-c1"],[71,72,"pl-c1"],[73,81,"pl-s1"],[82,83,"pl-kos"],[83,84,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,19,"pl-s1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,41,"pl-v"],[41,42,"pl-kos"],[43,48,"pl-s1"],[48,49,"pl-kos"],[50,58,"pl-s1"],[58,59,"pl-kos"],[60,70,"pl-s1"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,99,"pl-c"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[19,20,"pl-kos"],[20,26,"pl-c1"],[27,30,"pl-c1"],[31,40,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-kos"]],[],[[4,9,"pl-k"],[10,25,"pl-s1"],[26,27,"pl-c1"],[28,44,"pl-c1"],[44,45,"pl-kos"],[45,51,"pl-c1"],[51,52,"pl-kos"]],[[4,9,"pl-k"],[10,27,"pl-v"],[28,29,"pl-c1"],[30,51,"pl-c1"],[51,52,"pl-kos"],[53,64,"pl-s1"],[64,65,"pl-kos"],[65,71,"pl-c1"],[71,72,"pl-kos"],[72,79,"pl-c1"],[79,80,"pl-kos"],[80,93,"pl-c1"],[94,95,"pl-kos"],[95,96,"pl-kos"]],[],[[4,9,"pl-k"],[10,27,"pl-s1"],[28,29,"pl-c1"],[30,41,"pl-s1"],[41,42,"pl-kos"],[42,48,"pl-c1"],[48,49,"pl-kos"],[49,56,"pl-c1"],[56,57,"pl-kos"],[57,67,"pl-c1"],[68,70,"pl-c1"],[71,72,"pl-c1"],[72,73,"pl-kos"]],[[4,9,"pl-k"],[10,26,"pl-s1"],[27,28,"pl-c1"],[29,40,"pl-s1"],[40,41,"pl-kos"],[41,47,"pl-c1"],[47,48,"pl-kos"],[48,54,"pl-c1"],[54,55,"pl-kos"],[55,65,"pl-c1"],[66,68,"pl-c1"],[69,70,"pl-c1"],[70,71,"pl-kos"]],[],[[4,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,29,"pl-k"],[30,47,"pl-v"],[47,48,"pl-kos"],[49,60,"pl-s1"],[60,61,"pl-kos"],[62,63,"pl-c1"],[64,65,"pl-kos"],[65,66,"pl-kos"],[67,84,"pl-s1"],[84,85,"pl-kos"],[86,97,"pl-s1"],[97,98,"pl-kos"],[98,104,"pl-c1"],[104,105,"pl-kos"],[105,110,"pl-c1"],[111,112,"pl-c1"],[113,128,"pl-s1"],[129,130,"pl-kos"],[130,131,"pl-kos"]],[[4,9,"pl-k"],[10,22,"pl-s1"],[23,24,"pl-c1"],[25,28,"pl-k"],[29,39,"pl-v"],[39,40,"pl-kos"],[41,52,"pl-s1"],[52,53,"pl-kos"],[54,55,"pl-c1"],[56,57,"pl-kos"],[57,58,"pl-kos"],[59,75,"pl-s1"],[75,76,"pl-kos"],[77,88,"pl-s1"],[88,89,"pl-kos"],[89,95,"pl-c1"],[95,96,"pl-kos"],[96,101,"pl-c1"],[102,103,"pl-c1"],[104,112,"pl-s1"],[113,114,"pl-kos"],[114,115,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,19,"pl-s1"],[20,23,"pl-c1"],[24,28,"pl-c1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[5,99,"pl-c"]],[[5,20,"pl-s1"],[21,22,"pl-c1"],[23,26,"pl-k"],[27,42,"pl-v"],[42,43,"pl-kos"],[44,59,"pl-s1"],[59,60,"pl-kos"],[60,65,"pl-c1"],[65,66,"pl-kos"],[66,71,"pl-en"],[71,72,"pl-kos"],[72,73,"pl-kos"],[73,74,"pl-kos"],[75,90,"pl-s1"],[90,91,"pl-kos"],[91,99,"pl-c1"],[99,100,"pl-kos"],[101,116,"pl-s1"],[116,117,"pl-kos"],[117,127,"pl-c1"],[128,129,"pl-kos"],[129,130,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,7,"pl-k"],[8,9,"pl-kos"],[10,13,"pl-k"],[14,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-c1"],[19,20,"pl-kos"],[21,23,"pl-s1"],[24,25,"pl-c1"],[26,39,"pl-s1"],[39,40,"pl-kos"],[40,46,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,51,"pl-c1"],[52,54,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-s1"],[58,60,"pl-c1"],[61,62,"pl-kos"],[63,64,"pl-kos"]],[],[[5,10,"pl-k"],[11,16,"pl-s1"],[17,18,"pl-c1"],[19,32,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-s1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[5,20,"pl-s1"],[20,21,"pl-kos"],[21,25,"pl-en"],[25,26,"pl-kos"],[27,32,"pl-s1"],[32,33,"pl-kos"],[34,46,"pl-s1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,51,"pl-c1"],[52,60,"pl-s1"],[61,62,"pl-kos"],[63,64,"pl-kos"],[64,65,"pl-kos"]],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,18,"pl-s1"],[19,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"],[26,41,"pl-s1"],[41,42,"pl-kos"],[42,46,"pl-en"],[46,47,"pl-kos"],[48,53,"pl-s1"],[53,54,"pl-kos"],[55,67,"pl-s1"],[67,68,"pl-kos"],[69,70,"pl-s1"],[71,72,"pl-c1"],[73,81,"pl-s1"],[82,83,"pl-c1"],[84,85,"pl-c1"],[86,87,"pl-kos"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,18,"pl-s1"],[19,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"],[26,41,"pl-s1"],[41,42,"pl-kos"],[42,46,"pl-en"],[46,47,"pl-kos"],[48,53,"pl-s1"],[53,54,"pl-kos"],[55,67,"pl-s1"],[67,68,"pl-kos"],[69,70,"pl-s1"],[71,72,"pl-c1"],[73,81,"pl-s1"],[82,83,"pl-c1"],[84,85,"pl-c1"],[86,87,"pl-kos"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,18,"pl-s1"],[19,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"],[26,41,"pl-s1"],[41,42,"pl-kos"],[42,46,"pl-en"],[46,47,"pl-kos"],[48,53,"pl-s1"],[53,54,"pl-kos"],[55,67,"pl-s1"],[67,68,"pl-kos"],[69,70,"pl-s1"],[71,72,"pl-c1"],[73,81,"pl-s1"],[82,83,"pl-c1"],[84,85,"pl-c1"],[86,87,"pl-kos"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,18,"pl-s1"],[19,21,"pl-c1"],[22,23,"pl-c1"],[24,25,"pl-kos"],[26,31,"pl-k"],[32,35,"pl-k"],[36,41,"pl-v"],[41,42,"pl-kos"],[43,110,"pl-s"],[111,112,"pl-kos"],[112,113,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,25,"pl-s1"],[25,26,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,94,"pl-c"]],[[0,32,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,41,"pl-c"],[4,11,"pl-k"],[13,40,"pl-smi"]],[[0,4,"pl-c"]],[[1,12,"pl-en"],[12,13,"pl-kos"],[14,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,30,"pl-c1"],[30,31,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,34,"pl-c1"],[34,35,"pl-kos"],[36,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,32,"pl-s1"],[32,33,"pl-kos"],[33,39,"pl-c1"],[39,40,"pl-kos"]],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-s1"],[24,25,"pl-kos"],[25,31,"pl-c1"],[31,32,"pl-kos"],[33,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,5,"pl-k"],[6,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,33,"pl-c1"],[33,34,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,20,"pl-c1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,26,"pl-s1"],[26,27,"pl-kos"],[27,34,"pl-c1"],[34,35,"pl-kos"],[35,45,"pl-en"],[45,46,"pl-kos"],[47,56,"pl-s1"],[56,57,"pl-kos"],[57,60,"pl-c1"],[61,62,"pl-kos"],[62,63,"pl-kos"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[16,19,"pl-c1"],[20,24,"pl-c1"],[25,26,"pl-kos"],[27,33,"pl-s1"],[34,35,"pl-c1"],[36,43,"pl-s1"],[43,44,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,30,"pl-en"],[30,31,"pl-kos"],[32,44,"pl-s1"],[44,45,"pl-kos"],[46,57,"pl-s1"],[57,58,"pl-kos"],[59,65,"pl-s1"],[66,67,"pl-kos"],[67,68,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,17,"pl-en"],[17,18,"pl-kos"],[19,31,"pl-s1"],[31,32,"pl-kos"],[33,44,"pl-s1"],[44,45,"pl-kos"],[46,52,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,34,"pl-c1"],[34,35,"pl-kos"],[36,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-s1"],[24,25,"pl-kos"],[25,31,"pl-c1"],[31,32,"pl-kos"],[33,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,20,"pl-kos"],[21,30,"pl-s1"],[30,31,"pl-kos"],[31,34,"pl-c1"],[35,37,"pl-c1"],[38,47,"pl-s1"],[47,48,"pl-kos"],[48,58,"pl-c1"],[59,60,"pl-kos"],[61,62,"pl-c1"],[63,66,"pl-s"],[67,68,"pl-c1"],[69,79,"pl-s1"],[79,80,"pl-kos"],[80,87,"pl-c1"],[87,88,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,24,"pl-c1"],[24,25,"pl-kos"],[26,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[3,58,"pl-c"]],[[3,9,"pl-k"],[10,14,"pl-smi"],[14,15,"pl-kos"],[15,27,"pl-c1"],[27,28,"pl-kos"],[29,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,38,"pl-en"],[38,39,"pl-kos"],[40,51,"pl-s1"],[51,52,"pl-kos"],[53,59,"pl-s1"],[60,61,"pl-kos"],[61,62,"pl-kos"],[62,66,"pl-en"],[66,67,"pl-kos"],[68,76,"pl-k"],[77,78,"pl-kos"],[79,86,"pl-s1"],[87,88,"pl-kos"],[89,90,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,16,"pl-c1"],[17,18,"pl-c1"],[19,24,"pl-c1"],[24,25,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-c1"],[16,17,"pl-c1"],[18,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[34,36,"pl-c1"],[37,46,"pl-s1"],[46,47,"pl-kos"],[47,51,"pl-c1"],[52,54,"pl-c1"],[55,57,"pl-s"],[57,58,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,24,"pl-c1"],[25,27,"pl-s"],[28,30,"pl-c1"],[31,37,"pl-k"],[38,47,"pl-s1"],[47,48,"pl-kos"],[48,51,"pl-c1"],[52,55,"pl-c1"],[56,64,"pl-s"],[65,67,"pl-c1"],[68,77,"pl-s1"],[77,78,"pl-kos"],[78,81,"pl-c1"],[81,82,"pl-kos"],[82,92,"pl-en"],[92,93,"pl-kos"],[94,107,"pl-s"],[108,109,"pl-kos"],[110,113,"pl-c1"],[114,119,"pl-c1"],[120,121,"pl-kos"],[122,123,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-c1"],[17,18,"pl-c1"],[19,28,"pl-s1"],[28,29,"pl-kos"],[29,32,"pl-c1"],[32,33,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-s1"],[24,25,"pl-kos"],[25,33,"pl-c1"],[34,36,"pl-c1"],[37,38,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,27,"pl-s1"],[27,28,"pl-kos"],[29,39,"pl-s1"],[39,40,"pl-kos"],[40,47,"pl-c1"],[48,49,"pl-kos"],[50,52,"pl-c1"],[53,54,"pl-kos"],[54,55,"pl-kos"],[55,56,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,20,"pl-c1"],[21,22,"pl-c1"],[23,36,"pl-c1"],[36,37,"pl-kos"],[38,45,"pl-s1"],[45,46,"pl-kos"],[46,55,"pl-c1"],[56,57,"pl-kos"],[58,60,"pl-c1"],[61,73,"pl-v"],[73,74,"pl-kos"]],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,20,"pl-c1"],[21,22,"pl-c1"],[23,36,"pl-c1"],[36,37,"pl-kos"],[38,45,"pl-s1"],[45,46,"pl-kos"],[46,55,"pl-c1"],[56,57,"pl-kos"],[58,60,"pl-c1"],[61,85,"pl-v"],[85,86,"pl-kos"]],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,16,"pl-c1"],[17,18,"pl-c1"],[19,34,"pl-c1"],[34,35,"pl-kos"],[36,43,"pl-s1"],[43,44,"pl-kos"],[44,49,"pl-c1"],[50,51,"pl-kos"],[52,54,"pl-c1"],[55,69,"pl-v"],[69,70,"pl-kos"]],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,16,"pl-c1"],[17,18,"pl-c1"],[19,34,"pl-c1"],[34,35,"pl-kos"],[36,43,"pl-s1"],[43,44,"pl-kos"],[44,49,"pl-c1"],[50,51,"pl-kos"],[52,54,"pl-c1"],[55,69,"pl-v"],[69,70,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,22,"pl-c1"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,35,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"],[39,47,"pl-c1"],[49,61,"pl-s1"],[62,63,"pl-kos"],[64,65,"pl-kos"],[65,66,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-s1"],[17,18,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,11,"pl-en"],[11,12,"pl-kos"],[13,21,"pl-k"],[22,23,"pl-kos"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-c1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,19,"pl-c1"],[19,20,"pl-kos"],[21,29,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-c1"],[34,41,"pl-s1"],[41,42,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-s1"],[16,17,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,29,"pl-s1"],[29,30,"pl-kos"],[31,37,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,30,"pl-c1"],[30,31,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,23,"pl-c1"],[23,24,"pl-kos"],[25,36,"pl-s1"],[37,38,"pl-kos"],[39,42,"pl-c1"],[43,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-smi"],[14,15,"pl-kos"],[15,26,"pl-c1"],[26,27,"pl-kos"],[28,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"],[42,46,"pl-en"],[46,47,"pl-kos"],[48,49,"pl-kos"],[50,57,"pl-s1"],[58,59,"pl-kos"],[60,62,"pl-c1"],[63,70,"pl-s1"],[70,71,"pl-kos"],[71,76,"pl-en"],[76,77,"pl-kos"],[77,78,"pl-kos"],[79,80,"pl-kos"],[80,81,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-s1"],[24,25,"pl-kos"],[25,31,"pl-c1"],[31,32,"pl-kos"],[33,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,7,"pl-k"],[8,11,"pl-c1"],[12,13,"pl-c1"],[14,18,"pl-s1"],[18,19,"pl-kos"],[19,22,"pl-c1"],[23,25,"pl-c1"],[26,30,"pl-s1"],[30,31,"pl-kos"],[31,40,"pl-c1"],[40,41,"pl-kos"]],[],[[2,5,"pl-k"],[6,15,"pl-s1"],[16,17,"pl-c1"],[18,27,"pl-s1"],[27,28,"pl-kos"],[28,31,"pl-c1"],[32,34,"pl-c1"],[35,37,"pl-s"],[37,38,"pl-kos"]],[[2,5,"pl-k"],[6,17,"pl-s1"],[18,19,"pl-c1"],[20,25,"pl-c1"],[25,26,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,27,"pl-c1"],[28,31,"pl-c1"],[32,41,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[3,58,"pl-c"]],[],[[3,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,35,"pl-en"],[35,36,"pl-kos"],[37,49,"pl-s"],[49,50,"pl-kos"],[51,60,"pl-s1"],[60,61,"pl-kos"],[61,71,"pl-c1"],[72,73,"pl-kos"],[73,74,"pl-kos"],[74,78,"pl-en"],[78,79,"pl-kos"],[80,88,"pl-k"],[89,90,"pl-kos"],[91,101,"pl-s1"],[102,103,"pl-kos"],[104,105,"pl-kos"]],[],[[4,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-c1"],[22,23,"pl-kos"]],[[4,9,"pl-k"],[10,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,25,"pl-v"],[25,26,"pl-kos"],[27,28,"pl-kos"],[29,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"],[43,44,"pl-kos"],[45,49,"pl-c1"],[51,60,"pl-s1"],[60,61,"pl-kos"],[61,69,"pl-c1"],[70,71,"pl-kos"],[72,73,"pl-kos"],[73,74,"pl-kos"]],[[4,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-c1"],[19,20,"pl-kos"],[20,35,"pl-en"],[35,36,"pl-kos"],[37,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[[4,10,"pl-k"],[11,20,"pl-s1"],[20,21,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,11,"pl-k"],[12,13,"pl-kos"],[14,23,"pl-s1"],[23,24,"pl-kos"],[24,27,"pl-c1"],[28,31,"pl-c1"],[32,41,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[3,8,"pl-k"],[9,12,"pl-k"],[13,18,"pl-v"],[18,19,"pl-kos"],[20,46,"pl-s"],[47,48,"pl-c1"],[49,60,"pl-s1"],[61,62,"pl-c1"],[63,95,"pl-s"],[96,97,"pl-kos"],[97,98,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,25,"pl-v"],[25,26,"pl-kos"],[26,33,"pl-en"],[33,34,"pl-kos"],[35,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"],[47,51,"pl-en"],[51,52,"pl-kos"],[53,61,"pl-k"],[62,63,"pl-kos"],[64,73,"pl-s1"],[74,75,"pl-kos"],[76,77,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,21,"pl-v"],[21,22,"pl-kos"],[23,31,"pl-k"],[32,33,"pl-kos"],[34,41,"pl-s1"],[41,42,"pl-kos"],[43,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[4,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,15,"pl-s1"],[15,16,"pl-kos"],[16,35,"pl-c1"],[36,39,"pl-c1"],[40,44,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-kos"]],[],[[5,11,"pl-s1"],[12,13,"pl-c1"],[14,22,"pl-k"],[23,24,"pl-kos"],[25,36,"pl-s1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[6,11,"pl-k"],[12,19,"pl-s1"],[20,21,"pl-c1"],[22,25,"pl-k"],[26,33,"pl-v"],[33,34,"pl-kos"],[35,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[[6,13,"pl-s1"],[13,14,"pl-kos"],[14,25,"pl-c1"],[26,27,"pl-c1"],[28,32,"pl-c1"],[32,33,"pl-kos"]],[],[[6,13,"pl-s1"],[13,14,"pl-kos"],[15,22,"pl-s1"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,28,"pl-v"],[28,29,"pl-kos"],[29,39,"pl-en"],[39,40,"pl-kos"],[41,50,"pl-s1"],[50,51,"pl-kos"],[52,59,"pl-s1"],[59,60,"pl-kos"],[60,64,"pl-c1"],[65,66,"pl-kos"],[66,67,"pl-kos"],[68,74,"pl-s1"],[74,75,"pl-kos"],[76,85,"pl-c1"],[85,86,"pl-kos"],[87,93,"pl-s1"],[94,95,"pl-kos"],[95,96,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,10,"pl-en"],[10,11,"pl-kos"],[12,20,"pl-k"],[21,22,"pl-kos"],[23,30,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-kos"]],[],[[3,47,"pl-c"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[20,23,"pl-c1"],[24,28,"pl-c1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[4,7,"pl-c1"],[7,8,"pl-kos"],[8,23,"pl-en"],[23,24,"pl-kos"],[25,34,"pl-s1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,19,"pl-c1"],[19,20,"pl-kos"],[20,28,"pl-c1"],[29,30,"pl-c1"],[31,40,"pl-s1"],[40,41,"pl-kos"],[41,49,"pl-c1"],[50,52,"pl-c1"],[53,72,"pl-en"],[72,73,"pl-kos"],[74,83,"pl-s1"],[83,84,"pl-kos"],[84,87,"pl-c1"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-s1"],[17,18,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,11,"pl-en"],[11,12,"pl-kos"],[13,21,"pl-k"],[22,23,"pl-kos"],[24,29,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[3,10,"pl-smi"],[10,11,"pl-kos"],[11,16,"pl-en"],[16,17,"pl-kos"],[18,60,"pl-s"],[60,61,"pl-kos"],[62,71,"pl-s1"],[72,73,"pl-kos"],[73,74,"pl-kos"]],[[3,8,"pl-k"],[9,14,"pl-s1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,18,"pl-c1"],[18,19,"pl-kos"],[20,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,43,"pl-s1"],[43,44,"pl-kos"]],[[2,8,"pl-k"],[9,16,"pl-s1"],[16,17,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,70,"pl-c"]],[[0,34,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,27,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,26,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,30,"pl-c"],[4,11,"pl-k"],[13,29,"pl-smi"]],[[0,4,"pl-c"]],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,30,"pl-s1"],[30,31,"pl-kos"],[32,39,"pl-s1"],[39,40,"pl-kos"],[41,47,"pl-s1"],[47,48,"pl-kos"],[49,59,"pl-s1"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,27,"pl-en"],[27,28,"pl-kos"],[29,38,"pl-s"],[38,39,"pl-kos"],[40,46,"pl-s1"],[46,47,"pl-kos"],[47,52,"pl-c1"],[53,54,"pl-kos"],[54,55,"pl-kos"],[55,59,"pl-en"],[59,60,"pl-kos"],[61,69,"pl-k"],[70,71,"pl-kos"],[72,79,"pl-s1"],[80,81,"pl-kos"],[82,83,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,17,"pl-s1"],[18,19,"pl-kos"],[20,26,"pl-k"],[27,31,"pl-c1"],[31,32,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[14,15,"pl-kos"],[15,23,"pl-c1"],[24,27,"pl-c1"],[28,37,"pl-c1"],[38,40,"pl-c1"],[41,47,"pl-s1"],[47,48,"pl-kos"],[48,56,"pl-c1"],[57,58,"pl-c1"],[59,60,"pl-c1"],[61,62,"pl-kos"],[63,64,"pl-kos"]],[],[[4,11,"pl-s1"],[12,13,"pl-c1"],[14,21,"pl-s1"],[21,22,"pl-kos"],[22,27,"pl-en"],[27,28,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,19,"pl-c1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,37,"pl-c1"],[37,38,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[14,15,"pl-kos"],[15,25,"pl-c1"],[25,26,"pl-kos"],[27,37,"pl-c1"],[37,38,"pl-kos"],[38,59,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-kos"],[64,65,"pl-kos"]],[],[[4,9,"pl-k"],[10,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,39,"pl-c1"],[40,43,"pl-c1"],[44,53,"pl-c1"],[56,62,"pl-s1"],[62,63,"pl-kos"],[63,73,"pl-c1"],[73,74,"pl-kos"],[75,85,"pl-c1"],[85,86,"pl-kos"],[86,107,"pl-c1"],[108,109,"pl-kos"],[112,121,"pl-c1"],[121,122,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,18,"pl-s1"],[19,20,"pl-kos"],[21,22,"pl-kos"]],[],[[5,10,"pl-k"],[11,24,"pl-s1"],[25,26,"pl-c1"],[27,33,"pl-s1"],[33,34,"pl-kos"],[34,46,"pl-c1"],[46,47,"pl-kos"],[47,50,"pl-en"],[50,51,"pl-kos"],[52,59,"pl-s1"],[60,61,"pl-kos"],[61,62,"pl-kos"]],[[5,12,"pl-s1"],[13,14,"pl-c1"],[15,21,"pl-s1"],[21,22,"pl-kos"],[22,32,"pl-c1"],[32,33,"pl-kos"],[34,44,"pl-c1"],[44,45,"pl-kos"],[45,66,"pl-c1"],[67,68,"pl-kos"],[68,69,"pl-kos"],[69,82,"pl-en"],[82,83,"pl-kos"],[84,91,"pl-s1"],[91,92,"pl-kos"],[93,102,"pl-s1"],[103,104,"pl-kos"],[104,105,"pl-kos"]],[[5,11,"pl-s1"],[11,12,"pl-kos"],[12,24,"pl-c1"],[24,25,"pl-kos"],[25,28,"pl-en"],[28,29,"pl-kos"],[30,37,"pl-s1"],[37,38,"pl-kos"],[39,52,"pl-s1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,18,"pl-s1"],[19,22,"pl-c1"],[23,32,"pl-c1"],[33,34,"pl-kos"],[35,36,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,22,"pl-c1"],[23,24,"pl-c1"],[25,35,"pl-s1"],[35,36,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[19,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-c1"],[31,38,"pl-s1"],[38,39,"pl-kos"]],[],[[3,9,"pl-k"],[10,17,"pl-s1"],[17,18,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,76,"pl-c"]],[[0,75,"pl-c"]],[[0,78,"pl-c"]],[[0,78,"pl-c"]],[[0,53,"pl-c"]],[[0,59,"pl-c"],[4,10,"pl-k"],[13,21,"pl-smi"]],[[0,4,"pl-c"]],[[1,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-s1"],[23,24,"pl-kos"],[24,32,"pl-c1"],[32,33,"pl-kos"]],[[2,5,"pl-k"],[6,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-s1"],[21,22,"pl-kos"],[22,30,"pl-c1"],[30,31,"pl-kos"]],[],[[2,7,"pl-k"],[8,29,"pl-s1"],[30,31,"pl-c1"],[32,40,"pl-s1"],[40,41,"pl-kos"],[41,51,"pl-c1"],[51,52,"pl-kos"],[52,59,"pl-c1"],[60,63,"pl-c1"],[64,73,"pl-c1"],[73,74,"pl-kos"]],[[2,7,"pl-k"],[8,23,"pl-s1"],[24,25,"pl-c1"],[26,34,"pl-s1"],[34,35,"pl-kos"],[35,45,"pl-c1"],[45,46,"pl-kos"],[46,51,"pl-c1"],[52,55,"pl-c1"],[56,65,"pl-c1"],[65,66,"pl-kos"]],[[2,7,"pl-k"],[8,22,"pl-s1"],[23,24,"pl-c1"],[25,33,"pl-s1"],[33,34,"pl-kos"],[34,44,"pl-c1"],[44,45,"pl-kos"],[45,51,"pl-c1"],[52,55,"pl-c1"],[56,65,"pl-c1"],[65,66,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-s1"],[11,12,"pl-kos"],[12,20,"pl-c1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,37,"pl-s"],[38,39,"pl-c1"],[40,48,"pl-s1"],[48,49,"pl-kos"],[49,53,"pl-c1"],[53,54,"pl-kos"]],[],[[3,6,"pl-k"],[7,21,"pl-s1"],[22,23,"pl-c1"],[24,28,"pl-smi"],[28,29,"pl-kos"],[29,34,"pl-c1"],[34,35,"pl-kos"],[35,38,"pl-en"],[38,39,"pl-kos"],[40,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[4,18,"pl-s1"],[19,20,"pl-c1"],[21,24,"pl-k"],[25,39,"pl-v"],[39,40,"pl-kos"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[[4,12,"pl-v"],[12,13,"pl-kos"],[13,22,"pl-c1"],[22,23,"pl-kos"],[23,27,"pl-c1"],[27,28,"pl-kos"],[28,32,"pl-en"],[32,33,"pl-kos"],[34,48,"pl-s1"],[48,49,"pl-kos"],[50,58,"pl-s1"],[59,60,"pl-kos"],[60,61,"pl-kos"]],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,24,"pl-c1"],[24,25,"pl-kos"],[25,29,"pl-en"],[29,30,"pl-kos"],[31,39,"pl-s1"],[39,40,"pl-kos"],[40,45,"pl-c1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,22,"pl-c1"],[23,24,"pl-c1"],[25,33,"pl-s1"],[33,34,"pl-kos"],[34,37,"pl-c1"],[37,38,"pl-kos"]],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,34,"pl-c1"],[35,36,"pl-c1"],[37,42,"pl-c1"],[42,43,"pl-kos"],[44,82,"pl-c"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,14,"pl-c1"],[14,15,"pl-kos"],[15,18,"pl-en"],[18,19,"pl-kos"],[20,28,"pl-s1"],[28,29,"pl-kos"],[30,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,11,"pl-s1"],[12,13,"pl-c1"],[14,28,"pl-s1"],[28,29,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,11,"pl-k"],[12,13,"pl-kos"],[14,18,"pl-s1"],[18,19,"pl-kos"],[19,25,"pl-c1"],[26,27,"pl-kos"],[28,29,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,40,"pl-s"],[41,42,"pl-c1"],[43,51,"pl-s1"],[51,52,"pl-kos"],[52,56,"pl-c1"],[56,57,"pl-kos"]],[],[[3,6,"pl-k"],[7,19,"pl-s1"],[20,21,"pl-c1"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,32,"pl-c1"],[32,33,"pl-kos"],[33,36,"pl-en"],[36,37,"pl-kos"],[38,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,22,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[4,16,"pl-s1"],[17,18,"pl-c1"],[19,22,"pl-k"],[23,40,"pl-v"],[40,41,"pl-kos"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[[4,12,"pl-v"],[12,13,"pl-kos"],[13,22,"pl-c1"],[22,23,"pl-kos"],[23,27,"pl-c1"],[27,28,"pl-kos"],[28,32,"pl-en"],[32,33,"pl-kos"],[34,46,"pl-s1"],[46,47,"pl-kos"],[48,56,"pl-s1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[[4,16,"pl-s1"],[16,17,"pl-kos"],[17,22,"pl-c1"],[22,23,"pl-kos"],[23,27,"pl-en"],[27,28,"pl-kos"],[29,37,"pl-s1"],[37,38,"pl-kos"],[38,43,"pl-c1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[[4,16,"pl-s1"],[16,17,"pl-kos"],[17,20,"pl-c1"],[21,22,"pl-c1"],[23,31,"pl-s1"],[31,32,"pl-kos"],[32,35,"pl-c1"],[35,36,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,14,"pl-c1"],[14,15,"pl-kos"],[15,18,"pl-en"],[18,19,"pl-kos"],[20,28,"pl-s1"],[28,29,"pl-kos"],[30,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,11,"pl-s1"],[12,13,"pl-c1"],[14,26,"pl-s1"],[26,27,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,46,"pl-c"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,28,"pl-s1"],[29,31,"pl-c1"],[32,47,"pl-s1"],[48,50,"pl-c1"],[51,65,"pl-s1"],[66,67,"pl-kos"],[68,69,"pl-kos"]],[],[[3,6,"pl-k"],[7,15,"pl-s1"],[16,17,"pl-c1"],[18,35,"pl-s"],[36,37,"pl-c1"],[38,46,"pl-s1"],[46,47,"pl-kos"],[47,51,"pl-c1"],[52,53,"pl-c1"],[54,57,"pl-s"],[57,58,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,29,"pl-s1"],[30,31,"pl-kos"],[32,40,"pl-s1"],[41,43,"pl-c1"],[44,66,"pl-s"],[66,67,"pl-kos"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,23,"pl-s1"],[24,25,"pl-kos"],[26,34,"pl-s1"],[35,37,"pl-c1"],[38,54,"pl-s"],[54,55,"pl-kos"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,22,"pl-s1"],[23,24,"pl-kos"],[25,33,"pl-s1"],[34,36,"pl-c1"],[37,52,"pl-s"],[52,53,"pl-kos"]],[],[[3,6,"pl-k"],[7,21,"pl-s1"],[22,23,"pl-c1"],[24,28,"pl-smi"],[28,29,"pl-kos"],[29,34,"pl-c1"],[34,35,"pl-kos"],[35,38,"pl-en"],[38,39,"pl-kos"],[40,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[4,18,"pl-s1"],[19,20,"pl-c1"],[21,29,"pl-s1"],[29,30,"pl-kos"],[30,35,"pl-en"],[35,36,"pl-kos"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,24,"pl-s1"],[25,26,"pl-kos"],[27,41,"pl-s1"],[41,42,"pl-kos"],[42,54,"pl-c1"],[55,56,"pl-c1"],[57,61,"pl-c1"],[61,62,"pl-kos"]],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,23,"pl-s1"],[24,25,"pl-kos"],[26,40,"pl-s1"],[40,41,"pl-kos"],[41,52,"pl-c1"],[53,54,"pl-c1"],[55,59,"pl-c1"],[59,60,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,30,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-kos"]],[],[[5,78,"pl-c"]],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,24,"pl-s1"],[24,25,"pl-kos"],[25,36,"pl-c1"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[54,65,"pl-c1"],[65,66,"pl-kos"],[66,67,"pl-c1"],[68,70,"pl-c1"],[71,72,"pl-c1"],[73,74,"pl-c1"],[74,75,"pl-kos"]],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,24,"pl-s1"],[24,25,"pl-kos"],[25,45,"pl-c1"],[46,47,"pl-kos"],[48,62,"pl-s1"],[62,63,"pl-kos"],[63,83,"pl-c1"],[83,84,"pl-kos"],[84,85,"pl-c1"],[86,88,"pl-c1"],[89,90,"pl-c1"],[91,92,"pl-c1"],[92,93,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,14,"pl-c1"],[14,15,"pl-kos"],[15,18,"pl-en"],[18,19,"pl-kos"],[20,28,"pl-s1"],[28,29,"pl-kos"],[30,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,21,"pl-c1"],[21,22,"pl-kos"],[22,25,"pl-en"],[25,26,"pl-kos"],[27,41,"pl-s1"],[41,42,"pl-kos"],[43,47,"pl-smi"],[47,48,"pl-kos"],[48,60,"pl-c1"],[60,61,"pl-kos"],[61,64,"pl-en"],[64,65,"pl-kos"],[66,74,"pl-s1"],[75,76,"pl-kos"],[77,78,"pl-kos"],[78,79,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,11,"pl-s1"],[12,13,"pl-c1"],[14,28,"pl-s1"],[28,29,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,6,"pl-s1"],[6,7,"pl-kos"],[7,15,"pl-c1"],[16,17,"pl-c1"],[18,26,"pl-s1"],[26,27,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,16,"pl-en"],[16,17,"pl-kos"],[18,37,"pl-c"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[2,8,"pl-k"],[9,29,"pl-v"],[29,30,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,105,"pl-c"]],[[0,33,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,31,"pl-c"],[4,11,"pl-k"],[13,30,"pl-smi"]],[[0,4,"pl-c"]],[[1,13,"pl-en"],[13,14,"pl-kos"],[15,28,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,36,"pl-c1"],[36,37,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,26,"pl-s1"],[26,27,"pl-kos"],[27,36,"pl-c1"],[36,37,"pl-kos"],[38,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[],[[2,5,"pl-k"],[6,18,"pl-s1"],[18,19,"pl-kos"]],[[2,7,"pl-k"],[8,22,"pl-s1"],[23,24,"pl-c1"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[[2,7,"pl-k"],[8,26,"pl-s1"],[27,28,"pl-c1"],[29,40,"pl-s1"],[40,41,"pl-kos"],[41,51,"pl-c1"],[52,54,"pl-c1"],[55,56,"pl-kos"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,25,"pl-s1"],[25,26,"pl-kos"],[27,37,"pl-c1"],[37,38,"pl-kos"],[38,57,"pl-c1"],[58,59,"pl-kos"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[3,8,"pl-k"],[9,21,"pl-s1"],[22,23,"pl-c1"],[24,34,"pl-s1"],[34,35,"pl-kos"],[36,46,"pl-c1"],[46,47,"pl-kos"],[47,66,"pl-c1"],[67,68,"pl-kos"],[68,69,"pl-kos"]],[[3,15,"pl-s1"],[16,17,"pl-c1"],[18,30,"pl-s1"],[30,31,"pl-kos"],[31,46,"pl-en"],[46,47,"pl-kos"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,29,"pl-s1"],[29,30,"pl-kos"],[30,42,"pl-en"],[42,43,"pl-kos"],[44,58,"pl-s1"],[58,59,"pl-kos"],[60,71,"pl-s1"],[71,72,"pl-kos"],[73,79,"pl-s1"],[80,81,"pl-kos"],[82,83,"pl-kos"],[83,84,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,20,"pl-c"]],[[3,100,"pl-c"]],[],[[3,8,"pl-k"],[9,26,"pl-s1"],[27,28,"pl-c1"],[29,40,"pl-s1"],[40,41,"pl-kos"],[41,61,"pl-c1"],[62,64,"pl-c1"],[65,66,"pl-kos"],[66,67,"pl-kos"],[67,68,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,23,"pl-c1"],[24,25,"pl-c1"],[26,29,"pl-k"],[30,35,"pl-v"],[35,36,"pl-kos"],[37,40,"pl-c1"],[40,41,"pl-kos"],[42,45,"pl-c1"],[45,46,"pl-kos"],[47,50,"pl-c1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,25,"pl-c1"],[26,27,"pl-c1"],[28,31,"pl-c1"],[31,32,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,13,"pl-v"],[13,14,"pl-kos"],[14,21,"pl-en"],[21,22,"pl-kos"],[23,40,"pl-s1"],[40,41,"pl-kos"],[41,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"],[61,62,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,35,"pl-s1"],[35,36,"pl-kos"],[36,51,"pl-c1"],[51,52,"pl-kos"]],[],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,24,"pl-c1"],[24,25,"pl-kos"],[25,31,"pl-en"],[31,32,"pl-kos"],[33,38,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-c1"],[42,43,"pl-kos"],[43,44,"pl-kos"],[45,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-c1"],[54,55,"pl-kos"],[55,56,"pl-kos"],[57,62,"pl-s1"],[62,63,"pl-kos"],[64,65,"pl-c1"],[66,67,"pl-kos"],[67,68,"pl-kos"],[69,89,"pl-v"],[90,91,"pl-kos"],[91,92,"pl-kos"]],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,26,"pl-c1"],[27,28,"pl-c1"],[29,34,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-c1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,25,"pl-s1"],[25,26,"pl-kos"],[26,42,"pl-c1"],[43,46,"pl-c1"],[47,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[25,38,"pl-en"],[38,39,"pl-kos"],[40,54,"pl-s1"],[54,55,"pl-kos"],[56,61,"pl-s"],[61,62,"pl-kos"],[63,80,"pl-s1"],[80,81,"pl-kos"],[81,97,"pl-c1"],[97,98,"pl-kos"],[99,113,"pl-v"],[114,115,"pl-kos"],[116,117,"pl-kos"],[117,118,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,27,"pl-c1"],[28,29,"pl-c1"],[30,47,"pl-s1"],[47,48,"pl-kos"],[48,62,"pl-c1"],[63,66,"pl-c1"],[67,76,"pl-c1"],[79,96,"pl-s1"],[96,97,"pl-kos"],[97,111,"pl-c1"],[114,117,"pl-c1"],[117,118,"pl-kos"]],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,27,"pl-c1"],[28,29,"pl-c1"],[30,47,"pl-s1"],[47,48,"pl-kos"],[48,63,"pl-c1"],[64,67,"pl-c1"],[68,77,"pl-c1"],[80,97,"pl-s1"],[97,98,"pl-kos"],[98,113,"pl-c1"],[116,119,"pl-c1"],[119,120,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,25,"pl-s1"],[25,26,"pl-kos"],[26,50,"pl-c1"],[51,54,"pl-c1"],[55,64,"pl-c1"],[65,66,"pl-kos"],[67,68,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[25,38,"pl-en"],[38,39,"pl-kos"],[40,54,"pl-s1"],[54,55,"pl-kos"],[56,70,"pl-s"],[70,71,"pl-kos"],[72,89,"pl-s1"],[89,90,"pl-kos"],[90,114,"pl-c1"],[115,116,"pl-kos"],[117,118,"pl-kos"],[118,119,"pl-kos"]],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[25,38,"pl-en"],[38,39,"pl-kos"],[40,54,"pl-s1"],[54,55,"pl-kos"],[56,70,"pl-s"],[70,71,"pl-kos"],[72,89,"pl-s1"],[89,90,"pl-kos"],[90,114,"pl-c1"],[115,116,"pl-kos"],[117,118,"pl-kos"],[118,119,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,33,"pl-en"],[33,34,"pl-kos"],[35,43,"pl-k"],[44,45,"pl-kos"],[46,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"]],[],[[4,10,"pl-k"],[11,14,"pl-s1"],[14,15,"pl-kos"],[15,30,"pl-c1"],[31,33,"pl-c1"],[34,37,"pl-s1"],[37,38,"pl-kos"],[38,53,"pl-en"],[53,54,"pl-kos"],[55,68,"pl-s1"],[69,70,"pl-kos"],[70,71,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,24,"pl-v"],[24,25,"pl-kos"],[25,28,"pl-en"],[28,29,"pl-kos"],[30,34,"pl-smi"],[34,35,"pl-kos"],[35,45,"pl-en"],[45,46,"pl-kos"],[47,55,"pl-k"],[56,57,"pl-kos"],[58,61,"pl-s1"],[62,63,"pl-kos"],[64,65,"pl-kos"]],[],[[4,10,"pl-k"],[11,14,"pl-s1"],[14,15,"pl-kos"],[15,35,"pl-c1"],[36,38,"pl-c1"],[39,42,"pl-s1"],[42,43,"pl-kos"],[43,63,"pl-en"],[63,64,"pl-kos"],[65,78,"pl-s1"],[78,79,"pl-kos"],[80,94,"pl-s1"],[95,96,"pl-kos"],[96,97,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[7,8,"pl-kos"],[9,10,"pl-kos"],[10,11,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,30,"pl-c1"],[31,34,"pl-c1"],[35,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,22,"pl-c1"],[23,24,"pl-c1"],[25,35,"pl-v"],[35,36,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,31,"pl-s1"],[31,32,"pl-kos"],[32,41,"pl-c1"],[42,44,"pl-c1"],[45,56,"pl-c1"],[56,57,"pl-kos"],[57,63,"pl-c1"],[63,64,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[17,20,"pl-c1"],[21,32,"pl-c1"],[32,33,"pl-kos"],[33,38,"pl-c1"],[39,40,"pl-kos"],[41,42,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,29,"pl-c1"],[30,31,"pl-c1"],[32,36,"pl-c1"],[36,37,"pl-kos"]],[],[[3,58,"pl-c"]],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,28,"pl-c1"],[29,30,"pl-c1"],[31,36,"pl-c1"],[36,37,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,29,"pl-c1"],[30,31,"pl-c1"],[32,37,"pl-c1"],[37,38,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,17,"pl-s1"],[18,21,"pl-c1"],[22,33,"pl-c1"],[33,34,"pl-kos"],[34,38,"pl-c1"],[39,40,"pl-kos"],[41,42,"pl-kos"]],[],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,28,"pl-c1"],[29,30,"pl-c1"],[31,42,"pl-s1"],[42,43,"pl-kos"],[43,54,"pl-c1"],[55,58,"pl-c1"],[59,68,"pl-c1"],[71,82,"pl-s1"],[82,83,"pl-kos"],[83,94,"pl-c1"],[97,100,"pl-c1"],[100,101,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,32,"pl-c1"],[33,36,"pl-c1"],[37,46,"pl-c1"],[47,49,"pl-c1"],[50,62,"pl-s1"],[63,66,"pl-c1"],[67,84,"pl-v"],[85,86,"pl-kos"],[87,88,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,66,"pl-s"],[66,67,"pl-kos"],[68,79,"pl-s1"],[79,80,"pl-kos"],[80,93,"pl-c1"],[94,95,"pl-kos"],[96,97,"pl-kos"],[97,98,"pl-kos"]],[],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,29,"pl-c1"],[30,31,"pl-c1"],[32,35,"pl-k"],[36,43,"pl-v"],[43,44,"pl-kos"],[45,46,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-c1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[19,20,"pl-kos"],[20,33,"pl-c1"],[33,34,"pl-kos"],[34,39,"pl-c1"],[40,43,"pl-c1"],[44,53,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[4,9,"pl-k"],[10,15,"pl-s1"],[16,17,"pl-c1"],[18,29,"pl-s1"],[29,30,"pl-kos"],[30,43,"pl-c1"],[43,44,"pl-kos"],[44,49,"pl-c1"],[49,50,"pl-kos"]],[],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,30,"pl-c1"],[30,31,"pl-kos"],[31,34,"pl-en"],[34,35,"pl-kos"],[36,41,"pl-s1"],[41,42,"pl-kos"],[43,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,35,"pl-c1"],[36,39,"pl-c1"],[40,49,"pl-c1"],[50,52,"pl-c1"],[53,65,"pl-s1"],[66,69,"pl-c1"],[70,87,"pl-v"],[88,89,"pl-kos"],[90,91,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,62,"pl-s"],[62,63,"pl-kos"],[64,75,"pl-s1"],[75,76,"pl-kos"],[76,92,"pl-c1"],[93,94,"pl-kos"],[95,96,"pl-kos"],[96,97,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[19,20,"pl-kos"],[20,36,"pl-c1"],[36,37,"pl-kos"],[37,45,"pl-c1"],[46,49,"pl-c1"],[50,59,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[4,18,"pl-s1"],[18,19,"pl-kos"],[19,33,"pl-c1"],[34,35,"pl-c1"],[36,47,"pl-s1"],[47,48,"pl-kos"],[48,64,"pl-c1"],[64,65,"pl-kos"],[65,73,"pl-c1"],[73,74,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,33,"pl-c1"],[34,37,"pl-c1"],[38,47,"pl-c1"],[48,50,"pl-c1"],[51,63,"pl-s1"],[64,67,"pl-c1"],[68,85,"pl-v"],[86,87,"pl-kos"],[88,89,"pl-kos"]],[],[[3,8,"pl-k"],[9,23,"pl-s1"],[24,25,"pl-c1"],[26,37,"pl-s1"],[37,38,"pl-kos"],[38,52,"pl-c1"],[52,53,"pl-kos"]],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,26,"pl-c1"],[27,28,"pl-c1"],[29,32,"pl-k"],[33,38,"pl-v"],[38,39,"pl-kos"],[39,40,"pl-kos"],[40,41,"pl-kos"],[41,47,"pl-en"],[47,48,"pl-kos"],[49,63,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-c1"],[67,68,"pl-kos"],[68,69,"pl-kos"],[70,84,"pl-s1"],[84,85,"pl-kos"],[86,87,"pl-c1"],[88,89,"pl-kos"],[89,90,"pl-kos"],[91,105,"pl-s1"],[105,106,"pl-kos"],[107,108,"pl-c1"],[109,110,"pl-kos"],[110,111,"pl-kos"],[112,132,"pl-v"],[133,134,"pl-kos"],[134,135,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[18,19,"pl-kos"],[19,34,"pl-c1"],[35,38,"pl-c1"],[39,48,"pl-c1"],[49,51,"pl-c1"],[52,64,"pl-s1"],[65,68,"pl-c1"],[69,86,"pl-v"],[87,88,"pl-kos"],[89,90,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,53,"pl-s1"],[53,54,"pl-kos"],[55,68,"pl-s"],[68,69,"pl-kos"],[70,81,"pl-s1"],[81,82,"pl-kos"],[82,97,"pl-c1"],[97,98,"pl-kos"],[99,113,"pl-v"],[114,115,"pl-kos"],[116,117,"pl-kos"],[117,118,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"],[32,36,"pl-en"],[36,37,"pl-kos"],[38,46,"pl-k"],[47,48,"pl-kos"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,23,"pl-k"],[24,36,"pl-s1"],[36,37,"pl-kos"],[38,52,"pl-s1"],[53,54,"pl-kos"],[54,55,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[19,20,"pl-kos"],[20,24,"pl-c1"],[25,26,"pl-kos"],[27,35,"pl-s1"],[35,36,"pl-kos"],[36,40,"pl-c1"],[41,42,"pl-c1"],[43,54,"pl-s1"],[54,55,"pl-kos"],[55,59,"pl-c1"],[59,60,"pl-kos"]],[],[[3,25,"pl-en"],[25,26,"pl-kos"],[27,35,"pl-s1"],[35,36,"pl-kos"],[37,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,22,"pl-c1"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,36,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"],[40,49,"pl-c1"],[51,64,"pl-s1"],[65,66,"pl-kos"],[67,68,"pl-kos"],[68,69,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,19,"pl-s1"],[19,20,"pl-kos"],[20,30,"pl-c1"],[31,32,"pl-kos"],[33,63,"pl-en"],[63,64,"pl-kos"],[65,75,"pl-s1"],[75,76,"pl-kos"],[77,85,"pl-s1"],[85,86,"pl-kos"],[87,98,"pl-s1"],[99,100,"pl-kos"],[100,101,"pl-kos"]],[],[[3,9,"pl-k"],[10,18,"pl-s1"],[18,19,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,82,"pl-c"]],[[1,17,"pl-en"],[17,18,"pl-kos"],[19,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[2,7,"pl-k"],[8,21,"pl-s1"],[22,23,"pl-c1"],[24,39,"pl-v"],[39,40,"pl-kos"],[40,56,"pl-en"],[56,57,"pl-kos"],[58,70,"pl-s1"],[71,73,"pl-c1"],[74,76,"pl-s"],[77,78,"pl-kos"],[78,79,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,20,"pl-s1"],[21,23,"pl-k"],[24,28,"pl-smi"],[28,29,"pl-kos"],[29,42,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[3,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,29,"pl-s"],[30,31,"pl-c1"],[32,33,"pl-kos"],[34,36,"pl-c1"],[37,41,"pl-smi"],[41,42,"pl-kos"],[42,55,"pl-c1"],[55,56,"pl-kos"],[57,70,"pl-s1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-smi"],[7,8,"pl-kos"],[8,21,"pl-c1"],[21,22,"pl-kos"],[23,36,"pl-s1"],[37,38,"pl-kos"],[39,40,"pl-c1"],[41,42,"pl-c1"],[42,43,"pl-kos"]],[],[[3,9,"pl-k"],[10,23,"pl-s1"],[23,24,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,104,"pl-c"]],[[0,3,"pl-c"]],[[0,45,"pl-c"]],[[0,3,"pl-c"]],[[0,45,"pl-c"],[4,10,"pl-k"],[12,33,"pl-smi"]],[[0,44,"pl-c"],[4,11,"pl-k"],[13,43,"pl-smi"]],[[0,4,"pl-c"]],[[1,15,"pl-en"],[15,16,"pl-kos"],[17,27,"pl-s1"],[28,29,"pl-kos"],[30,31,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,36,"pl-c1"],[36,37,"pl-kos"]],[[2,7,"pl-k"],[8,13,"pl-s1"],[14,15,"pl-c1"],[16,20,"pl-smi"],[20,21,"pl-kos"],[21,35,"pl-c1"],[35,36,"pl-kos"]],[],[[2,10,"pl-k"],[11,31,"pl-en"],[31,32,"pl-kos"],[33,42,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[3,9,"pl-k"],[10,20,"pl-s1"],[20,21,"pl-kos"],[22,32,"pl-c1"],[32,33,"pl-kos"],[33,59,"pl-c1"],[60,61,"pl-kos"]],[[4,5,"pl-kos"],[5,20,"pl-en"],[20,21,"pl-kos"],[22,31,"pl-s1"],[31,32,"pl-kos"],[33,39,"pl-s1"],[40,41,"pl-kos"]],[[4,5,"pl-kos"],[5,9,"pl-en"],[9,10,"pl-kos"],[11,19,"pl-k"],[20,21,"pl-kos"],[22,30,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-kos"]],[],[[5,11,"pl-k"],[12,34,"pl-en"],[34,35,"pl-kos"],[36,44,"pl-s1"],[44,45,"pl-kos"],[46,55,"pl-s1"],[55,56,"pl-kos"],[57,63,"pl-s1"],[64,65,"pl-kos"],[65,66,"pl-kos"]],[],[[4,5,"pl-kos"],[6,7,"pl-kos"],[7,8,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,34,"pl-s1"],[34,35,"pl-kos"],[35,41,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-s1"],[45,46,"pl-c1"],[47,49,"pl-s1"],[49,50,"pl-kos"],[51,52,"pl-s1"],[53,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,8,"pl-k"],[9,18,"pl-s1"],[19,20,"pl-c1"],[21,31,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-s1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,38,"pl-en"],[38,39,"pl-kos"],[40,49,"pl-s1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[3,48,"pl-c"]],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,23,"pl-s1"],[23,24,"pl-kos"],[25,33,"pl-s1"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[15,16,"pl-kos"],[17,18,"pl-kos"]],[],[[4,43,"pl-c"]],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,24,"pl-s1"],[24,25,"pl-kos"],[25,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,7,"pl-k"],[8,23,"pl-s1"],[23,24,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,18,"pl-s1"],[18,19,"pl-kos"],[19,29,"pl-c1"],[30,32,"pl-c1"],[33,42,"pl-s1"],[42,43,"pl-kos"],[43,53,"pl-c1"],[53,54,"pl-kos"],[55,65,"pl-c1"],[65,66,"pl-kos"],[66,92,"pl-c1"],[93,94,"pl-kos"],[95,96,"pl-kos"],[97,98,"pl-kos"]],[],[[5,39,"pl-c"]],[[5,20,"pl-s1"],[21,22,"pl-c1"],[23,43,"pl-en"],[43,44,"pl-kos"],[45,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,39,"pl-c"]],[[5,20,"pl-s1"],[21,22,"pl-c1"],[23,45,"pl-en"],[45,46,"pl-kos"],[47,50,"pl-k"],[51,65,"pl-v"],[65,66,"pl-kos"],[66,67,"pl-kos"],[67,68,"pl-kos"],[69,78,"pl-s1"],[78,79,"pl-kos"],[80,86,"pl-s1"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,26,"pl-c"]],[[4,9,"pl-s1"],[9,10,"pl-kos"],[11,19,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-c1"],[24,25,"pl-kos"],[26,35,"pl-c1"],[37,46,"pl-s1"],[46,47,"pl-kos"],[48,55,"pl-c1"],[57,72,"pl-s1"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[[4,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,33,"pl-s1"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,102,"pl-c"]],[[0,29,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,45,"pl-c"],[4,11,"pl-k"],[13,44,"pl-smi"]],[[0,4,"pl-c"]],[[1,9,"pl-en"],[9,10,"pl-kos"],[11,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,36,"pl-c1"],[36,37,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,29,"pl-c1"],[29,30,"pl-kos"],[31,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,28,"pl-s1"],[28,29,"pl-kos"],[29,39,"pl-c1"],[39,40,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,34,"pl-s1"],[34,35,"pl-kos"],[35,41,"pl-c1"],[41,42,"pl-kos"],[43,44,"pl-s1"],[45,46,"pl-c1"],[47,49,"pl-s1"],[49,50,"pl-kos"],[51,52,"pl-s1"],[53,55,"pl-c1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,30,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-s1"],[34,35,"pl-kos"],[35,36,"pl-kos"],[36,44,"pl-c1"],[45,48,"pl-c1"],[49,58,"pl-c1"]],[[6,27,"pl-en"],[27,28,"pl-kos"],[29,33,"pl-smi"],[33,34,"pl-kos"],[34,39,"pl-c1"],[40,41,"pl-kos"]],[[6,10,"pl-smi"],[10,11,"pl-kos"],[11,24,"pl-en"],[24,25,"pl-kos"],[26,36,"pl-s"],[36,37,"pl-kos"],[38,48,"pl-s1"],[48,49,"pl-kos"],[50,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"],[54,62,"pl-c1"],[63,64,"pl-kos"],[64,65,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,25,"pl-s1"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,22,"pl-s1"],[22,23,"pl-kos"],[23,37,"pl-en"],[37,38,"pl-kos"],[39,49,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"],[32,36,"pl-en"],[36,37,"pl-kos"],[38,46,"pl-k"],[47,48,"pl-kos"],[49,56,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[3,8,"pl-k"],[9,18,"pl-s1"],[19,20,"pl-c1"],[21,28,"pl-s1"],[28,29,"pl-kos"],[29,34,"pl-en"],[34,35,"pl-kos"],[36,37,"pl-c1"],[37,38,"pl-kos"],[39,46,"pl-s1"],[46,47,"pl-kos"],[47,53,"pl-c1"],[54,55,"pl-c1"],[56,57,"pl-c1"],[58,59,"pl-kos"],[59,60,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,29,"pl-s1"],[29,30,"pl-kos"],[31,38,"pl-s1"],[38,39,"pl-kos"],[39,45,"pl-c1"],[46,47,"pl-c1"],[48,49,"pl-c1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,35,"pl-s1"],[35,36,"pl-kos"],[36,42,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-s1"],[46,47,"pl-c1"],[48,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-s1"],[54,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[4,9,"pl-k"],[10,18,"pl-s1"],[19,20,"pl-c1"],[21,31,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-s1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[[4,9,"pl-k"],[10,19,"pl-s1"],[20,21,"pl-c1"],[22,32,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-s1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[4,21,"pl-c"]],[],[[4,7,"pl-k"],[8,12,"pl-s1"],[12,13,"pl-kos"]],[],[[4,9,"pl-k"],[10,18,"pl-s1"],[19,20,"pl-c1"],[21,30,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-s1"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,18,"pl-s1"],[18,19,"pl-kos"],[19,23,"pl-c1"],[24,27,"pl-c1"],[28,43,"pl-c1"],[43,44,"pl-kos"],[44,53,"pl-c1"],[54,56,"pl-c1"]],[[6,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,24,"pl-c1"],[25,40,"pl-c1"],[40,41,"pl-kos"],[41,55,"pl-c1"],[56,58,"pl-c1"]],[[6,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,24,"pl-c1"],[25,40,"pl-c1"],[40,41,"pl-kos"],[41,53,"pl-c1"],[54,56,"pl-c1"]],[[6,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,24,"pl-c1"],[25,34,"pl-c1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[5,59,"pl-c"]],[[5,9,"pl-s1"],[10,11,"pl-c1"],[12,19,"pl-s1"],[19,20,"pl-kos"],[20,33,"pl-c1"],[34,37,"pl-c1"],[38,42,"pl-c1"]],[[8,11,"pl-k"],[12,23,"pl-v"],[23,24,"pl-kos"],[25,33,"pl-s1"],[33,34,"pl-kos"],[35,43,"pl-s1"],[44,45,"pl-kos"]],[[8,11,"pl-k"],[12,16,"pl-v"],[16,17,"pl-kos"],[18,26,"pl-s1"],[26,27,"pl-kos"],[28,36,"pl-s1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,14,"pl-s1"],[14,15,"pl-kos"],[15,28,"pl-c1"],[29,32,"pl-c1"],[33,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[6,68,"pl-c"]],[[6,10,"pl-s1"],[10,11,"pl-kos"],[11,31,"pl-en"],[31,32,"pl-kos"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,19,"pl-s1"],[19,20,"pl-kos"],[20,24,"pl-c1"],[25,28,"pl-c1"],[29,44,"pl-c1"],[44,45,"pl-kos"],[45,59,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[6,10,"pl-s1"],[10,11,"pl-kos"],[11,19,"pl-c1"],[20,21,"pl-c1"],[22,41,"pl-en"],[41,42,"pl-kos"],[43,47,"pl-s1"],[47,48,"pl-kos"],[48,56,"pl-c1"],[56,57,"pl-kos"],[58,79,"pl-v"],[80,81,"pl-kos"],[81,82,"pl-kos"]],[],[[5,6,"pl-kos"],[7,11,"pl-k"],[12,14,"pl-k"],[15,16,"pl-kos"],[17,26,"pl-s1"],[26,27,"pl-kos"],[27,31,"pl-c1"],[32,35,"pl-c1"],[36,51,"pl-c1"],[51,52,"pl-kos"],[52,64,"pl-c1"],[65,66,"pl-kos"],[67,68,"pl-kos"]],[],[[6,10,"pl-s1"],[10,11,"pl-kos"],[11,19,"pl-c1"],[20,21,"pl-c1"],[22,41,"pl-en"],[41,42,"pl-kos"],[43,47,"pl-s1"],[47,48,"pl-kos"],[48,56,"pl-c1"],[56,57,"pl-kos"],[58,77,"pl-v"],[78,79,"pl-kos"],[79,80,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,13,"pl-k"],[14,15,"pl-kos"],[16,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-c1"],[31,34,"pl-c1"],[35,50,"pl-c1"],[50,51,"pl-kos"],[51,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[5,9,"pl-s1"],[10,11,"pl-c1"],[12,15,"pl-k"],[16,28,"pl-v"],[28,29,"pl-kos"],[30,38,"pl-s1"],[38,39,"pl-kos"],[40,48,"pl-s1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,13,"pl-k"],[14,15,"pl-kos"],[16,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-c1"],[31,34,"pl-c1"],[35,50,"pl-c1"],[50,51,"pl-kos"],[51,61,"pl-c1"],[62,63,"pl-kos"],[64,65,"pl-kos"]],[],[[5,9,"pl-s1"],[10,11,"pl-c1"],[12,15,"pl-k"],[16,20,"pl-v"],[20,21,"pl-kos"],[22,30,"pl-s1"],[30,31,"pl-kos"],[32,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,13,"pl-k"],[14,15,"pl-kos"],[16,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-c1"],[31,34,"pl-c1"],[35,50,"pl-c1"],[50,51,"pl-kos"],[51,60,"pl-c1"],[61,62,"pl-kos"],[63,64,"pl-kos"]],[],[[5,9,"pl-s1"],[10,11,"pl-c1"],[12,15,"pl-k"],[16,24,"pl-v"],[24,25,"pl-kos"],[26,34,"pl-s1"],[34,35,"pl-kos"],[36,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,13,"pl-k"],[14,15,"pl-kos"],[16,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-c1"],[31,34,"pl-c1"],[35,50,"pl-c1"],[50,51,"pl-kos"],[51,57,"pl-c1"],[58,59,"pl-kos"],[60,61,"pl-kos"]],[],[[5,9,"pl-s1"],[10,11,"pl-c1"],[12,15,"pl-k"],[16,22,"pl-v"],[22,23,"pl-kos"],[24,32,"pl-s1"],[32,33,"pl-kos"],[34,42,"pl-s1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,10,"pl-k"],[11,14,"pl-k"],[15,20,"pl-v"],[20,21,"pl-kos"],[22,70,"pl-s"],[71,72,"pl-c1"],[73,82,"pl-s1"],[82,83,"pl-kos"],[83,87,"pl-c1"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,15,"pl-v"],[15,16,"pl-kos"],[16,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-s1"],[26,27,"pl-kos"],[27,35,"pl-c1"],[35,36,"pl-kos"],[36,51,"pl-c1"],[52,53,"pl-kos"],[53,54,"pl-kos"],[54,60,"pl-c1"],[61,62,"pl-c1"],[63,64,"pl-c1"],[65,66,"pl-kos"],[67,68,"pl-kos"]],[],[[5,23,"pl-en"],[23,24,"pl-kos"],[25,29,"pl-s1"],[29,30,"pl-kos"],[31,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,13,"pl-c1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"],[23,39,"pl-en"],[39,40,"pl-kos"],[41,48,"pl-s1"],[48,49,"pl-kos"],[49,53,"pl-c1"],[54,56,"pl-c1"],[57,58,"pl-kos"],[59,66,"pl-s"],[67,68,"pl-c1"],[69,78,"pl-s1"],[79,80,"pl-kos"],[81,82,"pl-kos"],[82,83,"pl-kos"]],[],[[4,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-s1"],[32,33,"pl-kos"],[34,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,18,"pl-s1"],[18,19,"pl-kos"],[19,29,"pl-c1"],[30,31,"pl-kos"],[32,62,"pl-en"],[62,63,"pl-kos"],[64,74,"pl-s1"],[74,75,"pl-kos"],[76,80,"pl-s1"],[80,81,"pl-kos"],[82,91,"pl-s1"],[92,93,"pl-kos"],[93,94,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,30,"pl-en"],[30,31,"pl-kos"],[32,36,"pl-s1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,21,"pl-s1"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,31,"pl-s1"],[31,32,"pl-kos"],[32,38,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-s1"],[42,43,"pl-c1"],[44,46,"pl-s1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,23,"pl-c1"],[23,24,"pl-kos"],[24,27,"pl-en"],[27,28,"pl-kos"],[29,35,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[[5,11,"pl-c1"],[13,22,"pl-s1"],[22,23,"pl-kos"]],[[5,15,"pl-c1"],[17,18,"pl-s1"]],[[4,5,"pl-kos"],[6,7,"pl-kos"],[7,8,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[14,15,"pl-kos"],[15,21,"pl-c1"],[22,25,"pl-c1"],[26,27,"pl-c1"],[28,29,"pl-kos"],[30,31,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,27,"pl-c1"],[28,29,"pl-kos"],[30,60,"pl-en"],[60,61,"pl-kos"],[62,72,"pl-s1"],[72,73,"pl-kos"],[74,80,"pl-s1"],[80,81,"pl-kos"],[82,83,"pl-c1"],[84,85,"pl-kos"],[85,86,"pl-kos"],[87,94,"pl-s1"],[95,96,"pl-kos"],[96,97,"pl-kos"]],[],[[4,10,"pl-k"],[11,17,"pl-s1"],[17,18,"pl-kos"],[19,20,"pl-c1"],[21,22,"pl-kos"],[22,23,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,26,"pl-v"],[26,27,"pl-kos"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"],[27,28,"pl-kos"],[29,59,"pl-en"],[59,60,"pl-kos"],[61,71,"pl-s1"],[71,72,"pl-kos"],[73,78,"pl-s1"],[78,79,"pl-kos"],[80,87,"pl-s1"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,22,"pl-c1"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,33,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-kos"],[37,43,"pl-c1"],[45,54,"pl-s1"],[55,56,"pl-kos"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,31,"pl-s1"],[31,32,"pl-kos"],[32,38,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-s1"],[42,43,"pl-c1"],[44,46,"pl-s1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,21,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,15,"pl-s1"],[15,16,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,93,"pl-c"]],[[0,31,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,35,"pl-c"],[4,11,"pl-k"],[13,34,"pl-smi"]],[[0,4,"pl-c"]],[[1,11,"pl-en"],[11,12,"pl-kos"],[13,24,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-kos"]],[],[[2,5,"pl-k"],[6,12,"pl-s1"],[12,13,"pl-kos"]],[[2,7,"pl-k"],[8,17,"pl-s1"],[18,19,"pl-c1"],[20,24,"pl-smi"],[24,25,"pl-kos"],[25,29,"pl-c1"],[29,30,"pl-kos"],[30,37,"pl-c1"],[37,38,"pl-kos"],[39,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,26,"pl-s1"],[26,27,"pl-kos"],[28,37,"pl-s1"],[37,38,"pl-kos"],[38,42,"pl-c1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,8,"pl-c1"],[9,15,"pl-s1"],[16,17,"pl-kos"],[18,19,"pl-kos"]],[],[[3,10,"pl-smi"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,63,"pl-s"],[64,65,"pl-kos"],[65,66,"pl-kos"]],[[3,9,"pl-k"],[9,10,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-c1"],[22,25,"pl-c1"],[26,39,"pl-s"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[3,9,"pl-s1"],[10,11,"pl-c1"],[12,15,"pl-k"],[16,33,"pl-v"],[33,34,"pl-kos"],[35,44,"pl-v"],[44,45,"pl-kos"],[45,53,"pl-en"],[53,54,"pl-kos"],[55,61,"pl-s1"],[61,62,"pl-kos"],[62,66,"pl-c1"],[67,68,"pl-kos"],[68,69,"pl-kos"],[70,76,"pl-s1"],[76,77,"pl-kos"],[77,88,"pl-c1"],[89,91,"pl-c1"],[92,93,"pl-c1"],[93,94,"pl-kos"],[95,101,"pl-s1"],[101,102,"pl-kos"],[102,107,"pl-c1"],[108,110,"pl-c1"],[111,112,"pl-c1"],[112,113,"pl-kos"],[114,120,"pl-s1"],[120,121,"pl-kos"],[121,125,"pl-c1"],[126,128,"pl-c1"],[129,132,"pl-c1"],[133,134,"pl-kos"],[134,135,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,11,"pl-k"],[12,13,"pl-kos"],[14,23,"pl-s1"],[23,24,"pl-kos"],[24,28,"pl-c1"],[29,32,"pl-c1"],[33,47,"pl-s"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[3,9,"pl-s1"],[10,11,"pl-c1"],[12,15,"pl-k"],[16,34,"pl-v"],[34,35,"pl-kos"],[36,37,"pl-c1"],[38,44,"pl-s1"],[44,45,"pl-kos"],[45,49,"pl-c1"],[49,50,"pl-kos"],[51,57,"pl-s1"],[57,58,"pl-kos"],[58,62,"pl-c1"],[62,63,"pl-kos"],[64,70,"pl-s1"],[70,71,"pl-kos"],[71,75,"pl-c1"],[75,76,"pl-kos"],[77,78,"pl-c1"],[79,85,"pl-s1"],[85,86,"pl-kos"],[86,90,"pl-c1"],[90,91,"pl-kos"],[92,98,"pl-s1"],[98,99,"pl-kos"],[99,104,"pl-c1"],[104,105,"pl-kos"],[106,112,"pl-s1"],[112,113,"pl-kos"],[113,117,"pl-c1"],[118,119,"pl-kos"],[119,120,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-c1"],[22,23,"pl-kos"],[24,30,"pl-s1"],[30,31,"pl-kos"],[31,35,"pl-c1"],[36,37,"pl-c1"],[38,42,"pl-smi"],[42,43,"pl-kos"],[43,59,"pl-en"],[59,60,"pl-kos"],[61,70,"pl-s1"],[70,71,"pl-kos"],[71,75,"pl-c1"],[76,77,"pl-kos"],[77,78,"pl-kos"]],[],[[2,24,"pl-en"],[24,25,"pl-kos"],[26,32,"pl-s1"],[32,33,"pl-kos"],[34,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,24,"pl-en"],[24,25,"pl-kos"],[26,32,"pl-s1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,91,"pl-c"]],[[0,29,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,31,"pl-c"],[4,11,"pl-k"],[13,30,"pl-smi"]],[[0,4,"pl-c"]],[[1,9,"pl-en"],[9,10,"pl-kos"],[11,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-smi"],[22,23,"pl-kos"],[23,27,"pl-c1"],[27,28,"pl-kos"],[28,33,"pl-c1"],[33,34,"pl-kos"],[35,44,"pl-s1"],[45,46,"pl-kos"],[46,47,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,31,"pl-s1"],[31,32,"pl-kos"],[32,38,"pl-c1"],[38,39,"pl-kos"],[39,45,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,50,"pl-c1"],[51,53,"pl-s1"],[53,54,"pl-kos"],[55,56,"pl-s1"],[57,59,"pl-c1"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,38,"pl-en"],[38,39,"pl-kos"],[40,47,"pl-s1"],[47,48,"pl-kos"],[48,54,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-s1"],[58,59,"pl-kos"],[60,61,"pl-kos"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,14,"pl-s1"],[14,15,"pl-kos"],[15,34,"pl-c1"],[35,38,"pl-c1"],[39,48,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,21,"pl-smi"],[21,22,"pl-kos"],[22,35,"pl-en"],[35,36,"pl-kos"],[37,47,"pl-s"],[47,48,"pl-kos"],[49,56,"pl-s1"],[56,57,"pl-kos"],[57,76,"pl-c1"],[77,78,"pl-kos"],[79,80,"pl-kos"],[80,81,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,21,"pl-c1"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"],[32,36,"pl-en"],[36,37,"pl-kos"],[38,46,"pl-k"],[47,48,"pl-kos"],[49,56,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[3,8,"pl-k"],[9,28,"pl-s1"],[29,30,"pl-c1"],[31,38,"pl-s1"],[38,39,"pl-kos"],[39,42,"pl-en"],[42,43,"pl-kos"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[[3,8,"pl-k"],[9,19,"pl-s1"],[20,21,"pl-c1"],[22,29,"pl-s1"],[29,30,"pl-kos"]],[],[[3,60,"pl-c"]],[[3,31,"pl-c"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-kos"],[18,19,"pl-kos"],[19,20,"pl-kos"]],[[3,8,"pl-k"],[9,21,"pl-s1"],[22,23,"pl-c1"],[24,25,"pl-kos"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,35,"pl-s1"],[35,36,"pl-kos"],[36,42,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-s1"],[46,47,"pl-c1"],[48,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-s1"],[54,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[4,9,"pl-k"],[10,19,"pl-s1"],[20,21,"pl-c1"],[22,32,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-s1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,18,"pl-s1"],[19,20,"pl-kos"],[21,22,"pl-kos"]],[],[[5,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,26,"pl-s1"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[5,10,"pl-k"],[11,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,28,"pl-v"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,29,"pl-s1"],[30,33,"pl-c1"],[34,38,"pl-c1"],[39,40,"pl-kos"],[41,42,"pl-kos"]],[],[[6,9,"pl-s1"],[9,10,"pl-kos"],[10,19,"pl-en"],[19,20,"pl-kos"],[21,40,"pl-s1"],[40,41,"pl-kos"],[41,46,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,51,"pl-c1"],[52,54,"pl-c1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,17,"pl-s1"],[17,18,"pl-kos"],[18,22,"pl-en"],[22,23,"pl-kos"],[24,27,"pl-s1"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,12,"pl-smi"],[12,13,"pl-kos"],[13,17,"pl-en"],[17,18,"pl-kos"],[19,69,"pl-s"],[69,70,"pl-kos"],[71,78,"pl-s1"],[78,79,"pl-kos"],[79,85,"pl-c1"],[85,86,"pl-kos"],[87,88,"pl-s1"],[89,90,"pl-kos"],[91,92,"pl-kos"],[92,93,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,22,"pl-v"],[22,23,"pl-kos"],[24,29,"pl-s1"],[29,30,"pl-kos"],[31,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,96,"pl-c"]],[[0,34,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,36,"pl-c"],[4,11,"pl-k"],[13,35,"pl-smi"]],[[0,4,"pl-c"]],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,30,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[],[[2,7,"pl-k"],[8,20,"pl-s1"],[21,22,"pl-c1"],[23,27,"pl-s1"],[27,28,"pl-kos"],[28,38,"pl-c1"],[38,39,"pl-kos"],[40,54,"pl-s1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[[2,7,"pl-k"],[8,21,"pl-s1"],[22,23,"pl-c1"],[24,36,"pl-s1"],[36,37,"pl-kos"],[37,41,"pl-c1"],[44,56,"pl-s1"],[56,57,"pl-kos"],[57,61,"pl-c1"],[64,76,"pl-s"],[77,78,"pl-c1"],[79,93,"pl-s1"],[93,94,"pl-kos"]],[],[[2,7,"pl-k"],[8,20,"pl-s1"],[21,22,"pl-c1"],[23,24,"pl-kos"],[24,25,"pl-kos"],[25,26,"pl-kos"]],[[2,7,"pl-k"],[8,29,"pl-s1"],[30,31,"pl-c1"],[32,33,"pl-kos"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[[2,7,"pl-k"],[8,30,"pl-s1"],[31,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"],[35,36,"pl-kos"]],[[2,7,"pl-k"],[8,23,"pl-s1"],[24,25,"pl-c1"],[26,27,"pl-kos"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[[2,7,"pl-k"],[8,22,"pl-s1"],[23,24,"pl-c1"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,36,"pl-s1"],[36,37,"pl-kos"],[37,45,"pl-c1"],[45,46,"pl-kos"],[46,52,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-s1"],[56,57,"pl-c1"],[58,60,"pl-s1"],[60,61,"pl-kos"],[62,63,"pl-s1"],[64,66,"pl-c1"],[67,68,"pl-kos"],[69,70,"pl-kos"]],[],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,31,"pl-s1"],[31,32,"pl-kos"],[32,40,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,31,"pl-s1"],[31,32,"pl-kos"],[32,40,"pl-c1"],[40,41,"pl-kos"],[42,49,"pl-s1"],[49,50,"pl-kos"],[50,57,"pl-c1"],[58,59,"pl-kos"],[59,60,"pl-kos"]],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,25,"pl-s1"],[25,26,"pl-kos"],[26,32,"pl-c1"],[32,33,"pl-kos"]],[[3,8,"pl-k"],[9,13,"pl-s1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"],[23,27,"pl-c1"],[27,28,"pl-kos"]],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,29,"pl-s1"],[29,30,"pl-kos"],[30,40,"pl-c1"],[41,44,"pl-c1"],[45,54,"pl-c1"],[57,69,"pl-s1"],[69,70,"pl-kos"],[70,80,"pl-c1"],[80,81,"pl-kos"],[82,89,"pl-s1"],[89,90,"pl-kos"],[90,95,"pl-c1"],[96,97,"pl-kos"],[100,107,"pl-s1"],[107,108,"pl-kos"],[108,113,"pl-c1"],[113,114,"pl-kos"]],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,30,"pl-s1"],[30,31,"pl-kos"],[31,41,"pl-c1"],[42,45,"pl-c1"],[46,55,"pl-c1"],[58,70,"pl-s1"],[70,71,"pl-kos"],[71,81,"pl-c1"],[81,82,"pl-kos"],[83,90,"pl-s1"],[90,91,"pl-kos"],[91,97,"pl-c1"],[98,99,"pl-kos"],[102,109,"pl-s1"],[109,110,"pl-kos"],[110,116,"pl-c1"],[116,117,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[14,15,"pl-kos"],[15,19,"pl-c1"],[20,23,"pl-c1"],[24,33,"pl-c1"],[34,35,"pl-kos"],[36,44,"pl-k"],[44,45,"pl-kos"]],[],[[3,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,40,"pl-en"],[40,41,"pl-kos"],[42,48,"pl-s"],[48,49,"pl-kos"],[50,54,"pl-s1"],[55,56,"pl-kos"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[[3,24,"pl-s1"],[24,25,"pl-kos"],[25,29,"pl-en"],[29,30,"pl-kos"],[31,35,"pl-smi"],[35,36,"pl-kos"],[36,49,"pl-en"],[49,50,"pl-kos"],[51,61,"pl-s"],[61,62,"pl-kos"],[63,68,"pl-s1"],[69,70,"pl-kos"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[[3,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-en"],[30,31,"pl-kos"],[32,36,"pl-smi"],[36,37,"pl-kos"],[37,50,"pl-en"],[50,51,"pl-kos"],[52,62,"pl-s"],[62,63,"pl-kos"],[64,70,"pl-s1"],[71,72,"pl-kos"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[[3,18,"pl-s1"],[18,19,"pl-kos"],[19,23,"pl-en"],[23,24,"pl-kos"],[25,32,"pl-s1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[[3,17,"pl-s1"],[17,18,"pl-kos"],[18,22,"pl-en"],[22,23,"pl-kos"],[24,30,"pl-s1"],[31,32,"pl-kos"],[32,33,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,23,"pl-kos"]],[],[[3,10,"pl-v"],[10,11,"pl-kos"],[11,14,"pl-en"],[14,15,"pl-kos"],[16,28,"pl-s1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[[3,10,"pl-v"],[10,11,"pl-kos"],[11,14,"pl-en"],[14,15,"pl-kos"],[16,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[3,10,"pl-v"],[10,11,"pl-kos"],[11,14,"pl-en"],[14,15,"pl-kos"],[16,38,"pl-s1"],[39,40,"pl-kos"],[40,41,"pl-kos"]],[[3,10,"pl-v"],[10,11,"pl-kos"],[11,14,"pl-en"],[14,15,"pl-kos"],[16,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[[3,10,"pl-v"],[10,11,"pl-kos"],[11,14,"pl-en"],[14,15,"pl-kos"],[16,30,"pl-s1"],[31,32,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,10,"pl-en"],[10,11,"pl-kos"],[12,20,"pl-k"],[21,22,"pl-kos"],[23,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,29,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-c1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[[3,8,"pl-k"],[9,23,"pl-s1"],[24,25,"pl-c1"],[26,38,"pl-s1"],[38,39,"pl-kos"],[40,41,"pl-c1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[[3,8,"pl-k"],[9,24,"pl-s1"],[25,26,"pl-c1"],[27,39,"pl-s1"],[39,40,"pl-kos"],[41,42,"pl-c1"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,32,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-c1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[[3,8,"pl-k"],[9,16,"pl-s1"],[17,18,"pl-c1"],[19,31,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-c1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,30,"pl-s1"],[30,31,"pl-kos"],[31,37,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-s1"],[41,42,"pl-c1"],[43,45,"pl-s1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[4,9,"pl-k"],[10,14,"pl-s1"],[15,16,"pl-c1"],[17,22,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-s1"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[[4,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,40,"pl-s1"],[40,41,"pl-kos"],[42,43,"pl-s1"],[44,45,"pl-kos"],[45,46,"pl-kos"]],[[4,9,"pl-k"],[10,24,"pl-s1"],[25,26,"pl-c1"],[27,42,"pl-s1"],[42,43,"pl-kos"],[44,45,"pl-s1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[[4,9,"pl-k"],[10,17,"pl-s1"],[18,19,"pl-c1"],[20,28,"pl-s1"],[28,29,"pl-kos"],[30,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[[4,9,"pl-k"],[10,16,"pl-s1"],[17,18,"pl-c1"],[19,26,"pl-s1"],[26,27,"pl-kos"],[28,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,13,"pl-s1"],[14,17,"pl-c1"],[18,27,"pl-c1"],[28,29,"pl-kos"],[30,38,"pl-k"],[38,39,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,13,"pl-s1"],[13,14,"pl-kos"],[14,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[5,9,"pl-s1"],[9,10,"pl-kos"],[10,22,"pl-en"],[22,23,"pl-kos"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,9,"pl-k"],[10,23,"pl-s1"],[24,25,"pl-c1"],[26,32,"pl-s1"],[32,33,"pl-kos"],[33,55,"pl-en"],[55,56,"pl-kos"],[57,61,"pl-s1"],[61,62,"pl-kos"],[63,76,"pl-s1"],[76,77,"pl-kos"],[78,92,"pl-s1"],[92,93,"pl-kos"],[94,101,"pl-s1"],[101,102,"pl-kos"],[103,109,"pl-s1"],[110,111,"pl-kos"],[111,112,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,22,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[5,8,"pl-k"],[9,10,"pl-kos"],[11,14,"pl-k"],[15,16,"pl-s1"],[17,18,"pl-c1"],[19,20,"pl-c1"],[20,21,"pl-kos"],[22,23,"pl-s1"],[24,25,"pl-c1"],[26,39,"pl-s1"],[39,40,"pl-kos"],[40,46,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[6,12,"pl-s1"],[12,13,"pl-kos"],[13,17,"pl-en"],[17,18,"pl-kos"],[19,32,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,27,"pl-v"],[27,28,"pl-kos"],[29,42,"pl-s1"],[42,43,"pl-kos"],[44,53,"pl-c1"],[53,54,"pl-kos"],[55,61,"pl-s1"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,15,"pl-en"],[15,16,"pl-kos"],[17,26,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,14,"pl-s1"],[14,15,"pl-kos"],[15,19,"pl-c1"],[20,23,"pl-c1"],[24,33,"pl-c1"],[34,35,"pl-kos"],[36,42,"pl-k"],[43,47,"pl-c1"],[47,48,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"],[16,29,"pl-en"],[29,30,"pl-kos"],[31,37,"pl-s"],[37,38,"pl-kos"],[39,46,"pl-s1"],[46,47,"pl-kos"],[47,51,"pl-c1"],[52,53,"pl-kos"],[53,54,"pl-kos"],[54,58,"pl-en"],[58,59,"pl-kos"],[60,68,"pl-k"],[69,70,"pl-kos"],[71,75,"pl-s1"],[76,77,"pl-kos"],[78,79,"pl-kos"]],[],[[3,8,"pl-k"],[9,13,"pl-s1"],[14,15,"pl-c1"],[16,22,"pl-s1"],[22,23,"pl-kos"],[23,34,"pl-en"],[34,35,"pl-kos"],[36,42,"pl-s1"],[42,43,"pl-kos"],[43,52,"pl-c1"],[52,53,"pl-kos"],[54,61,"pl-s1"],[61,62,"pl-kos"],[62,66,"pl-c1"],[66,67,"pl-kos"],[68,72,"pl-s1"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[[3,72,"pl-c"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,23,"pl-c1"],[24,27,"pl-c1"],[28,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,17,"pl-en"],[17,18,"pl-kos"],[19,27,"pl-k"],[28,29,"pl-kos"],[30,31,"pl-s1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,11,"pl-c1"],[12,13,"pl-s1"],[13,14,"pl-kos"],[14,20,"pl-c1"],[21,22,"pl-kos"],[23,29,"pl-k"],[29,30,"pl-kos"]],[],[[5,8,"pl-k"],[9,10,"pl-kos"],[11,14,"pl-k"],[15,16,"pl-s1"],[17,18,"pl-c1"],[19,20,"pl-c1"],[20,21,"pl-kos"],[22,24,"pl-s1"],[25,26,"pl-c1"],[27,34,"pl-s1"],[34,35,"pl-kos"],[35,42,"pl-c1"],[42,43,"pl-kos"],[43,49,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-s1"],[53,54,"pl-c1"],[55,57,"pl-s1"],[57,58,"pl-kos"],[59,60,"pl-s1"],[61,63,"pl-c1"],[64,65,"pl-kos"],[66,67,"pl-kos"]],[],[[6,7,"pl-s1"],[7,8,"pl-kos"],[8,29,"pl-c1"],[29,30,"pl-kos"],[31,32,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-c1"],[37,44,"pl-s1"],[44,45,"pl-kos"],[45,52,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-s1"],[56,57,"pl-kos"],[57,58,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[4,5,"pl-kos"],[6,7,"pl-kos"],[7,8,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-s1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,105,"pl-c"]],[[0,29,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,31,"pl-c"],[4,11,"pl-k"],[13,30,"pl-smi"]],[[0,4,"pl-c"]],[[1,9,"pl-en"],[9,10,"pl-kos"],[11,20,"pl-s1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,45,"pl-en"],[45,46,"pl-kos"],[47,56,"pl-s1"],[57,58,"pl-kos"],[58,59,"pl-kos"]],[],[[2,7,"pl-k"],[8,20,"pl-s1"],[21,22,"pl-c1"],[23,24,"pl-kos"],[24,25,"pl-kos"],[25,26,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,29,"pl-s1"],[29,30,"pl-kos"],[30,38,"pl-c1"],[39,41,"pl-c1"],[42,43,"pl-kos"],[43,44,"pl-kos"],[44,45,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,35,"pl-s1"],[35,36,"pl-kos"],[36,42,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-s1"],[46,47,"pl-c1"],[48,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-s1"],[54,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[3,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-en"],[20,21,"pl-kos"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,42,"pl-en"],[42,43,"pl-kos"],[44,50,"pl-s"],[50,51,"pl-kos"],[52,63,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-s1"],[67,68,"pl-kos"],[69,70,"pl-kos"],[71,72,"pl-kos"],[72,73,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,23,"pl-s1"],[24,25,"pl-c1"],[26,33,"pl-s1"],[33,34,"pl-kos"],[34,38,"pl-c1"],[39,42,"pl-c1"],[43,52,"pl-c1"]],[[5,12,"pl-v"],[12,13,"pl-kos"],[13,20,"pl-en"],[20,21,"pl-kos"],[22,26,"pl-c1"],[27,28,"pl-kos"]],[[5,11,"pl-s1"],[11,12,"pl-kos"],[12,25,"pl-en"],[25,26,"pl-kos"],[27,33,"pl-s"],[33,34,"pl-kos"],[35,42,"pl-s1"],[42,43,"pl-kos"],[43,47,"pl-c1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,23,"pl-kos"]],[[3,14,"pl-s1"],[14,15,"pl-kos"]],[[3,10,"pl-v"],[10,11,"pl-kos"],[11,14,"pl-en"],[14,15,"pl-kos"],[16,28,"pl-s1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[[3,18,"pl-s1"]],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,10,"pl-en"],[10,11,"pl-kos"],[12,20,"pl-k"],[21,22,"pl-kos"],[23,30,"pl-s1"],[31,32,"pl-kos"],[33,34,"pl-kos"]],[],[[3,8,"pl-k"],[9,13,"pl-s1"],[14,15,"pl-c1"],[16,23,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-c1"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,27,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-c1"],[31,32,"pl-kos"],[32,33,"pl-kos"]],[[3,8,"pl-k"],[9,17,"pl-s1"],[18,19,"pl-c1"],[20,27,"pl-s1"],[27,28,"pl-kos"],[29,30,"pl-c1"],[31,32,"pl-kos"],[32,33,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,16,"pl-s1"],[17,20,"pl-c1"],[21,25,"pl-c1"],[26,27,"pl-kos"],[28,29,"pl-kos"]],[],[[4,48,"pl-c"]],[[4,61,"pl-c"]],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,17,"pl-en"],[17,18,"pl-kos"],[19,27,"pl-k"],[28,29,"pl-kos"],[30,34,"pl-s1"],[35,36,"pl-kos"],[37,38,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,11,"pl-c1"],[12,16,"pl-s1"],[16,17,"pl-kos"],[17,30,"pl-c1"],[31,32,"pl-kos"],[33,39,"pl-k"],[39,40,"pl-kos"]],[],[[5,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,24,"pl-s1"],[24,25,"pl-kos"],[26,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[4,5,"pl-kos"],[6,7,"pl-kos"],[7,8,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,33,"pl-s1"],[33,34,"pl-kos"],[34,40,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-s1"],[44,45,"pl-c1"],[46,48,"pl-s1"],[48,49,"pl-kos"],[50,51,"pl-s1"],[52,54,"pl-c1"],[55,56,"pl-kos"],[57,58,"pl-kos"]],[],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,12,"pl-en"],[12,13,"pl-kos"],[14,22,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-s1"],[26,27,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-s1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,45,"pl-c"]],[[1,78,"pl-c"]],[[1,17,"pl-en"],[17,18,"pl-kos"],[19,28,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-kos"]],[],[[2,7,"pl-k"],[8,12,"pl-s1"],[13,14,"pl-c1"],[15,19,"pl-smi"],[19,20,"pl-kos"],[20,24,"pl-c1"],[24,25,"pl-kos"]],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,36,"pl-c1"],[36,37,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[],[[2,60,"pl-c"]],[[2,39,"pl-c"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,11,"pl-smi"],[11,12,"pl-kos"],[12,21,"pl-c1"],[21,22,"pl-kos"],[23,32,"pl-s1"],[33,34,"pl-kos"],[35,38,"pl-c1"],[39,48,"pl-c1"],[49,50,"pl-kos"],[51,52,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-smi"],[14,15,"pl-kos"],[15,24,"pl-c1"],[24,25,"pl-kos"],[26,35,"pl-s1"],[36,37,"pl-kos"],[37,38,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,22,"pl-s1"],[22,23,"pl-kos"],[23,28,"pl-c1"],[28,29,"pl-kos"],[30,39,"pl-s1"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[2,84,"pl-c"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,26,"pl-s1"],[26,27,"pl-kos"],[27,31,"pl-c1"],[34,40,"pl-s1"],[40,41,"pl-kos"],[41,57,"pl-en"],[57,58,"pl-kos"],[59,66,"pl-s1"],[66,67,"pl-kos"],[67,71,"pl-c1"],[72,73,"pl-kos"],[76,78,"pl-s"],[78,79,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,39,"pl-en"],[39,40,"pl-kos"],[41,49,"pl-k"],[50,51,"pl-kos"],[52,55,"pl-s1"],[56,57,"pl-kos"],[58,59,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-s1"],[13,14,"pl-kos"],[14,28,"pl-c1"],[29,31,"pl-c1"],[32,35,"pl-s1"],[35,36,"pl-kos"],[36,50,"pl-en"],[50,51,"pl-kos"],[52,61,"pl-s1"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,18,"pl-s1"],[19,20,"pl-kos"],[21,22,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,28,"pl-s1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,14,"pl-s1"],[14,15,"pl-kos"],[15,21,"pl-c1"],[22,25,"pl-c1"],[26,35,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,47,"pl-s"],[47,48,"pl-kos"],[49,56,"pl-s1"],[56,57,"pl-kos"],[57,63,"pl-c1"],[64,65,"pl-kos"],[65,66,"pl-kos"],[66,70,"pl-en"],[70,71,"pl-kos"],[72,80,"pl-k"],[81,82,"pl-kos"],[83,89,"pl-s1"],[90,91,"pl-kos"],[92,93,"pl-kos"]],[],[[4,10,"pl-k"],[11,17,"pl-s1"],[17,18,"pl-kos"],[18,29,"pl-en"],[29,30,"pl-kos"],[31,37,"pl-s1"],[37,38,"pl-kos"],[38,49,"pl-c1"],[49,50,"pl-kos"],[51,58,"pl-s1"],[58,59,"pl-kos"],[59,65,"pl-c1"],[65,66,"pl-kos"],[67,73,"pl-s1"],[74,75,"pl-kos"],[75,76,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[7,8,"pl-kos"],[8,9,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-s1"],[8,9,"pl-kos"],[9,19,"pl-en"],[19,20,"pl-kos"],[21,29,"pl-k"],[30,31,"pl-kos"],[32,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-s1"],[13,14,"pl-kos"],[14,34,"pl-c1"],[35,37,"pl-c1"],[38,41,"pl-s1"],[41,42,"pl-kos"],[42,62,"pl-en"],[62,63,"pl-kos"],[64,73,"pl-s1"],[74,75,"pl-kos"],[75,76,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"],[6,13,"pl-en"],[13,14,"pl-kos"],[15,23,"pl-k"],[24,25,"pl-kos"],[26,33,"pl-s1"],[34,35,"pl-kos"],[36,37,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,24,"pl-s1"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,6,"pl-smi"],[6,7,"pl-kos"],[7,16,"pl-c1"],[16,17,"pl-kos"],[18,27,"pl-s1"],[28,29,"pl-kos"],[30,31,"pl-c1"],[32,39,"pl-v"],[39,40,"pl-kos"],[40,43,"pl-en"],[43,44,"pl-kos"],[45,52,"pl-s1"],[53,54,"pl-kos"],[54,55,"pl-kos"],[55,59,"pl-en"],[59,60,"pl-kos"],[61,69,"pl-k"],[70,71,"pl-kos"],[72,79,"pl-s1"],[80,81,"pl-kos"],[82,83,"pl-kos"]],[],[[3,6,"pl-k"],[7,11,"pl-s1"],[11,12,"pl-kos"]],[],[[3,48,"pl-c"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,22,"pl-c1"],[23,26,"pl-c1"],[27,31,"pl-c1"],[32,33,"pl-kos"],[34,35,"pl-kos"]],[],[[4,8,"pl-s1"],[9,10,"pl-c1"],[11,14,"pl-k"],[15,19,"pl-v"],[19,20,"pl-kos"],[20,21,"pl-kos"],[21,22,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,12,"pl-k"],[13,14,"pl-kos"],[15,22,"pl-s1"],[22,23,"pl-kos"],[23,29,"pl-c1"],[30,31,"pl-c1"],[32,33,"pl-c1"],[34,35,"pl-kos"],[36,37,"pl-kos"]],[],[[4,8,"pl-s1"],[9,10,"pl-c1"],[11,14,"pl-k"],[15,20,"pl-v"],[20,21,"pl-kos"],[21,22,"pl-kos"],[22,23,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,12,"pl-k"],[13,14,"pl-kos"],[15,22,"pl-s1"],[22,23,"pl-kos"],[23,29,"pl-c1"],[30,33,"pl-c1"],[34,35,"pl-c1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[4,8,"pl-s1"],[9,10,"pl-c1"],[11,18,"pl-s1"],[18,19,"pl-kos"],[20,21,"pl-c1"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,8,"pl-s1"],[9,10,"pl-c1"],[11,14,"pl-k"],[15,23,"pl-v"],[23,24,"pl-kos"],[24,25,"pl-kos"],[25,26,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,12,"pl-s1"],[13,16,"pl-c1"],[17,24,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-c1"],[28,29,"pl-kos"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[4,7,"pl-k"],[8,9,"pl-kos"],[10,13,"pl-k"],[14,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-c1"],[19,20,"pl-kos"],[21,23,"pl-s1"],[24,25,"pl-c1"],[26,33,"pl-s1"],[33,34,"pl-kos"],[34,40,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-s1"],[44,45,"pl-c1"],[46,48,"pl-s1"],[48,49,"pl-kos"],[50,51,"pl-s1"],[52,54,"pl-c1"],[55,56,"pl-kos"],[57,58,"pl-kos"]],[],[[5,9,"pl-s1"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,22,"pl-s1"],[22,23,"pl-kos"],[24,25,"pl-s1"],[26,27,"pl-kos"],[28,29,"pl-kos"],[29,30,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,22,"pl-kos"],[23,24,"pl-kos"]],[],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,17,"pl-c1"],[17,18,"pl-kos"],[18,22,"pl-c1"],[23,24,"pl-c1"],[25,32,"pl-s1"],[32,33,"pl-kos"],[33,37,"pl-c1"],[37,38,"pl-kos"]],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,13,"pl-c1"],[14,15,"pl-c1"],[16,24,"pl-s1"],[24,25,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,25,"pl-en"],[25,26,"pl-kos"],[27,31,"pl-s1"],[31,32,"pl-kos"],[33,40,"pl-s1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"],[27,28,"pl-kos"],[29,59,"pl-en"],[59,60,"pl-kos"],[61,71,"pl-s1"],[71,72,"pl-kos"],[73,77,"pl-s1"],[77,78,"pl-kos"],[79,86,"pl-s1"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,22,"pl-c1"],[23,26,"pl-c1"],[27,36,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[4,9,"pl-k"],[10,16,"pl-s1"],[17,18,"pl-c1"],[19,22,"pl-k"],[23,30,"pl-v"],[30,31,"pl-kos"],[31,32,"pl-kos"],[32,33,"pl-kos"]],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[29,30,"pl-kos"],[30,36,"pl-c1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,21,"pl-en"],[21,22,"pl-kos"],[23,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[],[[3,4,"pl-kos"],[5,9,"pl-k"],[10,11,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,28,"pl-c1"],[29,32,"pl-c1"],[33,42,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[5,9,"pl-s1"],[9,10,"pl-kos"],[10,18,"pl-c1"],[18,19,"pl-kos"],[19,28,"pl-en"],[28,29,"pl-kos"],[30,37,"pl-s1"],[37,38,"pl-kos"],[38,49,"pl-c1"],[50,51,"pl-kos"],[51,52,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,25,"pl-c1"],[26,29,"pl-c1"],[30,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[5,9,"pl-s1"],[9,10,"pl-kos"],[10,20,"pl-c1"],[20,21,"pl-kos"],[21,30,"pl-en"],[30,31,"pl-kos"],[32,39,"pl-s1"],[39,40,"pl-kos"],[40,48,"pl-c1"],[49,50,"pl-kos"],[50,51,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,16,"pl-s1"],[16,17,"pl-kos"],[17,22,"pl-c1"],[23,26,"pl-c1"],[27,36,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[5,9,"pl-s1"],[9,10,"pl-kos"],[10,15,"pl-c1"],[15,16,"pl-kos"],[16,25,"pl-en"],[25,26,"pl-kos"],[27,34,"pl-s1"],[34,35,"pl-kos"],[35,40,"pl-c1"],[41,42,"pl-kos"],[42,43,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,9,"pl-c1"],[10,16,"pl-s1"],[16,17,"pl-kos"],[17,29,"pl-c1"],[29,30,"pl-kos"],[30,33,"pl-en"],[33,34,"pl-kos"],[35,39,"pl-s1"],[40,41,"pl-kos"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[11,23,"pl-c1"],[23,24,"pl-kos"],[24,27,"pl-en"],[27,28,"pl-kos"],[29,33,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-kos"],[36,37,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,22,"pl-c1"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-s1"],[33,34,"pl-kos"],[34,35,"pl-kos"],[35,40,"pl-c1"],[41,42,"pl-c1"],[43,52,"pl-s1"],[52,53,"pl-kos"]],[],[[3,9,"pl-k"],[10,14,"pl-s1"],[14,15,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,8,"pl-k"],[9,13,"pl-smi"],[13,14,"pl-kos"],[14,23,"pl-c1"],[23,24,"pl-kos"],[25,34,"pl-s1"],[35,36,"pl-kos"],[36,37,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-c"]],[[0,92,"pl-c"]],[[0,30,"pl-c"],[4,10,"pl-k"],[12,18,"pl-smi"]],[[0,28,"pl-c"],[4,11,"pl-k"],[13,27,"pl-smi"]],[[0,4,"pl-c"]],[[1,10,"pl-en"],[10,11,"pl-kos"],[12,22,"pl-s1"],[23,24,"pl-kos"],[25,26,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-smi"],[25,26,"pl-kos"],[26,36,"pl-c1"],[36,37,"pl-kos"]],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,23,"pl-smi"],[23,24,"pl-kos"],[24,28,"pl-c1"],[28,29,"pl-kos"],[29,35,"pl-c1"],[35,36,"pl-kos"],[37,47,"pl-s1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,21,"pl-smi"],[21,22,"pl-kos"]],[],[[2,37,"pl-c"]],[[2,80,"pl-c"]],[[2,7,"pl-k"],[8,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-k"],[20,25,"pl-v"],[25,26,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,15,"pl-s1"],[15,16,"pl-kos"],[16,20,"pl-c1"],[21,22,"pl-kos"],[23,28,"pl-s1"],[28,29,"pl-kos"],[29,33,"pl-c1"],[34,35,"pl-c1"],[36,42,"pl-s1"],[42,43,"pl-kos"],[43,59,"pl-en"],[59,60,"pl-kos"],[61,69,"pl-s1"],[69,70,"pl-kos"],[70,74,"pl-c1"],[75,76,"pl-kos"],[76,77,"pl-kos"]],[],[[2,24,"pl-en"],[24,25,"pl-kos"],[26,31,"pl-s1"],[31,32,"pl-kos"],[33,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"],[27,28,"pl-kos"],[29,59,"pl-en"],[59,60,"pl-kos"],[61,71,"pl-s1"],[71,72,"pl-kos"],[73,78,"pl-s1"],[78,79,"pl-kos"],[80,88,"pl-s1"],[89,90,"pl-kos"],[90,91,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,26,"pl-s1"],[26,27,"pl-kos"],[27,32,"pl-c1"],[33,35,"pl-c1"],[36,37,"pl-kos"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[],[[2,7,"pl-k"],[8,15,"pl-s1"],[16,17,"pl-c1"],[18,19,"pl-kos"],[19,20,"pl-kos"],[20,21,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,31,"pl-s1"],[31,32,"pl-kos"],[32,38,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-s1"],[42,43,"pl-c1"],[44,46,"pl-s1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[3,10,"pl-s1"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,23,"pl-s1"],[23,24,"pl-kos"],[24,37,"pl-en"],[37,38,"pl-kos"],[39,45,"pl-s"],[45,46,"pl-kos"],[47,54,"pl-s1"],[54,55,"pl-kos"],[56,57,"pl-s1"],[58,59,"pl-kos"],[60,61,"pl-kos"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,16,"pl-v"],[16,17,"pl-kos"],[17,20,"pl-en"],[20,21,"pl-kos"],[22,29,"pl-s1"],[30,31,"pl-kos"],[31,32,"pl-kos"],[32,36,"pl-en"],[36,37,"pl-kos"],[38,46,"pl-k"],[47,48,"pl-kos"],[49,54,"pl-s1"],[55,56,"pl-kos"],[57,58,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,30,"pl-s1"],[30,31,"pl-kos"],[31,37,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-s1"],[41,42,"pl-c1"],[43,45,"pl-s1"],[45,46,"pl-kos"],[47,48,"pl-s1"],[49,51,"pl-c1"],[52,53,"pl-kos"],[54,55,"pl-kos"]],[],[[4,9,"pl-s1"],[9,10,"pl-kos"],[10,13,"pl-en"],[13,14,"pl-kos"],[15,20,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-s1"],[24,25,"pl-kos"],[26,27,"pl-kos"],[27,28,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,76,"pl-c"]],[[3,36,"pl-c"]],[[3,8,"pl-k"],[9,27,"pl-en"],[28,29,"pl-c1"],[30,31,"pl-kos"],[32,36,"pl-s1"],[37,38,"pl-kos"],[39,41,"pl-c1"],[42,43,"pl-kos"]],[],[[4,9,"pl-k"],[10,29,"pl-s1"],[30,31,"pl-c1"],[32,35,"pl-k"],[36,39,"pl-v"],[39,40,"pl-kos"],[40,41,"pl-kos"],[41,42,"pl-kos"]],[],[[4,7,"pl-k"],[8,9,"pl-kos"],[10,15,"pl-k"],[16,17,"pl-kos"],[18,21,"pl-s1"],[21,22,"pl-kos"],[23,28,"pl-s1"],[29,30,"pl-kos"],[31,33,"pl-k"],[34,40,"pl-s1"],[40,41,"pl-kos"],[41,53,"pl-c1"],[54,55,"pl-kos"],[56,57,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,13,"pl-s1"],[14,24,"pl-k"],[25,33,"pl-v"],[34,36,"pl-c1"],[37,40,"pl-s1"],[41,51,"pl-k"],[52,59,"pl-v"],[60,61,"pl-kos"],[62,63,"pl-kos"]],[],[[6,25,"pl-s1"],[25,26,"pl-kos"],[26,29,"pl-en"],[29,30,"pl-kos"],[31,34,"pl-s1"],[34,35,"pl-kos"],[36,41,"pl-s1"],[42,43,"pl-kos"],[43,44,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,8,"pl-s1"],[8,9,"pl-kos"],[9,17,"pl-en"],[17,18,"pl-kos"],[19,20,"pl-kos"],[21,25,"pl-s1"],[26,27,"pl-kos"],[28,30,"pl-c1"],[31,32,"pl-kos"]],[],[[5,10,"pl-k"],[11,19,"pl-s1"],[20,21,"pl-c1"],[22,28,"pl-s1"],[28,29,"pl-kos"],[29,41,"pl-c1"],[41,42,"pl-kos"],[42,45,"pl-en"],[45,46,"pl-kos"],[47,51,"pl-s1"],[52,53,"pl-kos"],[53,54,"pl-kos"]],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,18,"pl-s1"],[19,21,"pl-c1"],[22,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[6,25,"pl-s1"],[25,26,"pl-kos"],[26,29,"pl-en"],[29,30,"pl-kos"],[31,35,"pl-s1"],[35,36,"pl-kos"],[37,45,"pl-s1"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[4,5,"pl-kos"],[6,7,"pl-kos"],[7,8,"pl-kos"]],[],[[4,10,"pl-k"],[11,30,"pl-s1"],[30,31,"pl-kos"]],[],[[3,4,"pl-kos"],[4,5,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,22,"pl-c1"],[23,24,"pl-c1"],[25,43,"pl-en"],[43,44,"pl-kos"],[45,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[3,9,"pl-k"],[10,15,"pl-s1"],[15,16,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,23,"pl-en"],[23,24,"pl-kos"],[25,29,"pl-s1"],[29,30,"pl-kos"],[31,44,"pl-s1"],[44,45,"pl-kos"],[46,60,"pl-s1"],[60,61,"pl-kos"],[62,69,"pl-s1"],[69,70,"pl-kos"],[71,77,"pl-s1"],[78,79,"pl-kos"],[80,81,"pl-kos"]],[],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-kos"],[18,19,"pl-kos"],[19,20,"pl-kos"]],[],[[2,7,"pl-k"],[8,18,"pl-s1"],[19,20,"pl-c1"],[21,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-c1"],[33,37,"pl-s1"],[37,38,"pl-kos"],[38,42,"pl-c1"],[45,49,"pl-s1"],[49,50,"pl-kos"],[50,54,"pl-c1"],[54,55,"pl-kos"]],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,23,"pl-kos"],[23,24,"pl-kos"],[24,25,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,22,"pl-c1"],[22,23,"pl-kos"],[24,30,"pl-s1"],[30,31,"pl-kos"],[31,35,"pl-c1"],[36,37,"pl-kos"],[38,41,"pl-c1"],[42,57,"pl-c1"],[57,58,"pl-kos"],[58,65,"pl-c1"],[66,67,"pl-kos"],[68,69,"pl-kos"]],[],[[3,7,"pl-s1"],[7,8,"pl-kos"],[8,16,"pl-en"],[16,17,"pl-kos"],[18,26,"pl-k"],[27,28,"pl-kos"],[29,35,"pl-s1"],[36,37,"pl-kos"],[38,39,"pl-kos"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,15,"pl-s1"],[15,16,"pl-kos"],[16,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[5,16,"pl-s1"],[16,17,"pl-kos"],[17,21,"pl-en"],[21,22,"pl-kos"],[23,29,"pl-s1"],[29,30,"pl-kos"],[30,34,"pl-c1"],[37,43,"pl-s1"],[43,44,"pl-kos"],[44,48,"pl-c1"],[51,57,"pl-s1"],[57,58,"pl-kos"],[58,62,"pl-c1"],[63,64,"pl-kos"],[64,65,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,14,"pl-s1"],[14,15,"pl-kos"],[15,19,"pl-en"],[19,20,"pl-kos"],[21,31,"pl-s1"],[32,33,"pl-kos"],[33,34,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,5,"pl-k"],[6,24,"pl-v"],[24,25,"pl-kos"]],[],[[2,8,"pl-k"],[9,10,"pl-kos"],[11,26,"pl-c1"],[26,27,"pl-kos"],[28,34,"pl-s1"],[34,35,"pl-kos"],[35,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"],[44,45,"pl-kos"]],[],[[3,7,"pl-k"],[8,23,"pl-c1"],[23,24,"pl-kos"],[24,31,"pl-c1"]],[],[[4,22,"pl-v"],[23,24,"pl-c1"],[25,44,"pl-v"],[44,45,"pl-kos"]],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-k"],[8,23,"pl-c1"],[23,24,"pl-kos"],[24,32,"pl-c1"]],[],[[4,22,"pl-v"],[23,24,"pl-c1"],[25,48,"pl-v"],[48,49,"pl-kos"]],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[3,7,"pl-k"],[8,23,"pl-c1"],[23,24,"pl-kos"],[24,32,"pl-c1"]],[[3,7,"pl-k"],[8,23,"pl-c1"],[23,24,"pl-kos"],[24,29,"pl-c1"]],[],[[4,22,"pl-v"],[23,24,"pl-c1"],[25,44,"pl-v"],[44,45,"pl-kos"]],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[3,10,"pl-k"]],[],[[4,10,"pl-k"],[11,12,"pl-kos"],[13,27,"pl-s1"],[27,28,"pl-kos"],[28,36,"pl-c1"],[37,38,"pl-kos"],[39,40,"pl-kos"]],[],[[5,9,"pl-k"],[10,11,"pl-c1"]],[[6,24,"pl-v"],[25,26,"pl-c1"],[27,46,"pl-v"],[46,47,"pl-kos"]],[[6,11,"pl-k"],[11,12,"pl-kos"]],[[5,9,"pl-k"],[10,11,"pl-c1"]],[[5,9,"pl-k"],[10,11,"pl-c1"]],[[5,12,"pl-k"]],[[6,24,"pl-v"],[25,26,"pl-c1"],[27,46,"pl-v"],[46,47,"pl-kos"]],[[6,11,"pl-k"],[11,12,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[4,9,"pl-k"],[9,10,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,7,"pl-k"],[8,21,"pl-s1"],[22,23,"pl-c1"],[24,31,"pl-s1"],[31,32,"pl-kos"],[32,45,"pl-c1"],[46,49,"pl-c1"],[50,59,"pl-c1"],[62,75,"pl-c1"],[75,76,"pl-kos"],[77,84,"pl-s1"],[84,85,"pl-kos"],[85,98,"pl-c1"],[99,100,"pl-kos"],[103,120,"pl-v"],[120,121,"pl-kos"]],[],[],[[2,7,"pl-k"],[8,19,"pl-s1"],[20,21,"pl-c1"],[22,26,"pl-smi"],[26,27,"pl-kos"],[27,48,"pl-en"],[48,49,"pl-kos"],[50,64,"pl-s1"],[65,66,"pl-kos"],[66,67,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,35,"pl-s1"],[35,36,"pl-kos"],[36,42,"pl-c1"],[42,43,"pl-kos"],[44,45,"pl-s1"],[46,47,"pl-c1"],[48,50,"pl-s1"],[50,51,"pl-kos"],[52,53,"pl-s1"],[54,56,"pl-c1"],[57,58,"pl-kos"],[59,60,"pl-kos"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,39,"pl-v"],[39,40,"pl-kos"]],[[4,15,"pl-s1"],[15,16,"pl-kos"],[17,18,"pl-s1"],[19,20,"pl-kos"],[21,22,"pl-c1"],[23,26,"pl-s"],[27,28,"pl-c1"],[29,44,"pl-c1"],[44,45,"pl-kos"],[46,52,"pl-s1"],[52,53,"pl-kos"],[53,57,"pl-c1"],[58,59,"pl-kos"],[59,60,"pl-kos"]],[[4,17,"pl-s1"],[17,18,"pl-kos"],[18,23,"pl-c1"],[23,24,"pl-kos"]],[[4,15,"pl-s1"],[15,16,"pl-kos"]],[[4,17,"pl-s1"]],[[3,4,"pl-kos"],[4,5,"pl-kos"]],[],[[3,56,"pl-c"]],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,15,"pl-s1"],[15,16,"pl-kos"],[16,29,"pl-c1"],[30,33,"pl-c1"],[34,47,"pl-s"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[4,8,"pl-smi"],[8,9,"pl-kos"],[9,43,"pl-en"],[43,44,"pl-kos"],[45,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,21,"pl-s1"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,22,"pl-en"],[22,23,"pl-kos"],[24,32,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-kos"]],[],[[2,5,"pl-k"],[6,17,"pl-s1"],[18,19,"pl-c1"],[20,28,"pl-s1"],[28,29,"pl-kos"],[29,34,"pl-c1"],[34,35,"pl-kos"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,15,"pl-s1"],[15,16,"pl-kos"],[16,26,"pl-c1"],[27,28,"pl-kos"],[29,30,"pl-kos"]],[],[[3,8,"pl-k"],[9,14,"pl-s1"],[15,16,"pl-c1"],[17,44,"pl-en"],[44,45,"pl-kos"],[46,57,"pl-s1"],[57,58,"pl-kos"],[58,69,"pl-c1"],[70,71,"pl-kos"],[71,72,"pl-kos"]],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,21,"pl-k"],[22,34,"pl-v"],[34,35,"pl-kos"],[36,47,"pl-s1"],[47,48,"pl-kos"],[48,54,"pl-c1"],[55,56,"pl-kos"],[56,57,"pl-kos"]],[],[[3,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-k"],[13,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-c1"],[18,19,"pl-kos"],[20,22,"pl-s1"],[23,24,"pl-c1"],[25,36,"pl-s1"],[36,37,"pl-kos"],[37,43,"pl-c1"],[43,44,"pl-kos"],[45,46,"pl-s1"],[47,48,"pl-c1"],[49,51,"pl-s1"],[51,52,"pl-kos"],[53,54,"pl-s1"],[55,57,"pl-c1"],[58,59,"pl-kos"],[60,61,"pl-kos"]],[],[[4,10,"pl-s1"],[10,11,"pl-kos"],[12,13,"pl-s1"],[14,15,"pl-kos"],[16,17,"pl-c1"],[18,29,"pl-s1"],[29,30,"pl-kos"],[31,32,"pl-s1"],[33,34,"pl-kos"],[35,36,"pl-c1"],[37,42,"pl-s1"],[42,43,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[3,14,"pl-s1"],[15,16,"pl-c1"],[17,23,"pl-s1"],[23,24,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,8,"pl-k"],[9,20,"pl-s1"],[20,21,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,35,"pl-en"],[35,36,"pl-kos"],[37,42,"pl-s1"],[43,44,"pl-kos"],[45,46,"pl-kos"]],[],[[2,7,"pl-s1"],[7,8,"pl-kos"],[8,25,"pl-en"],[26,27,"pl-c1"],[28,36,"pl-k"],[37,76,"pl-v"],[76,77,"pl-kos"],[78,84,"pl-s1"],[85,86,"pl-kos"],[87,88,"pl-kos"]],[],[[3,82,"pl-c"]],[[3,93,"pl-c"]],[[3,76,"pl-c"]],[],[[3,8,"pl-k"],[9,24,"pl-s1"],[25,26,"pl-c1"],[27,28,"pl-kos"],[29,33,"pl-smi"],[34,44,"pl-k"],[45,68,"pl-v"],[69,70,"pl-kos"],[73,109,"pl-v"],[112,138,"pl-v"],[138,139,"pl-kos"]],[],[[3,9,"pl-k"],[10,13,"pl-k"],[14,29,"pl-s1"],[29,30,"pl-kos"],[31,35,"pl-smi"],[35,36,"pl-kos"],[36,41,"pl-c1"],[41,42,"pl-kos"],[43,47,"pl-smi"],[47,48,"pl-kos"],[48,54,"pl-c1"],[54,55,"pl-kos"],[56,60,"pl-smi"],[60,61,"pl-kos"],[61,73,"pl-en"],[73,74,"pl-kos"],[74,75,"pl-kos"],[76,77,"pl-c1"],[78,79,"pl-c1"],[79,80,"pl-kos"],[81,87,"pl-s1"],[88,89,"pl-kos"],[89,90,"pl-kos"]],[],[[2,3,"pl-kos"],[3,4,"pl-kos"]],[],[[2,89,"pl-c"]],[[2,7,"pl-s1"],[7,8,"pl-kos"],[8,25,"pl-c1"],[25,26,"pl-kos"],[26,67,"pl-c1"],[68,69,"pl-c1"],[70,74,"pl-c1"],[74,75,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,35,"pl-c"],[3,9,"pl-k"],[11,25,"pl-smi"]],[[0,39,"pl-c"],[3,9,"pl-k"],[11,25,"pl-smi"]],[[0,29,"pl-c"],[3,9,"pl-k"],[11,21,"pl-smi"]],[[0,3,"pl-c"]],[[0,8,"pl-k"],[9,22,"pl-en"],[22,23,"pl-kos"],[24,32,"pl-s1"],[32,33,"pl-kos"],[34,46,"pl-s1"],[46,47,"pl-kos"],[48,54,"pl-s1"],[55,56,"pl-kos"],[57,58,"pl-kos"]],[],[[1,6,"pl-k"],[7,17,"pl-s1"],[18,19,"pl-c1"],[20,32,"pl-s1"],[32,33,"pl-kos"],[33,43,"pl-c1"],[43,44,"pl-kos"]],[],[[1,6,"pl-k"],[7,10,"pl-s1"],[11,12,"pl-c1"],[13,16,"pl-k"],[17,21,"pl-v"],[21,22,"pl-kos"],[22,23,"pl-kos"],[23,24,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,16,"pl-s1"],[16,17,"pl-kos"],[17,25,"pl-c1"],[26,29,"pl-c1"],[30,39,"pl-c1"],[40,41,"pl-kos"],[42,43,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,25,"pl-s1"],[25,26,"pl-kos"],[26,30,"pl-c1"],[30,31,"pl-kos"],[31,40,"pl-c1"],[40,41,"pl-kos"],[42,52,"pl-s1"],[52,53,"pl-kos"],[53,61,"pl-c1"],[62,63,"pl-kos"],[63,64,"pl-kos"]],[],[[2,7,"pl-k"],[8,11,"pl-s1"],[12,13,"pl-c1"],[14,22,"pl-s1"],[22,23,"pl-kos"],[23,26,"pl-c1"],[26,27,"pl-kos"]],[[2,7,"pl-k"],[8,11,"pl-s1"],[12,13,"pl-c1"],[14,22,"pl-s1"],[22,23,"pl-kos"],[23,26,"pl-c1"],[26,27,"pl-kos"]],[],[[2,100,"pl-c"]],[],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,10,"pl-s1"],[11,14,"pl-c1"],[15,24,"pl-c1"],[25,27,"pl-c1"],[28,31,"pl-s1"],[32,35,"pl-c1"],[36,45,"pl-c1"],[46,47,"pl-kos"],[48,49,"pl-kos"]],[],[[3,6,"pl-s1"],[6,7,"pl-kos"],[7,10,"pl-en"],[10,11,"pl-kos"]],[[4,7,"pl-k"],[8,15,"pl-v"],[15,16,"pl-kos"],[17,20,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-c1"],[24,25,"pl-kos"],[25,26,"pl-kos"],[27,30,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-c1"],[34,35,"pl-kos"],[35,36,"pl-kos"],[37,40,"pl-s1"],[40,41,"pl-kos"],[42,43,"pl-c1"],[44,45,"pl-kos"],[46,47,"pl-kos"],[47,48,"pl-kos"]],[[4,7,"pl-k"],[8,15,"pl-v"],[15,16,"pl-kos"],[17,20,"pl-s1"],[20,21,"pl-kos"],[22,23,"pl-c1"],[24,25,"pl-kos"],[25,26,"pl-kos"],[27,30,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-c1"],[34,35,"pl-kos"],[35,36,"pl-kos"],[37,40,"pl-s1"],[40,41,"pl-kos"],[42,43,"pl-c1"],[44,45,"pl-kos"],[46,47,"pl-kos"]],[[3,4,"pl-kos"],[4,5,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,16,"pl-s1"],[16,17,"pl-kos"],[17,27,"pl-c1"],[28,29,"pl-kos"],[30,31,"pl-kos"]],[],[[4,9,"pl-k"],[10,18,"pl-s1"],[19,20,"pl-c1"],[21,48,"pl-en"],[48,49,"pl-kos"],[50,71,"pl-c1"],[71,72,"pl-kos"],[73,81,"pl-s1"],[81,82,"pl-kos"],[82,95,"pl-c1"],[96,97,"pl-kos"],[98,99,"pl-kos"],[99,100,"pl-kos"]],[[4,7,"pl-s1"],[7,8,"pl-kos"],[8,11,"pl-c1"],[11,12,"pl-kos"],[12,26,"pl-en"],[26,27,"pl-kos"],[28,36,"pl-s1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[[4,7,"pl-s1"],[7,8,"pl-kos"],[8,11,"pl-c1"],[11,12,"pl-kos"],[12,26,"pl-en"],[26,27,"pl-kos"],[28,36,"pl-s1"],[37,38,"pl-kos"],[38,39,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"],[4,8,"pl-k"],[9,10,"pl-kos"]],[],[[3,10,"pl-smi"],[10,11,"pl-kos"],[11,15,"pl-en"],[15,16,"pl-kos"],[17,86,"pl-s"],[87,88,"pl-kos"],[88,89,"pl-kos"]],[],[[3,9,"pl-k"],[9,10,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[1,2,"pl-kos"],[3,7,"pl-k"],[8,9,"pl-kos"]],[],[[2,8,"pl-k"],[8,9,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,6,"pl-k"],[7,14,"pl-s1"],[15,16,"pl-c1"],[17,29,"pl-s1"],[29,30,"pl-kos"],[30,37,"pl-c1"],[37,38,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,13,"pl-s1"],[14,17,"pl-c1"],[18,27,"pl-c1"],[28,29,"pl-kos"],[30,31,"pl-kos"]],[],[[2,7,"pl-k"],[8,23,"pl-s1"],[24,25,"pl-c1"],[26,29,"pl-k"],[30,37,"pl-v"],[37,38,"pl-kos"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[[2,7,"pl-k"],[8,14,"pl-s1"],[15,16,"pl-c1"],[17,20,"pl-k"],[21,28,"pl-v"],[28,29,"pl-kos"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[],[[2,5,"pl-k"],[6,7,"pl-kos"],[8,11,"pl-k"],[12,13,"pl-s1"],[14,15,"pl-c1"],[16,17,"pl-c1"],[17,18,"pl-kos"],[19,21,"pl-s1"],[22,23,"pl-c1"],[24,31,"pl-s1"],[31,32,"pl-kos"],[32,38,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-s1"],[42,43,"pl-c1"],[44,46,"pl-s1"],[46,47,"pl-kos"],[48,49,"pl-s1"],[50,52,"pl-c1"],[53,54,"pl-kos"],[55,56,"pl-kos"]],[],[[3,8,"pl-k"],[9,15,"pl-s1"],[16,17,"pl-c1"],[18,25,"pl-s1"],[25,26,"pl-kos"],[27,28,"pl-s1"],[29,30,"pl-kos"],[30,31,"pl-kos"]],[],[[3,5,"pl-k"],[6,7,"pl-kos"],[8,14,"pl-s1"],[14,15,"pl-kos"],[15,23,"pl-c1"],[24,27,"pl-c1"],[28,37,"pl-c1"],[38,39,"pl-kos"],[40,41,"pl-kos"]],[],[[4,9,"pl-k"],[10,18,"pl-s1"],[19,20,"pl-c1"],[21,27,"pl-s1"],[27,28,"pl-kos"],[28,32,"pl-c1"],[32,33,"pl-kos"],[33,42,"pl-c1"],[42,43,"pl-kos"],[44,50,"pl-s1"],[50,51,"pl-kos"],[51,59,"pl-c1"],[60,61,"pl-kos"],[61,62,"pl-kos"]],[[4,9,"pl-k"],[10,13,"pl-s1"],[14,15,"pl-c1"],[16,24,"pl-s1"],[24,25,"pl-kos"],[25,28,"pl-c1"],[28,29,"pl-kos"]],[[4,9,"pl-k"],[10,13,"pl-s1"],[14,15,"pl-c1"],[16,24,"pl-s1"],[24,25,"pl-kos"],[25,28,"pl-c1"],[28,29,"pl-kos"]],[],[[4,102,"pl-c"]],[],[[4,6,"pl-k"],[7,8,"pl-kos"],[9,12,"pl-s1"],[13,16,"pl-c1"],[17,26,"pl-c1"],[27,29,"pl-c1"],[30,33,"pl-s1"],[34,37,"pl-c1"],[38,47,"pl-c1"],[48,49,"pl-kos"],[50,51,"pl-kos"]],[],[[5,81,"pl-c"]],[[5,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,22,"pl-v"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-v"],[32,33,"pl-kos"],[33,36,"pl-en"],[36,37,"pl-kos"],[38,41,"pl-s1"],[41,42,"pl-kos"],[43,44,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-kos"],[48,49,"pl-kos"],[50,54,"pl-v"],[54,55,"pl-kos"],[55,58,"pl-en"],[58,59,"pl-kos"],[60,63,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-c1"],[67,68,"pl-kos"],[69,70,"pl-kos"],[71,72,"pl-kos"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[[5,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,22,"pl-v"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-v"],[32,33,"pl-kos"],[33,36,"pl-en"],[36,37,"pl-kos"],[38,41,"pl-s1"],[41,42,"pl-kos"],[43,44,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-kos"],[48,49,"pl-kos"],[50,54,"pl-v"],[54,55,"pl-kos"],[55,58,"pl-en"],[58,59,"pl-kos"],[60,63,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-c1"],[67,68,"pl-kos"],[69,70,"pl-kos"],[71,72,"pl-kos"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[[5,11,"pl-s1"],[11,12,"pl-kos"],[12,16,"pl-en"],[16,17,"pl-kos"],[18,22,"pl-v"],[22,23,"pl-kos"],[23,26,"pl-en"],[26,27,"pl-kos"],[28,32,"pl-v"],[32,33,"pl-kos"],[33,36,"pl-en"],[36,37,"pl-kos"],[38,41,"pl-s1"],[41,42,"pl-kos"],[43,44,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-kos"],[48,49,"pl-kos"],[50,54,"pl-v"],[54,55,"pl-kos"],[55,58,"pl-en"],[58,59,"pl-kos"],[60,63,"pl-s1"],[63,64,"pl-kos"],[65,66,"pl-c1"],[67,68,"pl-kos"],[69,70,"pl-kos"],[71,72,"pl-kos"],[73,74,"pl-kos"],[74,75,"pl-kos"]],[],[],[[5,7,"pl-k"],[8,9,"pl-kos"],[10,18,"pl-s1"],[18,19,"pl-kos"],[19,29,"pl-c1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[6,11,"pl-k"],[12,20,"pl-s1"],[21,22,"pl-c1"],[23,50,"pl-en"],[50,51,"pl-kos"],[52,73,"pl-c1"],[73,74,"pl-kos"],[75,83,"pl-s1"],[83,84,"pl-kos"],[84,97,"pl-c1"],[98,99,"pl-kos"],[100,101,"pl-kos"],[101,102,"pl-kos"]],[[6,12,"pl-s1"],[12,13,"pl-kos"],[13,27,"pl-en"],[27,28,"pl-kos"],[29,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[5,6,"pl-kos"]],[],[[5,118,"pl-c"]],[[5,120,"pl-c"]],[[5,121,"pl-c"]],[[5,118,"pl-c"]],[[5,20,"pl-s1"],[20,21,"pl-kos"],[21,24,"pl-en"],[24,25,"pl-kos"],[26,32,"pl-s1"],[33,34,"pl-kos"],[34,35,"pl-kos"]],[],[[4,5,"pl-kos"],[6,10,"pl-k"],[11,12,"pl-kos"]],[],[[5,12,"pl-smi"],[12,13,"pl-kos"],[13,17,"pl-en"],[17,18,"pl-kos"],[19,88,"pl-s"],[89,90,"pl-kos"],[90,91,"pl-kos"]],[],[[4,5,"pl-kos"]],[],[[3,4,"pl-kos"]],[],[[2,3,"pl-kos"]],[],[[2,122,"pl-c"]],[[2,5,"pl-s1"],[5,6,"pl-kos"],[6,20,"pl-en"],[20,21,"pl-kos"],[22,37,"pl-s1"],[38,39,"pl-kos"],[39,40,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,9,"pl-s1"],[9,10,"pl-kos"],[10,21,"pl-c1"],[22,23,"pl-c1"],[24,27,"pl-s1"],[27,28,"pl-kos"]],[],[[1,6,"pl-k"],[7,13,"pl-s1"],[14,15,"pl-c1"],[16,19,"pl-k"],[20,26,"pl-v"],[26,27,"pl-kos"],[27,28,"pl-kos"],[28,29,"pl-kos"]],[],[[1,4,"pl-s1"],[4,5,"pl-kos"],[5,14,"pl-en"],[14,15,"pl-kos"],[16,22,"pl-s1"],[22,23,"pl-kos"],[23,29,"pl-c1"],[30,31,"pl-kos"],[31,32,"pl-kos"]],[[1,7,"pl-s1"],[7,8,"pl-kos"],[8,14,"pl-c1"],[15,16,"pl-c1"],[17,20,"pl-s1"],[20,21,"pl-kos"],[21,24,"pl-c1"],[24,25,"pl-kos"],[25,35,"pl-en"],[35,36,"pl-kos"],[37,40,"pl-s1"],[40,41,"pl-kos"],[41,44,"pl-c1"],[45,46,"pl-kos"],[47,48,"pl-c1"],[49,50,"pl-c1"],[50,51,"pl-kos"]],[],[[1,9,"pl-s1"],[9,10,"pl-kos"],[10,24,"pl-c1"],[25,26,"pl-c1"],[27,33,"pl-s1"],[33,34,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,3,"pl-c"]],[[0,35,"pl-c"],[3,9,"pl-k"],[11,25,"pl-smi"]],[[0,39,"pl-c"],[3,9,"pl-k"],[11,25,"pl-smi"]],[[0,29,"pl-c"],[3,9,"pl-k"],[11,21,"pl-smi"]],[[0,36,"pl-c"],[3,10,"pl-k"],[12,35,"pl-smi"]],[[0,3,"pl-c"]],[[0,8,"pl-k"],[9,31,"pl-en"],[31,32,"pl-kos"],[33,41,"pl-s1"],[41,42,"pl-kos"],[43,55,"pl-s1"],[55,56,"pl-kos"],[57,63,"pl-s1"],[64,65,"pl-kos"],[66,67,"pl-kos"]],[],[[1,6,"pl-k"],[7,17,"pl-s1"],[18,19,"pl-c1"],[20,32,"pl-s1"],[32,33,"pl-kos"],[33,43,"pl-c1"],[43,44,"pl-kos"]],[],[[1,6,"pl-k"],[7,14,"pl-s1"],[15,16,"pl-c1"],[17,18,"pl-kos"],[18,19,"pl-kos"],[19,20,"pl-kos"]],[],[[1,9,"pl-k"],[10,33,"pl-en"],[33,34,"pl-kos"],[35,48,"pl-s1"],[48,49,"pl-kos"],[50,63,"pl-s1"],[64,65,"pl-kos"],[66,67,"pl-kos"]],[],[[2,8,"pl-k"],[9,15,"pl-s1"],[15,16,"pl-kos"],[16,29,"pl-en"],[29,30,"pl-kos"],[31,41,"pl-s"],[41,42,"pl-kos"],[43,56,"pl-s1"],[57,58,"pl-kos"]],[[3,4,"pl-kos"],[4,8,"pl-en"],[8,9,"pl-kos"],[10,18,"pl-k"],[19,20,"pl-kos"],[21,29,"pl-s1"],[30,31,"pl-kos"],[32,33,"pl-kos"]],[],[[4,12,"pl-s1"],[12,13,"pl-kos"],[13,25,"pl-en"],[25,26,"pl-kos"],[27,40,"pl-s1"],[40,41,"pl-kos"],[42,50,"pl-s1"],[51,52,"pl-kos"],[52,53,"pl-kos"]],[],[[3,4,"pl-kos"],[5,6,"pl-kos"],[6,7,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,4,"pl-k"],[5,6,"pl-kos"],[7,12,"pl-k"],[13,30,"pl-s1"],[31,33,"pl-k"],[34,44,"pl-s1"],[45,46,"pl-kos"],[47,48,"pl-kos"]],[],[[2,7,"pl-k"],[8,26,"pl-s1"],[27,28,"pl-c1"],[29,39,"pl-c1"],[39,40,"pl-kos"],[41,58,"pl-s1"],[59,60,"pl-kos"],[61,63,"pl-c1"],[64,81,"pl-s1"],[81,82,"pl-kos"],[82,93,"pl-en"],[93,94,"pl-kos"],[94,95,"pl-kos"],[95,96,"pl-kos"]],[],[[2,62,"pl-c"]],[[2,4,"pl-k"],[5,6,"pl-kos"],[7,25,"pl-s1"],[26,28,"pl-k"],[29,37,"pl-s1"],[37,38,"pl-kos"],[38,48,"pl-c1"],[49,50,"pl-kos"],[51,59,"pl-k"],[59,60,"pl-kos"]],[],[[2,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,39,"pl-en"],[39,40,"pl-kos"],[41,51,"pl-s1"],[51,52,"pl-kos"],[53,70,"pl-s1"],[71,72,"pl-kos"],[72,73,"pl-kos"],[74,92,"pl-s1"],[93,94,"pl-kos"],[95,96,"pl-kos"],[96,97,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,18,"pl-s1"],[18,19,"pl-kos"],[19,26,"pl-c1"],[27,30,"pl-c1"],[31,40,"pl-c1"],[41,43,"pl-c1"],[44,45,"pl-c1"],[46,54,"pl-s1"],[54,55,"pl-kos"],[55,60,"pl-c1"],[61,62,"pl-kos"],[63,64,"pl-kos"]],[],[[2,7,"pl-k"],[8,16,"pl-s1"],[17,18,"pl-c1"],[19,25,"pl-s1"],[25,26,"pl-kos"],[26,39,"pl-en"],[39,40,"pl-kos"],[41,51,"pl-s"],[51,52,"pl-kos"],[53,65,"pl-s1"],[65,66,"pl-kos"],[66,73,"pl-c1"],[74,75,"pl-kos"],[75,76,"pl-kos"],[76,80,"pl-en"],[80,81,"pl-kos"],[82,90,"pl-k"],[91,92,"pl-kos"],[93,101,"pl-s1"],[102,103,"pl-kos"],[104,105,"pl-kos"]],[],[[3,11,"pl-s1"],[11,12,"pl-kos"],[12,20,"pl-en"],[20,21,"pl-kos"],[22,30,"pl-s1"],[31,32,"pl-kos"],[32,33,"pl-kos"]],[],[[2,3,"pl-kos"],[4,5,"pl-kos"],[5,6,"pl-kos"]],[],[[2,9,"pl-s1"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,24,"pl-s1"],[25,26,"pl-kos"],[26,27,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,3,"pl-k"],[4,5,"pl-kos"],[6,21,"pl-v"],[21,22,"pl-kos"],[22,39,"pl-c1"],[40,43,"pl-c1"],[44,64,"pl-v"],[65,67,"pl-c1"],[68,77,"pl-s"],[78,80,"pl-k"],[81,91,"pl-s1"],[92,93,"pl-kos"],[94,95,"pl-kos"]],[],[[2,9,"pl-smi"],[9,10,"pl-kos"],[10,14,"pl-en"],[14,15,"pl-kos"],[16,136,"pl-s"],[83,119,"pl-s1"],[83,85,"pl-kos"],[85,100,"pl-v"],[100,101,"pl-kos"],[101,118,"pl-c1"],[118,119,"pl-kos"],[137,138,"pl-kos"],[138,139,"pl-kos"]],[],[[1,2,"pl-kos"]],[],[[1,23,"pl-en"],[23,24,"pl-kos"],[25,33,"pl-s1"],[33,34,"pl-kos"],[35,47,"pl-s1"],[48,49,"pl-kos"],[49,50,"pl-kos"]],[],[[1,14,"pl-en"],[14,15,"pl-kos"],[16,24,"pl-s1"],[24,25,"pl-kos"],[26,38,"pl-s1"],[38,39,"pl-kos"],[40,46,"pl-s1"],[47,48,"pl-kos"],[48,49,"pl-kos"]],[],[[1,7,"pl-k"],[8,15,"pl-v"],[15,16,"pl-kos"],[16,19,"pl-en"],[19,20,"pl-kos"],[21,28,"pl-s1"],[29,30,"pl-kos"],[30,31,"pl-kos"],[31,35,"pl-en"],[35,36,"pl-kos"],[37,45,"pl-k"],[46,47,"pl-kos"],[47,48,"pl-kos"],[49,50,"pl-kos"]],[],[[2,8,"pl-k"],[9,21,"pl-s1"],[21,22,"pl-kos"],[22,29,"pl-c1"],[30,33,"pl-c1"],[34,43,"pl-c1"]],[[5,20,"pl-en"],[20,21,"pl-kos"],[22,30,"pl-s1"],[30,31,"pl-kos"],[32,44,"pl-s1"],[44,45,"pl-kos"],[45,52,"pl-c1"],[52,53,"pl-kos"],[54,60,"pl-s1"],[61,62,"pl-kos"]],[[5,13,"pl-s1"],[13,14,"pl-kos"]],[],[[1,2,"pl-kos"],[3,4,"pl-kos"],[4,5,"pl-kos"]],[],[[0,1,"pl-kos"]],[],[[0,6,"pl-k"],[7,8,"pl-kos"],[9,19,"pl-v"],[20,21,"pl-kos"],[21,22,"pl-kos"]]],"colorizedLines":null,"csv":null,"csvError":null,"copilotSWEAgentEnabled":false,"dependabotInfo":{"showConfigurationBanner":false,"configFilePath":null,"networkDependabotPath":"/mrdoob/three.js/network/updates","dismissConfigurationNoticePath":"/settings/dismiss-notice/dependabot_configuration_notice","configurationNoticeDismissed":null},"displayName":"GLTFLoader.js","displayUrl":"https://github.com/mrdoob/three.js/blob/r159/examples/jsm/loaders/GLTFLoader.js?raw=true","headerInfo":{"blobSize":"106 KB","deleteTooltip":"You must be signed in to make or propose changes","editTooltip":"You must be signed in to make or propose changes","ghDesktopPath":null,"isGitLfs":false,"onBranch":false,"shortPath":"1cc15ac","siteNavLoginPath":"/login?return_to=https%3A%2F%2Fgithub.com%2Fmrdoob%2Fthree.js%2Fblob%2Fr159%2Fexamples%252Fjsm%252Floaders%252FGLTFLoader.js","isCSV":false,"isRichtext":false,"toc":null,"lineInfo":{"truncatedLoc":"4663","truncatedSloc":"2809"},"mode":"file"},"image":false,"isCodeownersFile":null,"isPlain":false,"isValidLegacyIssueTemplate":false,"issueTemplate":null,"discussionTemplate":null,"language":"JavaScript","languageID":183,"large":false,"planSupportInfo":{"repoIsFork":null,"repoOwnedByCurrentUser":null,"requestFullPath":"/mrdoob/three.js/blob/r159/examples%2Fjsm%2Floaders%2FGLTFLoader.js","showFreeOrgGatedFeatureMessage":null,"showPlanSupportBanner":null,"upgradeDataAttributes":null,"upgradePath":null},"publishBannersInfo":{"dismissActionNoticePath":"/settings/dismiss-notice/publish_action_from_dockerfile","releasePath":"/mrdoob/three.js/releases/new?marketplace=true","showPublishActionBanner":false},"rawBlobUrl":"https://github.com/mrdoob/three.js/raw/refs/tags/r159/examples/jsm/loaders/GLTFLoader.js","renderImageOrRaw":false,"richText":null,"renderedFileInfo":null,"shortPath":null,"symbolsEnabled":true,"tabSize":4,"topBannersInfo":{"overridingGlobalFundingFile":false,"globalPreferredFundingPath":null,"showInvalidCitationWarning":false,"citationHelpUrl":"https://docs.github.com/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-citation-files","actionsOnboardingTip":null},"truncated":false,"viewable":true,"workflowRedirectUrl":null,"symbols":{"timed_out":false,"not_analyzed":false,"symbols":[{"name":"GLTFLoader","kind":"class","ident_start":1185,"ident_end":1195,"extent_start":1179,"extent_end":8700,"fully_qualified_name":"GLTFLoader","ident_utf16":{"start":{"line_number":69,"utf16_col":6},"end":{"line_number":69,"utf16_col":16}},"extent_utf16":{"start":{"line_number":69,"utf16_col":0},"end":{"line_number":446,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":1215,"ident_end":1226,"extent_start":1215,"extent_end":3018,"fully_qualified_name":"GLTFLoader.constructor","ident_utf16":{"start":{"line_number":71,"utf16_col":1},"end":{"line_number":71,"utf16_col":12}},"extent_utf16":{"start":{"line_number":71,"utf16_col":1},"end":{"line_number":177,"utf16_col":2}}},{"name":"load","kind":"method","ident_start":3021,"ident_end":3025,"extent_start":3021,"extent_end":4857,"fully_qualified_name":"GLTFLoader.load","ident_utf16":{"start":{"line_number":179,"utf16_col":1},"end":{"line_number":179,"utf16_col":5}},"extent_utf16":{"start":{"line_number":179,"utf16_col":1},"end":{"line_number":254,"utf16_col":2}}},{"name":"_onError","kind":"function","ident_start":4177,"ident_end":4185,"extent_start":4177,"extent_end":4362,"fully_qualified_name":"GLTFLoader._onError","ident_utf16":{"start":{"line_number":210,"utf16_col":8},"end":{"line_number":210,"utf16_col":16}},"extent_utf16":{"start":{"line_number":210,"utf16_col":8},"end":{"line_number":225,"utf16_col":3}}},{"name":"setDRACOLoader","kind":"method","ident_start":4860,"ident_end":4874,"extent_start":4860,"extent_end":4945,"fully_qualified_name":"GLTFLoader.setDRACOLoader","ident_utf16":{"start":{"line_number":256,"utf16_col":1},"end":{"line_number":256,"utf16_col":15}},"extent_utf16":{"start":{"line_number":256,"utf16_col":1},"end":{"line_number":261,"utf16_col":2}}},{"name":"setDDSLoader","kind":"method","ident_start":4948,"ident_end":4960,"extent_start":4948,"extent_end":5097,"fully_qualified_name":"GLTFLoader.setDDSLoader","ident_utf16":{"start":{"line_number":263,"utf16_col":1},"end":{"line_number":263,"utf16_col":13}},"extent_utf16":{"start":{"line_number":263,"utf16_col":1},"end":{"line_number":271,"utf16_col":2}}},{"name":"setKTX2Loader","kind":"method","ident_start":5100,"ident_end":5113,"extent_start":5100,"extent_end":5181,"fully_qualified_name":"GLTFLoader.setKTX2Loader","ident_utf16":{"start":{"line_number":273,"utf16_col":1},"end":{"line_number":273,"utf16_col":14}},"extent_utf16":{"start":{"line_number":273,"utf16_col":1},"end":{"line_number":278,"utf16_col":2}}},{"name":"setMeshoptDecoder","kind":"method","ident_start":5184,"ident_end":5201,"extent_start":5184,"extent_end":5281,"fully_qualified_name":"GLTFLoader.setMeshoptDecoder","ident_utf16":{"start":{"line_number":280,"utf16_col":1},"end":{"line_number":280,"utf16_col":18}},"extent_utf16":{"start":{"line_number":280,"utf16_col":1},"end":{"line_number":285,"utf16_col":2}}},{"name":"register","kind":"method","ident_start":5284,"ident_end":5292,"extent_start":5284,"extent_end":5435,"fully_qualified_name":"GLTFLoader.register","ident_utf16":{"start":{"line_number":287,"utf16_col":1},"end":{"line_number":287,"utf16_col":9}},"extent_utf16":{"start":{"line_number":287,"utf16_col":1},"end":{"line_number":297,"utf16_col":2}}},{"name":"unregister","kind":"method","ident_start":5438,"ident_end":5448,"extent_start":5438,"extent_end":5628,"fully_qualified_name":"GLTFLoader.unregister","ident_utf16":{"start":{"line_number":299,"utf16_col":1},"end":{"line_number":299,"utf16_col":11}},"extent_utf16":{"start":{"line_number":299,"utf16_col":1},"end":{"line_number":309,"utf16_col":2}}},{"name":"parse","kind":"method","ident_start":5631,"ident_end":5636,"extent_start":5631,"extent_end":8531,"fully_qualified_name":"GLTFLoader.parse","ident_utf16":{"start":{"line_number":311,"utf16_col":1},"end":{"line_number":311,"utf16_col":6}},"extent_utf16":{"start":{"line_number":311,"utf16_col":1},"end":{"line_number":432,"utf16_col":2}}},{"name":"parseAsync","kind":"method","ident_start":8534,"ident_end":8544,"extent_start":8534,"extent_end":8697,"fully_qualified_name":"GLTFLoader.parseAsync","ident_utf16":{"start":{"line_number":434,"utf16_col":1},"end":{"line_number":434,"utf16_col":11}},"extent_utf16":{"start":{"line_number":434,"utf16_col":1},"end":{"line_number":444,"utf16_col":2}}},{"name":"GLTFRegistry","kind":"function","ident_start":8731,"ident_end":8743,"extent_start":8722,"extent_end":9030,"fully_qualified_name":"GLTFRegistry","ident_utf16":{"start":{"line_number":450,"utf16_col":9},"end":{"line_number":450,"utf16_col":21}},"extent_utf16":{"start":{"line_number":450,"utf16_col":0},"end":{"line_number":482,"utf16_col":1}}},{"name":"get","kind":"function","ident_start":8782,"ident_end":8785,"extent_start":8782,"extent_end":8837,"fully_qualified_name":"get","ident_utf16":{"start":{"line_number":456,"utf16_col":2},"end":{"line_number":456,"utf16_col":5}},"extent_utf16":{"start":{"line_number":456,"utf16_col":2},"end":{"line_number":460,"utf16_col":3}}},{"name":"add","kind":"function","ident_start":8842,"ident_end":8845,"extent_start":8842,"extent_end":8907,"fully_qualified_name":"add","ident_utf16":{"start":{"line_number":462,"utf16_col":2},"end":{"line_number":462,"utf16_col":5}},"extent_utf16":{"start":{"line_number":462,"utf16_col":2},"end":{"line_number":466,"utf16_col":3}}},{"name":"remove","kind":"function","ident_start":8912,"ident_end":8918,"extent_start":8912,"extent_end":8970,"fully_qualified_name":"remove","ident_utf16":{"start":{"line_number":468,"utf16_col":2},"end":{"line_number":468,"utf16_col":8}},"extent_utf16":{"start":{"line_number":468,"utf16_col":2},"end":{"line_number":472,"utf16_col":3}}},{"name":"removeAll","kind":"function","ident_start":8975,"ident_end":8984,"extent_start":8975,"extent_end":9022,"fully_qualified_name":"removeAll","ident_utf16":{"start":{"line_number":474,"utf16_col":2},"end":{"line_number":474,"utf16_col":11}},"extent_utf16":{"start":{"line_number":474,"utf16_col":2},"end":{"line_number":478,"utf16_col":3}}},{"name":"GLTFLightsExtension","kind":"class","ident_start":10352,"ident_end":10371,"extent_start":10346,"extent_end":13885,"fully_qualified_name":"GLTFLightsExtension","ident_utf16":{"start":{"line_number":517,"utf16_col":6},"end":{"line_number":517,"utf16_col":25}},"extent_utf16":{"start":{"line_number":517,"utf16_col":0},"end":{"line_number":648,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":10376,"ident_end":10387,"extent_start":10376,"extent_end":10544,"fully_qualified_name":"GLTFLightsExtension.constructor","ident_utf16":{"start":{"line_number":519,"utf16_col":1},"end":{"line_number":519,"utf16_col":12}},"extent_utf16":{"start":{"line_number":519,"utf16_col":1},"end":{"line_number":527,"utf16_col":2}}},{"name":"_markDefs","kind":"method","ident_start":10547,"ident_end":10556,"extent_start":10547,"extent_end":11007,"fully_qualified_name":"GLTFLightsExtension._markDefs","ident_utf16":{"start":{"line_number":529,"utf16_col":1},"end":{"line_number":529,"utf16_col":10}},"extent_utf16":{"start":{"line_number":529,"utf16_col":1},"end":{"line_number":548,"utf16_col":2}}},{"name":"_loadLight","kind":"method","ident_start":11010,"ident_end":11020,"extent_start":11010,"extent_end":13301,"fully_qualified_name":"GLTFLightsExtension._loadLight","ident_utf16":{"start":{"line_number":550,"utf16_col":1},"end":{"line_number":550,"utf16_col":11}},"extent_utf16":{"start":{"line_number":550,"utf16_col":1},"end":{"line_number":619,"utf16_col":2}}},{"name":"getDependency","kind":"method","ident_start":13304,"ident_end":13317,"extent_start":13304,"extent_end":13409,"fully_qualified_name":"GLTFLightsExtension.getDependency","ident_utf16":{"start":{"line_number":621,"utf16_col":1},"end":{"line_number":621,"utf16_col":14}},"extent_utf16":{"start":{"line_number":621,"utf16_col":1},"end":{"line_number":627,"utf16_col":2}}},{"name":"createNodeAttachment","kind":"method","ident_start":13412,"ident_end":13432,"extent_start":13412,"extent_end":13882,"fully_qualified_name":"GLTFLightsExtension.createNodeAttachment","ident_utf16":{"start":{"line_number":629,"utf16_col":1},"end":{"line_number":629,"utf16_col":21}},"extent_utf16":{"start":{"line_number":629,"utf16_col":1},"end":{"line_number":646,"utf16_col":2}}},{"name":"GLTFMaterialsUnlitExtension","kind":"class","ident_start":14043,"ident_end":14070,"extent_start":14037,"extent_end":14947,"fully_qualified_name":"GLTFMaterialsUnlitExtension","ident_utf16":{"start":{"line_number":655,"utf16_col":6},"end":{"line_number":655,"utf16_col":33}},"extent_utf16":{"start":{"line_number":655,"utf16_col":0},"end":{"line_number":701,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":14075,"ident_end":14086,"extent_start":14075,"extent_end":14141,"fully_qualified_name":"GLTFMaterialsUnlitExtension.constructor","ident_utf16":{"start":{"line_number":657,"utf16_col":1},"end":{"line_number":657,"utf16_col":12}},"extent_utf16":{"start":{"line_number":657,"utf16_col":1},"end":{"line_number":661,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":14144,"ident_end":14159,"extent_start":14144,"extent_end":14196,"fully_qualified_name":"GLTFMaterialsUnlitExtension.getMaterialType","ident_utf16":{"start":{"line_number":663,"utf16_col":1},"end":{"line_number":663,"utf16_col":16}},"extent_utf16":{"start":{"line_number":663,"utf16_col":1},"end":{"line_number":667,"utf16_col":2}}},{"name":"extendParams","kind":"method","ident_start":14199,"ident_end":14211,"extent_start":14199,"extent_end":14944,"fully_qualified_name":"GLTFMaterialsUnlitExtension.extendParams","ident_utf16":{"start":{"line_number":669,"utf16_col":1},"end":{"line_number":669,"utf16_col":13}},"extent_utf16":{"start":{"line_number":669,"utf16_col":1},"end":{"line_number":699,"utf16_col":2}}},{"name":"GLTFMaterialsEmissiveStrengthExtension","kind":"class","ident_start":15173,"ident_end":15211,"extent_start":15167,"extent_end":15813,"fully_qualified_name":"GLTFMaterialsEmissiveStrengthExtension","ident_utf16":{"start":{"line_number":708,"utf16_col":6},"end":{"line_number":708,"utf16_col":44}},"extent_utf16":{"start":{"line_number":708,"utf16_col":0},"end":{"line_number":740,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":15216,"ident_end":15227,"extent_start":15216,"extent_end":15326,"fully_qualified_name":"GLTFMaterialsEmissiveStrengthExtension.constructor","ident_utf16":{"start":{"line_number":710,"utf16_col":1},"end":{"line_number":710,"utf16_col":12}},"extent_utf16":{"start":{"line_number":710,"utf16_col":1},"end":{"line_number":715,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":15329,"ident_end":15349,"extent_start":15329,"extent_end":15810,"fully_qualified_name":"GLTFMaterialsEmissiveStrengthExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":717,"utf16_col":1},"end":{"line_number":717,"utf16_col":21}},"extent_utf16":{"start":{"line_number":717,"utf16_col":1},"end":{"line_number":738,"utf16_col":2}}},{"name":"GLTFMaterialsClearcoatExtension","kind":"class","ident_start":15979,"ident_end":16010,"extent_start":15973,"extent_end":17749,"fully_qualified_name":"GLTFMaterialsClearcoatExtension","ident_utf16":{"start":{"line_number":747,"utf16_col":6},"end":{"line_number":747,"utf16_col":37}},"extent_utf16":{"start":{"line_number":747,"utf16_col":0},"end":{"line_number":824,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":16015,"ident_end":16026,"extent_start":16015,"extent_end":16117,"fully_qualified_name":"GLTFMaterialsClearcoatExtension.constructor","ident_utf16":{"start":{"line_number":749,"utf16_col":1},"end":{"line_number":749,"utf16_col":12}},"extent_utf16":{"start":{"line_number":749,"utf16_col":1},"end":{"line_number":754,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":16120,"ident_end":16135,"extent_start":16120,"extent_end":16372,"fully_qualified_name":"GLTFMaterialsClearcoatExtension.getMaterialType","ident_utf16":{"start":{"line_number":756,"utf16_col":1},"end":{"line_number":756,"utf16_col":16}},"extent_utf16":{"start":{"line_number":756,"utf16_col":1},"end":{"line_number":765,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":16375,"ident_end":16395,"extent_start":16375,"extent_end":17746,"fully_qualified_name":"GLTFMaterialsClearcoatExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":767,"utf16_col":1},"end":{"line_number":767,"utf16_col":21}},"extent_utf16":{"start":{"line_number":767,"utf16_col":1},"end":{"line_number":822,"utf16_col":2}}},{"name":"GLTFMaterialsIridescenceExtension","kind":"class","ident_start":17919,"ident_end":17952,"extent_start":17913,"extent_end":19757,"fully_qualified_name":"GLTFMaterialsIridescenceExtension","ident_utf16":{"start":{"line_number":831,"utf16_col":6},"end":{"line_number":831,"utf16_col":39}},"extent_utf16":{"start":{"line_number":831,"utf16_col":0},"end":{"line_number":912,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":17957,"ident_end":17968,"extent_start":17957,"extent_end":18061,"fully_qualified_name":"GLTFMaterialsIridescenceExtension.constructor","ident_utf16":{"start":{"line_number":833,"utf16_col":1},"end":{"line_number":833,"utf16_col":12}},"extent_utf16":{"start":{"line_number":833,"utf16_col":1},"end":{"line_number":838,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":18064,"ident_end":18079,"extent_start":18064,"extent_end":18316,"fully_qualified_name":"GLTFMaterialsIridescenceExtension.getMaterialType","ident_utf16":{"start":{"line_number":840,"utf16_col":1},"end":{"line_number":840,"utf16_col":16}},"extent_utf16":{"start":{"line_number":840,"utf16_col":1},"end":{"line_number":849,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":18319,"ident_end":18339,"extent_start":18319,"extent_end":19754,"fully_qualified_name":"GLTFMaterialsIridescenceExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":851,"utf16_col":1},"end":{"line_number":851,"utf16_col":21}},"extent_utf16":{"start":{"line_number":851,"utf16_col":1},"end":{"line_number":910,"utf16_col":2}}},{"name":"GLTFMaterialsSheenExtension","kind":"class","ident_start":19913,"ident_end":19940,"extent_start":19907,"extent_end":21515,"fully_qualified_name":"GLTFMaterialsSheenExtension","ident_utf16":{"start":{"line_number":919,"utf16_col":6},"end":{"line_number":919,"utf16_col":33}},"extent_utf16":{"start":{"line_number":919,"utf16_col":0},"end":{"line_number":987,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":19945,"ident_end":19956,"extent_start":19945,"extent_end":20043,"fully_qualified_name":"GLTFMaterialsSheenExtension.constructor","ident_utf16":{"start":{"line_number":921,"utf16_col":1},"end":{"line_number":921,"utf16_col":12}},"extent_utf16":{"start":{"line_number":921,"utf16_col":1},"end":{"line_number":926,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":20046,"ident_end":20061,"extent_start":20046,"extent_end":20298,"fully_qualified_name":"GLTFMaterialsSheenExtension.getMaterialType","ident_utf16":{"start":{"line_number":928,"utf16_col":1},"end":{"line_number":928,"utf16_col":16}},"extent_utf16":{"start":{"line_number":928,"utf16_col":1},"end":{"line_number":937,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":20301,"ident_end":20321,"extent_start":20301,"extent_end":21512,"fully_qualified_name":"GLTFMaterialsSheenExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":939,"utf16_col":1},"end":{"line_number":939,"utf16_col":21}},"extent_utf16":{"start":{"line_number":939,"utf16_col":1},"end":{"line_number":985,"utf16_col":2}}},{"name":"GLTFMaterialsTransmissionExtension","kind":"class","ident_start":21744,"ident_end":21778,"extent_start":21738,"extent_end":22824,"fully_qualified_name":"GLTFMaterialsTransmissionExtension","ident_utf16":{"start":{"line_number":995,"utf16_col":6},"end":{"line_number":995,"utf16_col":40}},"extent_utf16":{"start":{"line_number":995,"utf16_col":0},"end":{"line_number":1046,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":21783,"ident_end":21794,"extent_start":21783,"extent_end":21888,"fully_qualified_name":"GLTFMaterialsTransmissionExtension.constructor","ident_utf16":{"start":{"line_number":997,"utf16_col":1},"end":{"line_number":997,"utf16_col":12}},"extent_utf16":{"start":{"line_number":997,"utf16_col":1},"end":{"line_number":1002,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":21891,"ident_end":21906,"extent_start":21891,"extent_end":22143,"fully_qualified_name":"GLTFMaterialsTransmissionExtension.getMaterialType","ident_utf16":{"start":{"line_number":1004,"utf16_col":1},"end":{"line_number":1004,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1004,"utf16_col":1},"end":{"line_number":1013,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":22146,"ident_end":22166,"extent_start":22146,"extent_end":22821,"fully_qualified_name":"GLTFMaterialsTransmissionExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":1015,"utf16_col":1},"end":{"line_number":1015,"utf16_col":21}},"extent_utf16":{"start":{"line_number":1015,"utf16_col":1},"end":{"line_number":1044,"utf16_col":2}}},{"name":"GLTFMaterialsVolumeExtension","kind":"class","ident_start":22984,"ident_end":23012,"extent_start":22978,"extent_end":24301,"fully_qualified_name":"GLTFMaterialsVolumeExtension","ident_utf16":{"start":{"line_number":1053,"utf16_col":6},"end":{"line_number":1053,"utf16_col":34}},"extent_utf16":{"start":{"line_number":1053,"utf16_col":0},"end":{"line_number":1105,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":23017,"ident_end":23028,"extent_start":23017,"extent_end":23116,"fully_qualified_name":"GLTFMaterialsVolumeExtension.constructor","ident_utf16":{"start":{"line_number":1055,"utf16_col":1},"end":{"line_number":1055,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1055,"utf16_col":1},"end":{"line_number":1060,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":23119,"ident_end":23134,"extent_start":23119,"extent_end":23371,"fully_qualified_name":"GLTFMaterialsVolumeExtension.getMaterialType","ident_utf16":{"start":{"line_number":1062,"utf16_col":1},"end":{"line_number":1062,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1062,"utf16_col":1},"end":{"line_number":1071,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":23374,"ident_end":23394,"extent_start":23374,"extent_end":24298,"fully_qualified_name":"GLTFMaterialsVolumeExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":1073,"utf16_col":1},"end":{"line_number":1073,"utf16_col":21}},"extent_utf16":{"start":{"line_number":1073,"utf16_col":1},"end":{"line_number":1103,"utf16_col":2}}},{"name":"GLTFMaterialsIorExtension","kind":"class","ident_start":24455,"ident_end":24480,"extent_start":24449,"extent_end":25269,"fully_qualified_name":"GLTFMaterialsIorExtension","ident_utf16":{"start":{"line_number":1112,"utf16_col":6},"end":{"line_number":1112,"utf16_col":31}},"extent_utf16":{"start":{"line_number":1112,"utf16_col":0},"end":{"line_number":1151,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":24485,"ident_end":24496,"extent_start":24485,"extent_end":24581,"fully_qualified_name":"GLTFMaterialsIorExtension.constructor","ident_utf16":{"start":{"line_number":1114,"utf16_col":1},"end":{"line_number":1114,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1114,"utf16_col":1},"end":{"line_number":1119,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":24584,"ident_end":24599,"extent_start":24584,"extent_end":24836,"fully_qualified_name":"GLTFMaterialsIorExtension.getMaterialType","ident_utf16":{"start":{"line_number":1121,"utf16_col":1},"end":{"line_number":1121,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1121,"utf16_col":1},"end":{"line_number":1130,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":24839,"ident_end":24859,"extent_start":24839,"extent_end":25266,"fully_qualified_name":"GLTFMaterialsIorExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":1132,"utf16_col":1},"end":{"line_number":1132,"utf16_col":21}},"extent_utf16":{"start":{"line_number":1132,"utf16_col":1},"end":{"line_number":1149,"utf16_col":2}}},{"name":"GLTFMaterialsSpecularExtension","kind":"class","ident_start":25433,"ident_end":25463,"extent_start":25427,"extent_end":26875,"fully_qualified_name":"GLTFMaterialsSpecularExtension","ident_utf16":{"start":{"line_number":1158,"utf16_col":6},"end":{"line_number":1158,"utf16_col":36}},"extent_utf16":{"start":{"line_number":1158,"utf16_col":0},"end":{"line_number":1214,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":25468,"ident_end":25479,"extent_start":25468,"extent_end":25569,"fully_qualified_name":"GLTFMaterialsSpecularExtension.constructor","ident_utf16":{"start":{"line_number":1160,"utf16_col":1},"end":{"line_number":1160,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1160,"utf16_col":1},"end":{"line_number":1165,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":25572,"ident_end":25587,"extent_start":25572,"extent_end":25824,"fully_qualified_name":"GLTFMaterialsSpecularExtension.getMaterialType","ident_utf16":{"start":{"line_number":1167,"utf16_col":1},"end":{"line_number":1167,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1167,"utf16_col":1},"end":{"line_number":1176,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":25827,"ident_end":25847,"extent_start":25827,"extent_end":26872,"fully_qualified_name":"GLTFMaterialsSpecularExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":1178,"utf16_col":1},"end":{"line_number":1178,"utf16_col":21}},"extent_utf16":{"start":{"line_number":1178,"utf16_col":1},"end":{"line_number":1212,"utf16_col":2}}},{"name":"GLTFMaterialsBumpExtension","kind":"class","ident_start":27032,"ident_end":27058,"extent_start":27026,"extent_end":28043,"fully_qualified_name":"GLTFMaterialsBumpExtension","ident_utf16":{"start":{"line_number":1222,"utf16_col":6},"end":{"line_number":1222,"utf16_col":32}},"extent_utf16":{"start":{"line_number":1222,"utf16_col":0},"end":{"line_number":1269,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":27063,"ident_end":27074,"extent_start":27063,"extent_end":27160,"fully_qualified_name":"GLTFMaterialsBumpExtension.constructor","ident_utf16":{"start":{"line_number":1224,"utf16_col":1},"end":{"line_number":1224,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1224,"utf16_col":1},"end":{"line_number":1229,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":27163,"ident_end":27178,"extent_start":27163,"extent_end":27415,"fully_qualified_name":"GLTFMaterialsBumpExtension.getMaterialType","ident_utf16":{"start":{"line_number":1231,"utf16_col":1},"end":{"line_number":1231,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1231,"utf16_col":1},"end":{"line_number":1240,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":27418,"ident_end":27438,"extent_start":27418,"extent_end":28040,"fully_qualified_name":"GLTFMaterialsBumpExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":1242,"utf16_col":1},"end":{"line_number":1242,"utf16_col":21}},"extent_utf16":{"start":{"line_number":1242,"utf16_col":1},"end":{"line_number":1267,"utf16_col":2}}},{"name":"GLTFMaterialsAnisotropyExtension","kind":"class","ident_start":28211,"ident_end":28243,"extent_start":28205,"extent_end":29409,"fully_qualified_name":"GLTFMaterialsAnisotropyExtension","ident_utf16":{"start":{"line_number":1276,"utf16_col":6},"end":{"line_number":1276,"utf16_col":38}},"extent_utf16":{"start":{"line_number":1276,"utf16_col":0},"end":{"line_number":1333,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":28248,"ident_end":28259,"extent_start":28248,"extent_end":28351,"fully_qualified_name":"GLTFMaterialsAnisotropyExtension.constructor","ident_utf16":{"start":{"line_number":1278,"utf16_col":1},"end":{"line_number":1278,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1278,"utf16_col":1},"end":{"line_number":1283,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":28354,"ident_end":28369,"extent_start":28354,"extent_end":28606,"fully_qualified_name":"GLTFMaterialsAnisotropyExtension.getMaterialType","ident_utf16":{"start":{"line_number":1285,"utf16_col":1},"end":{"line_number":1285,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1285,"utf16_col":1},"end":{"line_number":1294,"utf16_col":2}}},{"name":"extendMaterialParams","kind":"method","ident_start":28609,"ident_end":28629,"extent_start":28609,"extent_end":29406,"fully_qualified_name":"GLTFMaterialsAnisotropyExtension.extendMaterialParams","ident_utf16":{"start":{"line_number":1296,"utf16_col":1},"end":{"line_number":1296,"utf16_col":21}},"extent_utf16":{"start":{"line_number":1296,"utf16_col":1},"end":{"line_number":1331,"utf16_col":2}}},{"name":"GLTFTextureBasisUExtension","kind":"class","ident_start":29565,"ident_end":29591,"extent_start":29559,"extent_end":30461,"fully_qualified_name":"GLTFTextureBasisUExtension","ident_utf16":{"start":{"line_number":1340,"utf16_col":6},"end":{"line_number":1340,"utf16_col":32}},"extent_utf16":{"start":{"line_number":1340,"utf16_col":0},"end":{"line_number":1384,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":29596,"ident_end":29607,"extent_start":29596,"extent_end":29693,"fully_qualified_name":"GLTFTextureBasisUExtension.constructor","ident_utf16":{"start":{"line_number":1342,"utf16_col":1},"end":{"line_number":1342,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1342,"utf16_col":1},"end":{"line_number":1347,"utf16_col":2}}},{"name":"loadTexture","kind":"method","ident_start":29696,"ident_end":29707,"extent_start":29696,"extent_end":30458,"fully_qualified_name":"GLTFTextureBasisUExtension.loadTexture","ident_utf16":{"start":{"line_number":1349,"utf16_col":1},"end":{"line_number":1349,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1349,"utf16_col":1},"end":{"line_number":1382,"utf16_col":2}}},{"name":"GLTFTextureWebPExtension","kind":"class","ident_start":30612,"ident_end":30636,"extent_start":30606,"extent_end":32240,"fully_qualified_name":"GLTFTextureWebPExtension","ident_utf16":{"start":{"line_number":1391,"utf16_col":6},"end":{"line_number":1391,"utf16_col":30}},"extent_utf16":{"start":{"line_number":1391,"utf16_col":0},"end":{"line_number":1469,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":30641,"ident_end":30652,"extent_start":30641,"extent_end":30763,"fully_qualified_name":"GLTFTextureWebPExtension.constructor","ident_utf16":{"start":{"line_number":1393,"utf16_col":1},"end":{"line_number":1393,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1393,"utf16_col":1},"end":{"line_number":1399,"utf16_col":2}}},{"name":"loadTexture","kind":"method","ident_start":30766,"ident_end":30777,"extent_start":30766,"extent_end":31735,"fully_qualified_name":"GLTFTextureWebPExtension.loadTexture","ident_utf16":{"start":{"line_number":1401,"utf16_col":1},"end":{"line_number":1401,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1401,"utf16_col":1},"end":{"line_number":1441,"utf16_col":2}}},{"name":"detectSupport","kind":"method","ident_start":31738,"ident_end":31751,"extent_start":31738,"extent_end":32237,"fully_qualified_name":"GLTFTextureWebPExtension.detectSupport","ident_utf16":{"start":{"line_number":1443,"utf16_col":1},"end":{"line_number":1443,"utf16_col":14}},"extent_utf16":{"start":{"line_number":1443,"utf16_col":1},"end":{"line_number":1467,"utf16_col":2}}},{"name":"onerror","kind":"function","ident_start":32123,"ident_end":32130,"extent_start":32117,"extent_end":32190,"fully_qualified_name":"GLTFTextureWebPExtension.onerror","ident_utf16":{"start":{"line_number":1455,"utf16_col":25},"end":{"line_number":1455,"utf16_col":32}},"extent_utf16":{"start":{"line_number":1455,"utf16_col":19},"end":{"line_number":1459,"utf16_col":5}}},{"name":"GLTFTextureAVIFExtension","kind":"class","ident_start":32391,"ident_end":32415,"extent_start":32385,"extent_end":34276,"fully_qualified_name":"GLTFTextureAVIFExtension","ident_utf16":{"start":{"line_number":1476,"utf16_col":6},"end":{"line_number":1476,"utf16_col":30}},"extent_utf16":{"start":{"line_number":1476,"utf16_col":0},"end":{"line_number":1552,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":32420,"ident_end":32431,"extent_start":32420,"extent_end":32542,"fully_qualified_name":"GLTFTextureAVIFExtension.constructor","ident_utf16":{"start":{"line_number":1478,"utf16_col":1},"end":{"line_number":1478,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1478,"utf16_col":1},"end":{"line_number":1484,"utf16_col":2}}},{"name":"loadTexture","kind":"method","ident_start":32545,"ident_end":32556,"extent_start":32545,"extent_end":33514,"fully_qualified_name":"GLTFTextureAVIFExtension.loadTexture","ident_utf16":{"start":{"line_number":1486,"utf16_col":1},"end":{"line_number":1486,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1486,"utf16_col":1},"end":{"line_number":1526,"utf16_col":2}}},{"name":"detectSupport","kind":"method","ident_start":33517,"ident_end":33530,"extent_start":33517,"extent_end":34273,"fully_qualified_name":"GLTFTextureAVIFExtension.detectSupport","ident_utf16":{"start":{"line_number":1528,"utf16_col":1},"end":{"line_number":1528,"utf16_col":14}},"extent_utf16":{"start":{"line_number":1528,"utf16_col":1},"end":{"line_number":1550,"utf16_col":2}}},{"name":"onerror","kind":"function","ident_start":34159,"ident_end":34166,"extent_start":34153,"extent_end":34226,"fully_qualified_name":"GLTFTextureAVIFExtension.onerror","ident_utf16":{"start":{"line_number":1538,"utf16_col":25},"end":{"line_number":1538,"utf16_col":32}},"extent_utf16":{"start":{"line_number":1538,"utf16_col":19},"end":{"line_number":1542,"utf16_col":5}}},{"name":"GLTFMeshoptCompression","kind":"class","ident_start":34452,"ident_end":34474,"extent_start":34446,"extent_end":36266,"fully_qualified_name":"GLTFMeshoptCompression","ident_utf16":{"start":{"line_number":1559,"utf16_col":6},"end":{"line_number":1559,"utf16_col":28}},"extent_utf16":{"start":{"line_number":1559,"utf16_col":0},"end":{"line_number":1636,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":34479,"ident_end":34490,"extent_start":34479,"extent_end":34581,"fully_qualified_name":"GLTFMeshoptCompression.constructor","ident_utf16":{"start":{"line_number":1561,"utf16_col":1},"end":{"line_number":1561,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1561,"utf16_col":1},"end":{"line_number":1566,"utf16_col":2}}},{"name":"loadBufferView","kind":"method","ident_start":34584,"ident_end":34598,"extent_start":34584,"extent_end":36263,"fully_qualified_name":"GLTFMeshoptCompression.loadBufferView","ident_utf16":{"start":{"line_number":1568,"utf16_col":1},"end":{"line_number":1568,"utf16_col":15}},"extent_utf16":{"start":{"line_number":1568,"utf16_col":1},"end":{"line_number":1634,"utf16_col":2}}},{"name":"GLTFMeshGpuInstancing","kind":"class","ident_start":36429,"ident_end":36450,"extent_start":36423,"extent_end":39582,"fully_qualified_name":"GLTFMeshGpuInstancing","ident_utf16":{"start":{"line_number":1644,"utf16_col":6},"end":{"line_number":1644,"utf16_col":27}},"extent_utf16":{"start":{"line_number":1644,"utf16_col":0},"end":{"line_number":1793,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":36455,"ident_end":36466,"extent_start":36455,"extent_end":36557,"fully_qualified_name":"GLTFMeshGpuInstancing.constructor","ident_utf16":{"start":{"line_number":1646,"utf16_col":1},"end":{"line_number":1646,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1646,"utf16_col":1},"end":{"line_number":1651,"utf16_col":2}}},{"name":"createNodeMesh","kind":"method","ident_start":36560,"ident_end":36574,"extent_start":36560,"extent_end":39579,"fully_qualified_name":"GLTFMeshGpuInstancing.createNodeMesh","ident_utf16":{"start":{"line_number":1653,"utf16_col":1},"end":{"line_number":1653,"utf16_col":15}},"extent_utf16":{"start":{"line_number":1653,"utf16_col":1},"end":{"line_number":1791,"utf16_col":2}}},{"name":"GLTFBinaryExtension","kind":"class","ident_start":39779,"ident_end":39798,"extent_start":39773,"extent_end":41509,"fully_qualified_name":"GLTFBinaryExtension","ident_utf16":{"start":{"line_number":1800,"utf16_col":6},"end":{"line_number":1800,"utf16_col":25}},"extent_utf16":{"start":{"line_number":1800,"utf16_col":0},"end":{"line_number":1865,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":39803,"ident_end":39814,"extent_start":39803,"extent_end":41506,"fully_qualified_name":"GLTFBinaryExtension.constructor","ident_utf16":{"start":{"line_number":1802,"utf16_col":1},"end":{"line_number":1802,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1802,"utf16_col":1},"end":{"line_number":1863,"utf16_col":2}}},{"name":"GLTFDracoMeshCompressionExtension","kind":"class","ident_start":41681,"ident_end":41714,"extent_start":41675,"extent_end":43698,"fully_qualified_name":"GLTFDracoMeshCompressionExtension","ident_utf16":{"start":{"line_number":1872,"utf16_col":6},"end":{"line_number":1872,"utf16_col":39}},"extent_utf16":{"start":{"line_number":1872,"utf16_col":0},"end":{"line_number":1948,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":41719,"ident_end":41730,"extent_start":41719,"extent_end":42004,"fully_qualified_name":"GLTFDracoMeshCompressionExtension.constructor","ident_utf16":{"start":{"line_number":1874,"utf16_col":1},"end":{"line_number":1874,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1874,"utf16_col":1},"end":{"line_number":1887,"utf16_col":2}}},{"name":"decodePrimitive","kind":"method","ident_start":42007,"ident_end":42022,"extent_start":42007,"extent_end":43695,"fully_qualified_name":"GLTFDracoMeshCompressionExtension.decodePrimitive","ident_utf16":{"start":{"line_number":1889,"utf16_col":1},"end":{"line_number":1889,"utf16_col":16}},"extent_utf16":{"start":{"line_number":1889,"utf16_col":1},"end":{"line_number":1946,"utf16_col":2}}},{"name":"GLTFTextureTransformExtension","kind":"class","ident_start":43860,"ident_end":43889,"extent_start":43854,"extent_end":44755,"fully_qualified_name":"GLTFTextureTransformExtension","ident_utf16":{"start":{"line_number":1955,"utf16_col":6},"end":{"line_number":1955,"utf16_col":35}},"extent_utf16":{"start":{"line_number":1955,"utf16_col":0},"end":{"line_number":2007,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":43894,"ident_end":43905,"extent_start":43894,"extent_end":43962,"fully_qualified_name":"GLTFTextureTransformExtension.constructor","ident_utf16":{"start":{"line_number":1957,"utf16_col":1},"end":{"line_number":1957,"utf16_col":12}},"extent_utf16":{"start":{"line_number":1957,"utf16_col":1},"end":{"line_number":1961,"utf16_col":2}}},{"name":"extendTexture","kind":"method","ident_start":43965,"ident_end":43978,"extent_start":43965,"extent_end":44752,"fully_qualified_name":"GLTFTextureTransformExtension.extendTexture","ident_utf16":{"start":{"line_number":1963,"utf16_col":1},"end":{"line_number":1963,"utf16_col":14}},"extent_utf16":{"start":{"line_number":1963,"utf16_col":1},"end":{"line_number":2005,"utf16_col":2}}},{"name":"GLTFMeshQuantizationExtension","kind":"class","ident_start":44917,"ident_end":44946,"extent_start":44911,"extent_end":45022,"fully_qualified_name":"GLTFMeshQuantizationExtension","ident_utf16":{"start":{"line_number":2014,"utf16_col":6},"end":{"line_number":2014,"utf16_col":35}},"extent_utf16":{"start":{"line_number":2014,"utf16_col":0},"end":{"line_number":2022,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":44951,"ident_end":44962,"extent_start":44951,"extent_end":45019,"fully_qualified_name":"GLTFMeshQuantizationExtension.constructor","ident_utf16":{"start":{"line_number":2016,"utf16_col":1},"end":{"line_number":2016,"utf16_col":12}},"extent_utf16":{"start":{"line_number":2016,"utf16_col":1},"end":{"line_number":2020,"utf16_col":2}}},{"name":"GLTFCubicSplineInterpolant","kind":"class","ident_start":45290,"ident_end":45316,"extent_start":45284,"extent_end":46963,"fully_qualified_name":"GLTFCubicSplineInterpolant","ident_utf16":{"start":{"line_number":2030,"utf16_col":6},"end":{"line_number":2030,"utf16_col":32}},"extent_utf16":{"start":{"line_number":2030,"utf16_col":0},"end":{"line_number":2098,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":45341,"ident_end":45352,"extent_start":45341,"extent_end":45492,"fully_qualified_name":"GLTFCubicSplineInterpolant.constructor","ident_utf16":{"start":{"line_number":2032,"utf16_col":1},"end":{"line_number":2032,"utf16_col":12}},"extent_utf16":{"start":{"line_number":2032,"utf16_col":1},"end":{"line_number":2036,"utf16_col":2}}},{"name":"copySampleValue_","kind":"method","ident_start":45495,"ident_end":45511,"extent_start":45495,"extent_end":45920,"fully_qualified_name":"GLTFCubicSplineInterpolant.copySampleValue_","ident_utf16":{"start":{"line_number":2038,"utf16_col":1},"end":{"line_number":2038,"utf16_col":17}},"extent_utf16":{"start":{"line_number":2038,"utf16_col":1},"end":{"line_number":2056,"utf16_col":2}}},{"name":"interpolate_","kind":"method","ident_start":45923,"ident_end":45935,"extent_start":45923,"extent_end":46960,"fully_qualified_name":"GLTFCubicSplineInterpolant.interpolate_","ident_utf16":{"start":{"line_number":2058,"utf16_col":1},"end":{"line_number":2058,"utf16_col":13}},"extent_utf16":{"start":{"line_number":2058,"utf16_col":1},"end":{"line_number":2096,"utf16_col":2}}},{"name":"GLTFCubicSplineQuaternionInterpolant","kind":"class","ident_start":47001,"ident_end":47037,"extent_start":46995,"extent_end":47245,"fully_qualified_name":"GLTFCubicSplineQuaternionInterpolant","ident_utf16":{"start":{"line_number":2102,"utf16_col":6},"end":{"line_number":2102,"utf16_col":42}},"extent_utf16":{"start":{"line_number":2102,"utf16_col":0},"end":{"line_number":2114,"utf16_col":1}}},{"name":"interpolate_","kind":"method","ident_start":47077,"ident_end":47089,"extent_start":47077,"extent_end":47242,"fully_qualified_name":"GLTFCubicSplineQuaternionInterpolant.interpolate_","ident_utf16":{"start":{"line_number":2104,"utf16_col":1},"end":{"line_number":2104,"utf16_col":13}},"extent_utf16":{"start":{"line_number":2104,"utf16_col":1},"end":{"line_number":2112,"utf16_col":2}}},{"name":"createDefaultMaterial","kind":"function","ident_start":49217,"ident_end":49238,"extent_start":49208,"extent_end":49551,"fully_qualified_name":"createDefaultMaterial","ident_utf16":{"start":{"line_number":2215,"utf16_col":9},"end":{"line_number":2215,"utf16_col":30}},"extent_utf16":{"start":{"line_number":2215,"utf16_col":0},"end":{"line_number":2233,"utf16_col":1}}},{"name":"addUnknownExtensionsToUserData","kind":"function","ident_start":49562,"ident_end":49592,"extent_start":49553,"extent_end":49948,"fully_qualified_name":"addUnknownExtensionsToUserData","ident_utf16":{"start":{"line_number":2235,"utf16_col":9},"end":{"line_number":2235,"utf16_col":39}},"extent_utf16":{"start":{"line_number":2235,"utf16_col":0},"end":{"line_number":2250,"utf16_col":1}}},{"name":"assignExtrasToUserData","kind":"function","ident_start":50055,"ident_end":50077,"extent_start":50046,"extent_end":50355,"fully_qualified_name":"assignExtrasToUserData","ident_utf16":{"start":{"line_number":2256,"utf16_col":9},"end":{"line_number":2256,"utf16_col":31}},"extent_utf16":{"start":{"line_number":2256,"utf16_col":0},"end":{"line_number":2272,"utf16_col":1}}},{"name":"addMorphTargets","kind":"function","ident_start":50628,"ident_end":50643,"extent_start":50619,"extent_end":52707,"fully_qualified_name":"addMorphTargets","ident_utf16":{"start":{"line_number":2282,"utf16_col":9},"end":{"line_number":2282,"utf16_col":24}},"extent_utf16":{"start":{"line_number":2282,"utf16_col":0},"end":{"line_number":2361,"utf16_col":1}}},{"name":"updateMorphTargets","kind":"function","ident_start":52778,"ident_end":52796,"extent_start":52769,"extent_end":53574,"fully_qualified_name":"updateMorphTargets","ident_utf16":{"start":{"line_number":2367,"utf16_col":9},"end":{"line_number":2367,"utf16_col":27}},"extent_utf16":{"start":{"line_number":2367,"utf16_col":0},"end":{"line_number":2404,"utf16_col":1}}},{"name":"createPrimitiveKey","kind":"function","ident_start":53585,"ident_end":53603,"extent_start":53576,"extent_end":54296,"fully_qualified_name":"createPrimitiveKey","ident_utf16":{"start":{"line_number":2406,"utf16_col":9},"end":{"line_number":2406,"utf16_col":27}},"extent_utf16":{"start":{"line_number":2406,"utf16_col":0},"end":{"line_number":2436,"utf16_col":1}}},{"name":"createAttributesKey","kind":"function","ident_start":54307,"ident_end":54326,"extent_start":54298,"extent_end":54571,"fully_qualified_name":"createAttributesKey","ident_utf16":{"start":{"line_number":2438,"utf16_col":9},"end":{"line_number":2438,"utf16_col":28}},"extent_utf16":{"start":{"line_number":2438,"utf16_col":0},"end":{"line_number":2452,"utf16_col":1}}},{"name":"getNormalizedComponentScale","kind":"function","ident_start":54582,"ident_end":54609,"extent_start":54573,"extent_end":55061,"fully_qualified_name":"getNormalizedComponentScale","ident_utf16":{"start":{"line_number":2454,"utf16_col":9},"end":{"line_number":2454,"utf16_col":36}},"extent_utf16":{"start":{"line_number":2454,"utf16_col":0},"end":{"line_number":2478,"utf16_col":1}}},{"name":"getImageURIMimeType","kind":"function","ident_start":55072,"ident_end":55091,"extent_start":55063,"extent_end":55341,"fully_qualified_name":"getImageURIMimeType","ident_utf16":{"start":{"line_number":2480,"utf16_col":9},"end":{"line_number":2480,"utf16_col":28}},"extent_utf16":{"start":{"line_number":2480,"utf16_col":0},"end":{"line_number":2487,"utf16_col":1}}},{"name":"GLTFParser","kind":"class","ident_start":55408,"ident_end":55418,"extent_start":55402,"extent_end":103675,"fully_qualified_name":"GLTFParser","ident_utf16":{"start":{"line_number":2493,"utf16_col":6},"end":{"line_number":2493,"utf16_col":16}},"extent_utf16":{"start":{"line_number":2493,"utf16_col":0},"end":{"line_number":4479,"utf16_col":1}}},{"name":"constructor","kind":"method","ident_start":55423,"ident_end":55434,"extent_start":55423,"extent_end":57251,"fully_qualified_name":"GLTFParser.constructor","ident_utf16":{"start":{"line_number":2495,"utf16_col":1},"end":{"line_number":2495,"utf16_col":12}},"extent_utf16":{"start":{"line_number":2495,"utf16_col":1},"end":{"line_number":2562,"utf16_col":2}}},{"name":"setExtensions","kind":"method","ident_start":57254,"ident_end":57267,"extent_start":57254,"extent_end":57320,"fully_qualified_name":"GLTFParser.setExtensions","ident_utf16":{"start":{"line_number":2564,"utf16_col":1},"end":{"line_number":2564,"utf16_col":14}},"extent_utf16":{"start":{"line_number":2564,"utf16_col":1},"end":{"line_number":2568,"utf16_col":2}}},{"name":"setPlugins","kind":"method","ident_start":57323,"ident_end":57333,"extent_start":57323,"extent_end":57377,"fully_qualified_name":"GLTFParser.setPlugins","ident_utf16":{"start":{"line_number":2570,"utf16_col":1},"end":{"line_number":2570,"utf16_col":11}},"extent_utf16":{"start":{"line_number":2570,"utf16_col":1},"end":{"line_number":2574,"utf16_col":2}}},{"name":"parse","kind":"method","ident_start":57380,"ident_end":57385,"extent_start":57380,"extent_end":58603,"fully_qualified_name":"GLTFParser.parse","ident_utf16":{"start":{"line_number":2576,"utf16_col":1},"end":{"line_number":2576,"utf16_col":6}},"extent_utf16":{"start":{"line_number":2576,"utf16_col":1},"end":{"line_number":2635,"utf16_col":2}}},{"name":"_markDefs","kind":"method","ident_start":58680,"ident_end":58689,"extent_start":58680,"extent_end":59946,"fully_qualified_name":"GLTFParser._markDefs","ident_utf16":{"start":{"line_number":2640,"utf16_col":1},"end":{"line_number":2640,"utf16_col":10}},"extent_utf16":{"start":{"line_number":2640,"utf16_col":1},"end":{"line_number":2689,"utf16_col":2}}},{"name":"_addNodeRef","kind":"method","ident_start":60382,"ident_end":60393,"extent_start":60382,"extent_end":60582,"fully_qualified_name":"GLTFParser._addNodeRef","ident_utf16":{"start":{"line_number":2700,"utf16_col":1},"end":{"line_number":2700,"utf16_col":12}},"extent_utf16":{"start":{"line_number":2700,"utf16_col":1},"end":{"line_number":2712,"utf16_col":2}}},{"name":"_getNodeRef","kind":"method","ident_start":60660,"ident_end":60671,"extent_start":60660,"extent_end":61315,"fully_qualified_name":"GLTFParser._getNodeRef","ident_utf16":{"start":{"line_number":2715,"utf16_col":1},"end":{"line_number":2715,"utf16_col":12}},"extent_utf16":{"start":{"line_number":2715,"utf16_col":1},"end":{"line_number":2746,"utf16_col":2}}},{"name":"updateMappings","kind":"function","ident_start":60898,"ident_end":60912,"extent_start":60898,"extent_end":61203,"fully_qualified_name":"GLTFParser.updateMappings","ident_utf16":{"start":{"line_number":2723,"utf16_col":8},"end":{"line_number":2723,"utf16_col":22}},"extent_utf16":{"start":{"line_number":2723,"utf16_col":8},"end":{"line_number":2738,"utf16_col":3}}},{"name":"_invokeOne","kind":"method","ident_start":61318,"ident_end":61328,"extent_start":61318,"extent_end":61572,"fully_qualified_name":"GLTFParser._invokeOne","ident_utf16":{"start":{"line_number":2748,"utf16_col":1},"end":{"line_number":2748,"utf16_col":11}},"extent_utf16":{"start":{"line_number":2748,"utf16_col":1},"end":{"line_number":2763,"utf16_col":2}}},{"name":"_invokeAll","kind":"method","ident_start":61575,"ident_end":61585,"extent_start":61575,"extent_end":61867,"fully_qualified_name":"GLTFParser._invokeAll","ident_utf16":{"start":{"line_number":2765,"utf16_col":1},"end":{"line_number":2765,"utf16_col":11}},"extent_utf16":{"start":{"line_number":2765,"utf16_col":1},"end":{"line_number":2782,"utf16_col":2}}},{"name":"getDependency","kind":"method","ident_start":62087,"ident_end":62100,"extent_start":62087,"extent_end":63915,"fully_qualified_name":"GLTFParser.getDependency","ident_utf16":{"start":{"line_number":2790,"utf16_col":1},"end":{"line_number":2790,"utf16_col":14}},"extent_utf16":{"start":{"line_number":2790,"utf16_col":1},"end":{"line_number":2890,"utf16_col":2}}},{"name":"getDependencies","kind":"method","ident_start":64072,"ident_end":64087,"extent_start":64072,"extent_end":64474,"fully_qualified_name":"GLTFParser.getDependencies","ident_utf16":{"start":{"line_number":2897,"utf16_col":1},"end":{"line_number":2897,"utf16_col":16}},"extent_utf16":{"start":{"line_number":2897,"utf16_col":1},"end":{"line_number":2918,"utf16_col":2}}},{"name":"loadBuffer","kind":"method","ident_start":64675,"ident_end":64685,"extent_start":64675,"extent_end":65481,"fully_qualified_name":"GLTFParser.loadBuffer","ident_utf16":{"start":{"line_number":2925,"utf16_col":1},"end":{"line_number":2925,"utf16_col":11}},"extent_utf16":{"start":{"line_number":2925,"utf16_col":1},"end":{"line_number":2955,"utf16_col":2}}},{"name":"loadBufferView","kind":"method","ident_start":65686,"ident_end":65700,"extent_start":65686,"extent_end":66061,"fully_qualified_name":"GLTFParser.loadBufferView","ident_utf16":{"start":{"line_number":2962,"utf16_col":1},"end":{"line_number":2962,"utf16_col":15}},"extent_utf16":{"start":{"line_number":2962,"utf16_col":1},"end":{"line_number":2974,"utf16_col":2}}},{"name":"loadAccessor","kind":"method","ident_start":66280,"ident_end":66292,"extent_start":66280,"extent_end":70915,"fully_qualified_name":"GLTFParser.loadAccessor","ident_utf16":{"start":{"line_number":2981,"utf16_col":1},"end":{"line_number":2981,"utf16_col":13}},"extent_utf16":{"start":{"line_number":2981,"utf16_col":1},"end":{"line_number":3108,"utf16_col":2}}},{"name":"loadTexture","kind":"method","ident_start":71098,"ident_end":71109,"extent_start":71098,"extent_end":71578,"fully_qualified_name":"GLTFParser.loadTexture","ident_utf16":{"start":{"line_number":3115,"utf16_col":1},"end":{"line_number":3115,"utf16_col":12}},"extent_utf16":{"start":{"line_number":3115,"utf16_col":1},"end":{"line_number":3134,"utf16_col":2}}},{"name":"loadTextureImage","kind":"method","ident_start":71581,"ident_end":71597,"extent_start":71581,"extent_end":72982,"fully_qualified_name":"GLTFParser.loadTextureImage","ident_utf16":{"start":{"line_number":3136,"utf16_col":1},"end":{"line_number":3136,"utf16_col":17}},"extent_utf16":{"start":{"line_number":3136,"utf16_col":1},"end":{"line_number":3187,"utf16_col":2}}},{"name":"loadImageSource","kind":"method","ident_start":72985,"ident_end":73000,"extent_start":72985,"extent_end":74921,"fully_qualified_name":"GLTFParser.loadImageSource","ident_utf16":{"start":{"line_number":3189,"utf16_col":1},"end":{"line_number":3189,"utf16_col":16}},"extent_utf16":{"start":{"line_number":3189,"utf16_col":1},"end":{"line_number":3274,"utf16_col":2}}},{"name":"onLoad","kind":"function","ident_start":74172,"ident_end":74178,"extent_start":74172,"extent_end":74327,"fully_qualified_name":"GLTFParser.onLoad","ident_utf16":{"start":{"line_number":3235,"utf16_col":5},"end":{"line_number":3235,"utf16_col":11}},"extent_utf16":{"start":{"line_number":3235,"utf16_col":5},"end":{"line_number":3242,"utf16_col":6}}},{"name":"assignTexture","kind":"method","ident_start":75126,"ident_end":75139,"extent_start":75126,"extent_end":76083,"fully_qualified_name":"GLTFParser.assignTexture","ident_utf16":{"start":{"line_number":3283,"utf16_col":1},"end":{"line_number":3283,"utf16_col":14}},"extent_utf16":{"start":{"line_number":3283,"utf16_col":1},"end":{"line_number":3324,"utf16_col":2}}},{"name":"assignFinalMaterial","kind":"method","ident_start":76521,"ident_end":76540,"extent_start":76521,"extent_end":78903,"fully_qualified_name":"GLTFParser.assignFinalMaterial","ident_utf16":{"start":{"line_number":3334,"utf16_col":1},"end":{"line_number":3334,"utf16_col":20}},"extent_utf16":{"start":{"line_number":3334,"utf16_col":1},"end":{"line_number":3422,"utf16_col":2}}},{"name":"getMaterialType","kind":"method","ident_start":78906,"ident_end":78921,"extent_start":78906,"extent_end":78982,"fully_qualified_name":"GLTFParser.getMaterialType","ident_utf16":{"start":{"line_number":3424,"utf16_col":1},"end":{"line_number":3424,"utf16_col":16}},"extent_utf16":{"start":{"line_number":3424,"utf16_col":1},"end":{"line_number":3428,"utf16_col":2}}},{"name":"loadMaterial","kind":"method","ident_start":79167,"ident_end":79179,"extent_start":79167,"extent_end":83607,"fully_qualified_name":"GLTFParser.loadMaterial","ident_utf16":{"start":{"line_number":3435,"utf16_col":1},"end":{"line_number":3435,"utf16_col":13}},"extent_utf16":{"start":{"line_number":3435,"utf16_col":1},"end":{"line_number":3587,"utf16_col":2}}},{"name":"createUniqueName","kind":"method","ident_start":83693,"ident_end":83709,"extent_start":83693,"extent_end":84025,"fully_qualified_name":"GLTFParser.createUniqueName","ident_utf16":{"start":{"line_number":3590,"utf16_col":1},"end":{"line_number":3590,"utf16_col":17}},"extent_utf16":{"start":{"line_number":3590,"utf16_col":1},"end":{"line_number":3606,"utf16_col":2}}},{"name":"loadGeometries","kind":"method","ident_start":84288,"ident_end":84302,"extent_start":84288,"extent_end":85633,"fully_qualified_name":"GLTFParser.loadGeometries","ident_utf16":{"start":{"line_number":3616,"utf16_col":1},"end":{"line_number":3616,"utf16_col":15}},"extent_utf16":{"start":{"line_number":3616,"utf16_col":1},"end":{"line_number":3676,"utf16_col":2}}},{"name":"createDracoPrimitive","kind":"function","ident_start":84430,"ident_end":84450,"extent_start":84421,"extent_end":84688,"fully_qualified_name":"GLTFParser.createDracoPrimitive","ident_utf16":{"start":{"line_number":3622,"utf16_col":11},"end":{"line_number":3622,"utf16_col":31}},"extent_utf16":{"start":{"line_number":3622,"utf16_col":2},"end":{"line_number":3632,"utf16_col":3}}},{"name":"loadMesh","kind":"method","ident_start":85825,"ident_end":85833,"extent_start":85825,"extent_end":89267,"fully_qualified_name":"GLTFParser.loadMesh","ident_utf16":{"start":{"line_number":3683,"utf16_col":1},"end":{"line_number":3683,"utf16_col":9}},"extent_utf16":{"start":{"line_number":3683,"utf16_col":1},"end":{"line_number":3824,"utf16_col":2}}},{"name":"loadCamera","kind":"method","ident_start":89442,"ident_end":89452,"extent_start":89442,"extent_end":90220,"fully_qualified_name":"GLTFParser.loadCamera","ident_utf16":{"start":{"line_number":3831,"utf16_col":1},"end":{"line_number":3831,"utf16_col":11}},"extent_utf16":{"start":{"line_number":3831,"utf16_col":1},"end":{"line_number":3860,"utf16_col":2}}},{"name":"loadSkin","kind":"method","ident_start":90387,"ident_end":90395,"extent_start":90387,"extent_end":91597,"fully_qualified_name":"GLTFParser.loadSkin","ident_utf16":{"start":{"line_number":3867,"utf16_col":1},"end":{"line_number":3867,"utf16_col":9}},"extent_utf16":{"start":{"line_number":3867,"utf16_col":1},"end":{"line_number":3930,"utf16_col":2}}},{"name":"loadAnimation","kind":"method","ident_start":91779,"ident_end":91792,"extent_start":91779,"extent_end":94163,"fully_qualified_name":"GLTFParser.loadAnimation","ident_utf16":{"start":{"line_number":3937,"utf16_col":1},"end":{"line_number":3937,"utf16_col":14}},"extent_utf16":{"start":{"line_number":3937,"utf16_col":1},"end":{"line_number":4022,"utf16_col":2}}},{"name":"createNodeMesh","kind":"method","ident_start":94166,"ident_end":94180,"extent_start":94166,"extent_end":94863,"fully_qualified_name":"GLTFParser.createNodeMesh","ident_utf16":{"start":{"line_number":4024,"utf16_col":1},"end":{"line_number":4024,"utf16_col":15}},"extent_utf16":{"start":{"line_number":4024,"utf16_col":1},"end":{"line_number":4057,"utf16_col":2}}},{"name":"loadNode","kind":"method","ident_start":95044,"ident_end":95052,"extent_start":95044,"extent_end":96211,"fully_qualified_name":"GLTFParser.loadNode","ident_utf16":{"start":{"line_number":4064,"utf16_col":1},"end":{"line_number":4064,"utf16_col":9}},"extent_utf16":{"start":{"line_number":4064,"utf16_col":1},"end":{"line_number":4120,"utf16_col":2}}},{"name":"_loadNodeShallow","kind":"method","ident_start":96339,"ident_end":96355,"extent_start":96339,"extent_end":98970,"fully_qualified_name":"GLTFParser._loadNodeShallow","ident_utf16":{"start":{"line_number":4124,"utf16_col":1},"end":{"line_number":4124,"utf16_col":17}},"extent_utf16":{"start":{"line_number":4124,"utf16_col":1},"end":{"line_number":4264,"utf16_col":2}}},{"name":"loadScene","kind":"method","ident_start":99136,"ident_end":99145,"extent_start":99136,"extent_end":100689,"fully_qualified_name":"GLTFParser.loadScene","ident_utf16":{"start":{"line_number":4271,"utf16_col":1},"end":{"line_number":4271,"utf16_col":10}},"extent_utf16":{"start":{"line_number":4271,"utf16_col":1},"end":{"line_number":4342,"utf16_col":2}}},{"name":"reduceAssociations","kind":"function","ident_start":100111,"ident_end":100129,"extent_start":100111,"extent_end":100603,"fully_qualified_name":"GLTFParser.reduceAssociations","ident_utf16":{"start":{"line_number":4306,"utf16_col":9},"end":{"line_number":4306,"utf16_col":27}},"extent_utf16":{"start":{"line_number":4306,"utf16_col":9},"end":{"line_number":4334,"utf16_col":4}}},{"name":"_createAnimationTracks","kind":"method","ident_start":100692,"ident_end":100714,"extent_start":100692,"extent_end":102458,"fully_qualified_name":"GLTFParser._createAnimationTracks","ident_utf16":{"start":{"line_number":4344,"utf16_col":1},"end":{"line_number":4344,"utf16_col":23}},"extent_utf16":{"start":{"line_number":4344,"utf16_col":1},"end":{"line_number":4435,"utf16_col":2}}},{"name":"_getArrayFromAccessor","kind":"method","ident_start":102461,"ident_end":102482,"extent_start":102461,"extent_end":102869,"fully_qualified_name":"GLTFParser._getArrayFromAccessor","ident_utf16":{"start":{"line_number":4437,"utf16_col":1},"end":{"line_number":4437,"utf16_col":22}},"extent_utf16":{"start":{"line_number":4437,"utf16_col":1},"end":{"line_number":4458,"utf16_col":2}}},{"name":"_createCubicSplineTrackInterpolant","kind":"method","ident_start":102872,"ident_end":102906,"extent_start":102872,"extent_end":103672,"fully_qualified_name":"GLTFParser._createCubicSplineTrackInterpolant","ident_utf16":{"start":{"line_number":4460,"utf16_col":1},"end":{"line_number":4460,"utf16_col":35}},"extent_utf16":{"start":{"line_number":4460,"utf16_col":1},"end":{"line_number":4477,"utf16_col":2}}},{"name":"createInterpolant","kind":"function","ident_start":102927,"ident_end":102944,"extent_start":102921,"extent_end":103500,"fully_qualified_name":"GLTFParser.createInterpolant","ident_utf16":{"start":{"line_number":4462,"utf16_col":8},"end":{"line_number":4462,"utf16_col":25}},"extent_utf16":{"start":{"line_number":4462,"utf16_col":2},"end":{"line_number":4472,"utf16_col":3}}},{"name":"InterpolantFactoryMethodGLTFCubicSpline","kind":"function","ident_start":102956,"ident_end":102995,"extent_start":102947,"extent_end":103500,"fully_qualified_name":"GLTFParser.InterpolantFactoryMethodGLTFCubicSpline","ident_utf16":{"start":{"line_number":4462,"utf16_col":37},"end":{"line_number":4462,"utf16_col":76}},"extent_utf16":{"start":{"line_number":4462,"utf16_col":28},"end":{"line_number":4472,"utf16_col":3}}},{"name":"computeBounds","kind":"function","ident_start":103800,"ident_end":103813,"extent_start":103791,"extent_end":106785,"fully_qualified_name":"computeBounds","ident_utf16":{"start":{"line_number":4486,"utf16_col":9},"end":{"line_number":4486,"utf16_col":22}},"extent_utf16":{"start":{"line_number":4486,"utf16_col":0},"end":{"line_number":4594,"utf16_col":1}}},{"name":"addPrimitiveAttributes","kind":"function","ident_start":106947,"ident_end":106969,"extent_start":106938,"extent_end":108459,"fully_qualified_name":"addPrimitiveAttributes","ident_utf16":{"start":{"line_number":4602,"utf16_col":9},"end":{"line_number":4602,"utf16_col":31}},"extent_utf16":{"start":{"line_number":4602,"utf16_col":0},"end":{"line_number":4660,"utf16_col":1}}},{"name":"assignAttributeAccessor","kind":"function","ident_start":107085,"ident_end":107108,"extent_start":107076,"extent_end":107304,"fully_qualified_name":"assignAttributeAccessor","ident_utf16":{"start":{"line_number":4608,"utf16_col":10},"end":{"line_number":4608,"utf16_col":33}},"extent_utf16":{"start":{"line_number":4608,"utf16_col":1},"end":{"line_number":4617,"utf16_col":2}}}]}},"copilotInfo":null,"copilotAccessAllowed":false,"copilotSpacesEnabled":false,"modelsAccessAllowed":false,"modelsRepoIntegrationEnabled":false,"isMarketplaceEnabled":true,"csrf_tokens":{"/mrdoob/three.js/branches":{"post":"ri19V53XllsHwaSLy9KRKoDmpwFX5pRPJZhDOWDqKp962uaULjhs6PQ3zL9vsTtDPbpx8pcxFPqrjvujnUVRkw"},"/repos/preferences":{"post":"TR_WcySpPj5NM993Reu-N_7nSrkNzDzaqhE25Nvcy0qID1K6k1uLN28ZqNQwGpMmeo7U1fTxeuFgXCAluNTo-w"}}},"title":"three.js/examples/jsm/loaders/GLTFLoader.js at r159 · mrdoob/three.js","appPayload":{"helpUrl":"https://docs.github.com","findFileWorkerPath":"/assets-cdn/worker/find-file-worker-0cea8c6113ab.js","findInFileWorkerPath":"/assets-cdn/worker/find-in-file-worker-5001b3141afe.js","githubDevUrl":null,"enabled_features":{"code_nav_ui_events":false,"react_blob_overlay":false,"accessible_code_button":true}}}</script>
-  <div data-target="react-app.reactRoot"></div>
-</react-app>
-</turbo-frame>
-
-
-
-  </div>
-
-</turbo-frame>
-
-    </main>
-  </div>
-
-  </div>
-
-          <footer class="footer pt-7 pb-6 f6 color-fg-muted color-border-subtle p-responsive" role="contentinfo" >
-  <h2 class='sr-only'>Footer</h2>
-
-  
-
-
-  <div class="d-flex flex-justify-center flex-items-center flex-column-reverse flex-lg-row flex-wrap flex-lg-nowrap">
-    <div class="d-flex flex-items-center flex-shrink-0 mx-2">
-      <a aria-label="GitHub Homepage" class="footer-octicon mr-2" href="https://github.com">
-        <svg aria-hidden="true" height="24" viewBox="0 0 24 24" version="1.1" width="24" data-view-component="true" class="octicon octicon-mark-github">
-    <path d="M12 1C5.923 1 1 5.923 1 12c0 4.867 3.149 8.979 7.521 10.436.55.096.756-.233.756-.522 0-.262-.013-1.128-.013-2.049-2.764.509-3.479-.674-3.699-1.292-.124-.317-.66-1.293-1.127-1.554-.385-.207-.936-.715-.014-.729.866-.014 1.485.797 1.691 1.128.99 1.663 2.571 1.196 3.204.907.096-.715.385-1.196.701-1.471-2.448-.275-5.005-1.224-5.005-5.432 0-1.196.426-2.186 1.128-2.956-.111-.275-.496-1.402.11-2.915 0 0 .921-.288 3.024 1.128a10.193 10.193 0 0 1 2.75-.371c.936 0 1.871.123 2.75.371 2.104-1.43 3.025-1.128 3.025-1.128.605 1.513.221 2.64.111 2.915.701.77 1.127 1.747 1.127 2.956 0 4.222-2.571 5.157-5.019 5.432.399.344.743 1.004.743 2.035 0 1.471-.014 2.654-.014 3.025 0 .289.206.632.756.522C19.851 20.979 23 16.854 23 12c0-6.077-4.922-11-11-11Z"></path>
-</svg>
-</a>
-      <span>
-        &copy; 2025 GitHub,&nbsp;Inc.
-      </span>
-    </div>
-
-    <nav aria-label="Footer">
-      <h3 class="sr-only" id="sr-footer-heading">Footer navigation</h3>
-
-      <ul class="list-style-none d-flex flex-justify-center flex-wrap mb-2 mb-lg-0" aria-labelledby="sr-footer-heading">
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to Terms&quot;,&quot;label&quot;:&quot;text:terms&quot;}" href="https://docs.github.com/site-policy/github-terms/github-terms-of-service" data-view-component="true" class="Link--secondary Link">Terms</a>
-          </li>
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to privacy&quot;,&quot;label&quot;:&quot;text:privacy&quot;}" href="https://docs.github.com/site-policy/privacy-policies/github-privacy-statement" data-view-component="true" class="Link--secondary Link">Privacy</a>
-          </li>
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to security&quot;,&quot;label&quot;:&quot;text:security&quot;}" href="https://github.com/security" data-view-component="true" class="Link--secondary Link">Security</a>
-          </li>
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to status&quot;,&quot;label&quot;:&quot;text:status&quot;}" href="https://www.githubstatus.com/" data-view-component="true" class="Link--secondary Link">Status</a>
-          </li>
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to community&quot;,&quot;label&quot;:&quot;text:community&quot;}" href="https://github.community/" data-view-component="true" class="Link--secondary Link">Community</a>
-          </li>
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to docs&quot;,&quot;label&quot;:&quot;text:docs&quot;}" href="https://docs.github.com/" data-view-component="true" class="Link--secondary Link">Docs</a>
-          </li>
-
-          <li class="mx-2">
-            <a data-analytics-event="{&quot;category&quot;:&quot;Footer&quot;,&quot;action&quot;:&quot;go to contact&quot;,&quot;label&quot;:&quot;text:contact&quot;}" href="https://support.github.com?tags=dotcom-footer" data-view-component="true" class="Link--secondary Link">Contact</a>
-          </li>
-
-          <li class="mx-2" >
-  <cookie-consent-link>
-    <button
-      type="button"
-      class="Link--secondary underline-on-hover border-0 p-0 color-bg-transparent"
-      data-action="click:cookie-consent-link#showConsentManagement"
-      data-analytics-event="{&quot;location&quot;:&quot;footer&quot;,&quot;action&quot;:&quot;cookies&quot;,&quot;context&quot;:&quot;subfooter&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;label&quot;:&quot;cookies_link_subfooter_footer&quot;}"
-    >
-       Manage cookies
-    </button>
-  </cookie-consent-link>
-</li>
-
-<li class="mx-2">
-  <cookie-consent-link>
-    <button
-      type="button"
-      class="Link--secondary underline-on-hover border-0 p-0 color-bg-transparent text-left"
-      data-action="click:cookie-consent-link#showConsentManagement"
-      data-analytics-event="{&quot;location&quot;:&quot;footer&quot;,&quot;action&quot;:&quot;dont_share_info&quot;,&quot;context&quot;:&quot;subfooter&quot;,&quot;tag&quot;:&quot;link&quot;,&quot;label&quot;:&quot;dont_share_info_link_subfooter_footer&quot;}"
-    >
-      Do not share my personal information
-    </button>
-  </cookie-consent-link>
-</li>
-
-      </ul>
-    </nav>
-  </div>
-</footer>
-
-
-
-    <ghcc-consent id="ghcc" class="position-fixed bottom-0 left-0" style="z-index: 999999"
-      data-locale="en"
-      data-initial-cookie-consent-allowed=""
-      data-cookie-consent-required="true"
-    ></ghcc-consent>
-
-
-
-
-  <div id="ajax-error-message" class="ajax-error-message flash flash-error" hidden>
-    <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-alert">
-    <path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"></path>
-</svg>
-    <button type="button" class="flash-close js-ajax-error-dismiss" aria-label="Dismiss error">
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x">
-    <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-    </button>
-    You can’t perform that action at this time.
-  </div>
-
-    <template id="site-details-dialog">
-  <details class="details-reset details-overlay details-overlay-dark lh-default color-fg-default hx_rsm" open>
-    <summary role="button" aria-label="Close dialog"></summary>
-    <details-dialog class="Box Box--overlay d-flex flex-column anim-fade-in fast hx_rsm-dialog hx_rsm-modal">
-      <button class="Box-btn-octicon m-0 btn-octicon position-absolute right-0 top-0" type="button" aria-label="Close dialog" data-close-dialog>
-        <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-x">
-    <path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"></path>
-</svg>
-      </button>
-      <div class="octocat-spinner my-6 js-details-dialog-spinner"></div>
-    </details-dialog>
-  </details>
-</template>
-
-    <div class="Popover js-hovercard-content position-absolute" style="display: none; outline: none;">
-  <div class="Popover-message Popover-message--bottom-left Popover-message--large Box color-shadow-large" style="width:360px;">
-  </div>
-</div>
-
-    <template id="snippet-clipboard-copy-button">
-  <div class="zeroclipboard-container position-absolute right-0 top-0">
-    <clipboard-copy aria-label="Copy" class="ClipboardButton btn js-clipboard-copy m-2 p-0" data-copy-feedback="Copied!" data-tooltip-direction="w">
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-copy js-clipboard-copy-icon m-2">
-    <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path>
-</svg>
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-check js-clipboard-check-icon color-fg-success d-none m-2">
-    <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path>
-</svg>
-    </clipboard-copy>
-  </div>
-</template>
-<template id="snippet-clipboard-copy-button-unpositioned">
-  <div class="zeroclipboard-container">
-    <clipboard-copy aria-label="Copy" class="ClipboardButton btn btn-invisible js-clipboard-copy m-2 p-0 d-flex flex-justify-center flex-items-center" data-copy-feedback="Copied!" data-tooltip-direction="w">
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-copy js-clipboard-copy-icon">
-    <path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 0 1 0 1.5h-1.5a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-1.5a.75.75 0 0 1 1.5 0v1.5A1.75 1.75 0 0 1 9.25 16h-7.5A1.75 1.75 0 0 1 0 14.25Z"></path><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0 1 14.25 11h-7.5A1.75 1.75 0 0 1 5 9.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"></path>
-</svg>
-      <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-check js-clipboard-check-icon color-fg-success d-none">
-    <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"></path>
-</svg>
-    </clipboard-copy>
-  </div>
-</template>
-
-
-
-
-    </div>
-    <div id="js-global-screen-reader-notice" class="sr-only mt-n1" aria-live="polite" aria-atomic="true" ></div>
-    <div id="js-global-screen-reader-notice-assertive" class="sr-only mt-n1" aria-live="assertive" aria-atomic="true"></div>
-  </body>
-</html>
+	setKTX2Loader( ktx2Loader ) {
 
+		this.ktx2Loader = ktx2Loader;
+		return this;
+
+	}
+
+	setMeshoptDecoder( meshoptDecoder ) {
+
+		this.meshoptDecoder = meshoptDecoder;
+		return this;
+
+	}
+
+	register( callback ) {
+
+		if ( this.pluginCallbacks.indexOf( callback ) === - 1 ) {
+
+			this.pluginCallbacks.push( callback );
+
+		}
+
+		return this;
+
+	}
+
+	unregister( callback ) {
+
+		if ( this.pluginCallbacks.indexOf( callback ) !== - 1 ) {
+
+			this.pluginCallbacks.splice( this.pluginCallbacks.indexOf( callback ), 1 );
+
+		}
+
+		return this;
+
+	}
+
+	parse( data, path, onLoad, onError ) {
+
+		let json;
+		const extensions = {};
+		const plugins = {};
+		const textDecoder = new TextDecoder();
+
+		if ( typeof data === 'string' ) {
+
+			json = JSON.parse( data );
+
+		} else if ( data instanceof ArrayBuffer ) {
+
+			const magic = textDecoder.decode( new Uint8Array( data, 0, 4 ) );
+
+			if ( magic === BINARY_EXTENSION_HEADER_MAGIC ) {
+
+				try {
+
+					extensions[ EXTENSIONS.KHR_BINARY_GLTF ] = new GLTFBinaryExtension( data );
+
+				} catch ( error ) {
+
+					if ( onError ) onError( error );
+					return;
+
+				}
+
+				json = JSON.parse( extensions[ EXTENSIONS.KHR_BINARY_GLTF ].content );
+
+			} else {
+
+				json = JSON.parse( textDecoder.decode( data ) );
+
+			}
+
+		} else {
+
+			json = data;
+
+		}
+
+		if ( json.asset === undefined || json.asset.version[ 0 ] < 2 ) {
+
+			if ( onError ) onError( new Error( 'THREE.GLTFLoader: Unsupported asset. glTF versions >=2.0 are supported.' ) );
+			return;
+
+		}
+
+		const parser = new GLTFParser( json, {
+
+			path: path || this.resourcePath || '',
+			crossOrigin: this.crossOrigin,
+			requestHeader: this.requestHeader,
+			manager: this.manager,
+			ktx2Loader: this.ktx2Loader,
+			meshoptDecoder: this.meshoptDecoder
+
+		} );
+
+		parser.fileLoader.setRequestHeader( this.requestHeader );
+
+		for ( let i = 0; i < this.pluginCallbacks.length; i ++ ) {
+
+			const plugin = this.pluginCallbacks[ i ]( parser );
+
+			if ( ! plugin.name ) console.error( 'THREE.GLTFLoader: Invalid plugin found: missing name' );
+
+			plugins[ plugin.name ] = plugin;
+
+			// Workaround to avoid determining as unknown extension
+			// in addUnknownExtensionsToUserData().
+			// Remove this workaround if we move all the existing
+			// extension handlers to plugin system
+			extensions[ plugin.name ] = true;
+
+		}
+
+		if ( json.extensionsUsed ) {
+
+			for ( let i = 0; i < json.extensionsUsed.length; ++ i ) {
+
+				const extensionName = json.extensionsUsed[ i ];
+				const extensionsRequired = json.extensionsRequired || [];
+
+				switch ( extensionName ) {
+
+					case EXTENSIONS.KHR_MATERIALS_UNLIT:
+						extensions[ extensionName ] = new GLTFMaterialsUnlitExtension();
+						break;
+
+					case EXTENSIONS.KHR_DRACO_MESH_COMPRESSION:
+						extensions[ extensionName ] = new GLTFDracoMeshCompressionExtension( json, this.dracoLoader );
+						break;
+
+					case EXTENSIONS.KHR_TEXTURE_TRANSFORM:
+						extensions[ extensionName ] = new GLTFTextureTransformExtension();
+						break;
+
+					case EXTENSIONS.KHR_MESH_QUANTIZATION:
+						extensions[ extensionName ] = new GLTFMeshQuantizationExtension();
+						break;
+
+					default:
+
+						if ( extensionsRequired.indexOf( extensionName ) >= 0 && plugins[ extensionName ] === undefined ) {
+
+							console.warn( 'THREE.GLTFLoader: Unknown extension "' + extensionName + '".' );
+
+						}
+
+				}
+
+			}
+
+		}
+
+		parser.setExtensions( extensions );
+		parser.setPlugins( plugins );
+		parser.parse( onLoad, onError );
+
+	}
+
+	parseAsync( data, path ) {
+
+		const scope = this;
+
+		return new Promise( function ( resolve, reject ) {
+
+			scope.parse( data, path, resolve, reject );
+
+		} );
+
+	}
+
+}
+
+/* GLTFREGISTRY */
+
+function GLTFRegistry() {
+
+	let objects = {};
+
+	return	{
+
+		get: function ( key ) {
+
+			return objects[ key ];
+
+		},
+
+		add: function ( key, object ) {
+
+			objects[ key ] = object;
+
+		},
+
+		remove: function ( key ) {
+
+			delete objects[ key ];
+
+		},
+
+		removeAll: function () {
+
+			objects = {};
+
+		}
+
+	};
+
+}
+
+/*********************************/
+/********** EXTENSIONS ***********/
+/*********************************/
+
+const EXTENSIONS = {
+	KHR_BINARY_GLTF: 'KHR_binary_glTF',
+	KHR_DRACO_MESH_COMPRESSION: 'KHR_draco_mesh_compression',
+	KHR_LIGHTS_PUNCTUAL: 'KHR_lights_punctual',
+	KHR_MATERIALS_CLEARCOAT: 'KHR_materials_clearcoat',
+	KHR_MATERIALS_IOR: 'KHR_materials_ior',
+	KHR_MATERIALS_SHEEN: 'KHR_materials_sheen',
+	KHR_MATERIALS_SPECULAR: 'KHR_materials_specular',
+	KHR_MATERIALS_TRANSMISSION: 'KHR_materials_transmission',
+	KHR_MATERIALS_IRIDESCENCE: 'KHR_materials_iridescence',
+	KHR_MATERIALS_ANISOTROPY: 'KHR_materials_anisotropy',
+	KHR_MATERIALS_UNLIT: 'KHR_materials_unlit',
+	KHR_MATERIALS_VOLUME: 'KHR_materials_volume',
+	KHR_TEXTURE_BASISU: 'KHR_texture_basisu',
+	KHR_TEXTURE_TRANSFORM: 'KHR_texture_transform',
+	KHR_MESH_QUANTIZATION: 'KHR_mesh_quantization',
+	KHR_MATERIALS_EMISSIVE_STRENGTH: 'KHR_materials_emissive_strength',
+	EXT_MATERIALS_BUMP: 'EXT_materials_bump',
+	EXT_TEXTURE_WEBP: 'EXT_texture_webp',
+	EXT_TEXTURE_AVIF: 'EXT_texture_avif',
+	EXT_MESHOPT_COMPRESSION: 'EXT_meshopt_compression',
+	EXT_MESH_GPU_INSTANCING: 'EXT_mesh_gpu_instancing'
+};
+
+/**
+ * Punctual Lights Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_lights_punctual
+ */
+class GLTFLightsExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_LIGHTS_PUNCTUAL;
+
+		// Object3D instance caches
+		this.cache = { refs: {}, uses: {} };
+
+	}
+
+	_markDefs() {
+
+		const parser = this.parser;
+		const nodeDefs = this.parser.json.nodes || [];
+
+		for ( let nodeIndex = 0, nodeLength = nodeDefs.length; nodeIndex < nodeLength; nodeIndex ++ ) {
+
+			const nodeDef = nodeDefs[ nodeIndex ];
+
+			if ( nodeDef.extensions
+					&& nodeDef.extensions[ this.name ]
+					&& nodeDef.extensions[ this.name ].light !== undefined ) {
+
+				parser._addNodeRef( this.cache, nodeDef.extensions[ this.name ].light );
+
+			}
+
+		}
+
+	}
+
+	_loadLight( lightIndex ) {
+
+		const parser = this.parser;
+		const cacheKey = 'light:' + lightIndex;
+		let dependency = parser.cache.get( cacheKey );
+
+		if ( dependency ) return dependency;
+
+		const json = parser.json;
+		const extensions = ( json.extensions && json.extensions[ this.name ] ) || {};
+		const lightDefs = extensions.lights || [];
+		const lightDef = lightDefs[ lightIndex ];
+		let lightNode;
+
+		const color = new Color( 0xffffff );
+
+		if ( lightDef.color !== undefined ) color.setRGB( lightDef.color[ 0 ], lightDef.color[ 1 ], lightDef.color[ 2 ], LinearSRGBColorSpace );
+
+		const range = lightDef.range !== undefined ? lightDef.range : 0;
+
+		switch ( lightDef.type ) {
+
+			case 'directional':
+				lightNode = new DirectionalLight( color );
+				lightNode.target.position.set( 0, 0, - 1 );
+				lightNode.add( lightNode.target );
+				break;
+
+			case 'point':
+				lightNode = new PointLight( color );
+				lightNode.distance = range;
+				break;
+
+			case 'spot':
+				lightNode = new SpotLight( color );
+				lightNode.distance = range;
+				// Handle spotlight properties.
+				lightDef.spot = lightDef.spot || {};
+				lightDef.spot.innerConeAngle = lightDef.spot.innerConeAngle !== undefined ? lightDef.spot.innerConeAngle : 0;
+				lightDef.spot.outerConeAngle = lightDef.spot.outerConeAngle !== undefined ? lightDef.spot.outerConeAngle : Math.PI / 4.0;
+				lightNode.angle = lightDef.spot.outerConeAngle;
+				lightNode.penumbra = 1.0 - lightDef.spot.innerConeAngle / lightDef.spot.outerConeAngle;
+				lightNode.target.position.set( 0, 0, - 1 );
+				lightNode.add( lightNode.target );
+				break;
+
+			default:
+				throw new Error( 'THREE.GLTFLoader: Unexpected light type: ' + lightDef.type );
+
+		}
+
+		// Some lights (e.g. spot) default to a position other than the origin. Reset the position
+		// here, because node-level parsing will only override position if explicitly specified.
+		lightNode.position.set( 0, 0, 0 );
+
+		lightNode.decay = 2;
+
+		assignExtrasToUserData( lightNode, lightDef );
+
+		if ( lightDef.intensity !== undefined ) lightNode.intensity = lightDef.intensity;
+
+		lightNode.name = parser.createUniqueName( lightDef.name || ( 'light_' + lightIndex ) );
+
+		dependency = Promise.resolve( lightNode );
+
+		parser.cache.add( cacheKey, dependency );
+
+		return dependency;
+
+	}
+
+	getDependency( type, index ) {
+
+		if ( type !== 'light' ) return;
+
+		return this._loadLight( index );
+
+	}
+
+	createNodeAttachment( nodeIndex ) {
+
+		const self = this;
+		const parser = this.parser;
+		const json = parser.json;
+		const nodeDef = json.nodes[ nodeIndex ];
+		const lightDef = ( nodeDef.extensions && nodeDef.extensions[ this.name ] ) || {};
+		const lightIndex = lightDef.light;
+
+		if ( lightIndex === undefined ) return null;
+
+		return this._loadLight( lightIndex ).then( function ( light ) {
+
+			return parser._getNodeRef( self.cache, lightIndex, light );
+
+		} );
+
+	}
+
+}
+
+/**
+ * Unlit Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_unlit
+ */
+class GLTFMaterialsUnlitExtension {
+
+	constructor() {
+
+		this.name = EXTENSIONS.KHR_MATERIALS_UNLIT;
+
+	}
+
+	getMaterialType() {
+
+		return MeshBasicMaterial;
+
+	}
+
+	extendParams( materialParams, materialDef, parser ) {
+
+		const pending = [];
+
+		materialParams.color = new Color( 1.0, 1.0, 1.0 );
+		materialParams.opacity = 1.0;
+
+		const metallicRoughness = materialDef.pbrMetallicRoughness;
+
+		if ( metallicRoughness ) {
+
+			if ( Array.isArray( metallicRoughness.baseColorFactor ) ) {
+
+				const array = metallicRoughness.baseColorFactor;
+
+				materialParams.color.setRGB( array[ 0 ], array[ 1 ], array[ 2 ], LinearSRGBColorSpace );
+				materialParams.opacity = array[ 3 ];
+
+			}
+
+			if ( metallicRoughness.baseColorTexture !== undefined ) {
+
+				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, SRGBColorSpace ) );
+
+			}
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Materials Emissive Strength Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/blob/5768b3ce0ef32bc39cdf1bef10b948586635ead3/extensions/2.0/Khronos/KHR_materials_emissive_strength/README.md
+ */
+class GLTFMaterialsEmissiveStrengthExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_EMISSIVE_STRENGTH;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const emissiveStrength = materialDef.extensions[ this.name ].emissiveStrength;
+
+		if ( emissiveStrength !== undefined ) {
+
+			materialParams.emissiveIntensity = emissiveStrength;
+
+		}
+
+		return Promise.resolve();
+
+	}
+
+}
+
+/**
+ * Clearcoat Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_clearcoat
+ */
+class GLTFMaterialsClearcoatExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_CLEARCOAT;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		if ( extension.clearcoatFactor !== undefined ) {
+
+			materialParams.clearcoat = extension.clearcoatFactor;
+
+		}
+
+		if ( extension.clearcoatTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'clearcoatMap', extension.clearcoatTexture ) );
+
+		}
+
+		if ( extension.clearcoatRoughnessFactor !== undefined ) {
+
+			materialParams.clearcoatRoughness = extension.clearcoatRoughnessFactor;
+
+		}
+
+		if ( extension.clearcoatRoughnessTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'clearcoatRoughnessMap', extension.clearcoatRoughnessTexture ) );
+
+		}
+
+		if ( extension.clearcoatNormalTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'clearcoatNormalMap', extension.clearcoatNormalTexture ) );
+
+			if ( extension.clearcoatNormalTexture.scale !== undefined ) {
+
+				const scale = extension.clearcoatNormalTexture.scale;
+
+				materialParams.clearcoatNormalScale = new Vector2( scale, scale );
+
+			}
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Iridescence Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_iridescence
+ */
+class GLTFMaterialsIridescenceExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_IRIDESCENCE;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		if ( extension.iridescenceFactor !== undefined ) {
+
+			materialParams.iridescence = extension.iridescenceFactor;
+
+		}
+
+		if ( extension.iridescenceTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'iridescenceMap', extension.iridescenceTexture ) );
+
+		}
+
+		if ( extension.iridescenceIor !== undefined ) {
+
+			materialParams.iridescenceIOR = extension.iridescenceIor;
+
+		}
+
+		if ( materialParams.iridescenceThicknessRange === undefined ) {
+
+			materialParams.iridescenceThicknessRange = [ 100, 400 ];
+
+		}
+
+		if ( extension.iridescenceThicknessMinimum !== undefined ) {
+
+			materialParams.iridescenceThicknessRange[ 0 ] = extension.iridescenceThicknessMinimum;
+
+		}
+
+		if ( extension.iridescenceThicknessMaximum !== undefined ) {
+
+			materialParams.iridescenceThicknessRange[ 1 ] = extension.iridescenceThicknessMaximum;
+
+		}
+
+		if ( extension.iridescenceThicknessTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'iridescenceThicknessMap', extension.iridescenceThicknessTexture ) );
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Sheen Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen
+ */
+class GLTFMaterialsSheenExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_SHEEN;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		materialParams.sheenColor = new Color( 0, 0, 0 );
+		materialParams.sheenRoughness = 0;
+		materialParams.sheen = 1;
+
+		const extension = materialDef.extensions[ this.name ];
+
+		if ( extension.sheenColorFactor !== undefined ) {
+
+			const colorFactor = extension.sheenColorFactor;
+			materialParams.sheenColor.setRGB( colorFactor[ 0 ], colorFactor[ 1 ], colorFactor[ 2 ], LinearSRGBColorSpace );
+
+		}
+
+		if ( extension.sheenRoughnessFactor !== undefined ) {
+
+			materialParams.sheenRoughness = extension.sheenRoughnessFactor;
+
+		}
+
+		if ( extension.sheenColorTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'sheenColorMap', extension.sheenColorTexture, SRGBColorSpace ) );
+
+		}
+
+		if ( extension.sheenRoughnessTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'sheenRoughnessMap', extension.sheenRoughnessTexture ) );
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Transmission Materials Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_transmission
+ * Draft: https://github.com/KhronosGroup/glTF/pull/1698
+ */
+class GLTFMaterialsTransmissionExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_TRANSMISSION;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		if ( extension.transmissionFactor !== undefined ) {
+
+			materialParams.transmission = extension.transmissionFactor;
+
+		}
+
+		if ( extension.transmissionTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'transmissionMap', extension.transmissionTexture ) );
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Materials Volume Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_volume
+ */
+class GLTFMaterialsVolumeExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_VOLUME;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		materialParams.thickness = extension.thicknessFactor !== undefined ? extension.thicknessFactor : 0;
+
+		if ( extension.thicknessTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'thicknessMap', extension.thicknessTexture ) );
+
+		}
+
+		materialParams.attenuationDistance = extension.attenuationDistance || Infinity;
+
+		const colorArray = extension.attenuationColor || [ 1, 1, 1 ];
+		materialParams.attenuationColor = new Color().setRGB( colorArray[ 0 ], colorArray[ 1 ], colorArray[ 2 ], LinearSRGBColorSpace );
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Materials ior Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_ior
+ */
+class GLTFMaterialsIorExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_IOR;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const extension = materialDef.extensions[ this.name ];
+
+		materialParams.ior = extension.ior !== undefined ? extension.ior : 1.5;
+
+		return Promise.resolve();
+
+	}
+
+}
+
+/**
+ * Materials specular Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_specular
+ */
+class GLTFMaterialsSpecularExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_SPECULAR;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		materialParams.specularIntensity = extension.specularFactor !== undefined ? extension.specularFactor : 1.0;
+
+		if ( extension.specularTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'specularIntensityMap', extension.specularTexture ) );
+
+		}
+
+		const colorArray = extension.specularColorFactor || [ 1, 1, 1 ];
+		materialParams.specularColor = new Color().setRGB( colorArray[ 0 ], colorArray[ 1 ], colorArray[ 2 ], LinearSRGBColorSpace );
+
+		if ( extension.specularColorTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'specularColorMap', extension.specularColorTexture, SRGBColorSpace ) );
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+
+/**
+ * Materials bump Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/EXT_materials_bump
+ */
+class GLTFMaterialsBumpExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.EXT_MATERIALS_BUMP;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		materialParams.bumpScale = extension.bumpFactor !== undefined ? extension.bumpFactor : 1.0;
+
+		if ( extension.bumpTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'bumpMap', extension.bumpTexture ) );
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * Materials anisotropy Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_materials_anisotropy
+ */
+class GLTFMaterialsAnisotropyExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_MATERIALS_ANISOTROPY;
+
+	}
+
+	getMaterialType( materialIndex ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) return null;
+
+		return MeshPhysicalMaterial;
+
+	}
+
+	extendMaterialParams( materialIndex, materialParams ) {
+
+		const parser = this.parser;
+		const materialDef = parser.json.materials[ materialIndex ];
+
+		if ( ! materialDef.extensions || ! materialDef.extensions[ this.name ] ) {
+
+			return Promise.resolve();
+
+		}
+
+		const pending = [];
+
+		const extension = materialDef.extensions[ this.name ];
+
+		if ( extension.anisotropyStrength !== undefined ) {
+
+			materialParams.anisotropy = extension.anisotropyStrength;
+
+		}
+
+		if ( extension.anisotropyRotation !== undefined ) {
+
+			materialParams.anisotropyRotation = extension.anisotropyRotation;
+
+		}
+
+		if ( extension.anisotropyTexture !== undefined ) {
+
+			pending.push( parser.assignTexture( materialParams, 'anisotropyMap', extension.anisotropyTexture ) );
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+}
+
+/**
+ * BasisU Texture Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_basisu
+ */
+class GLTFTextureBasisUExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.KHR_TEXTURE_BASISU;
+
+	}
+
+	loadTexture( textureIndex ) {
+
+		const parser = this.parser;
+		const json = parser.json;
+
+		const textureDef = json.textures[ textureIndex ];
+
+		if ( ! textureDef.extensions || ! textureDef.extensions[ this.name ] ) {
+
+			return null;
+
+		}
+
+		const extension = textureDef.extensions[ this.name ];
+		const loader = parser.options.ktx2Loader;
+
+		if ( ! loader ) {
+
+			if ( json.extensionsRequired && json.extensionsRequired.indexOf( this.name ) >= 0 ) {
+
+				throw new Error( 'THREE.GLTFLoader: setKTX2Loader must be called before loading KTX2 textures' );
+
+			} else {
+
+				// Assumes that the extension is optional and that a fallback texture is present
+				return null;
+
+			}
+
+		}
+
+		return parser.loadTextureImage( textureIndex, extension.source, loader );
+
+	}
+
+}
+
+/**
+ * WebP Texture Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_texture_webp
+ */
+class GLTFTextureWebPExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.EXT_TEXTURE_WEBP;
+		this.isSupported = null;
+
+	}
+
+	loadTexture( textureIndex ) {
+
+		const name = this.name;
+		const parser = this.parser;
+		const json = parser.json;
+
+		const textureDef = json.textures[ textureIndex ];
+
+		if ( ! textureDef.extensions || ! textureDef.extensions[ name ] ) {
+
+			return null;
+
+		}
+
+		const extension = textureDef.extensions[ name ];
+		const source = json.images[ extension.source ];
+
+		let loader = parser.textureLoader;
+		if ( source.uri ) {
+
+			const handler = parser.options.manager.getHandler( source.uri );
+			if ( handler !== null ) loader = handler;
+
+		}
+
+		return this.detectSupport().then( function ( isSupported ) {
+
+			if ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );
+
+			if ( json.extensionsRequired && json.extensionsRequired.indexOf( name ) >= 0 ) {
+
+				throw new Error( 'THREE.GLTFLoader: WebP required by asset but unsupported.' );
+
+			}
+
+			// Fall back to PNG or JPEG.
+			return parser.loadTexture( textureIndex );
+
+		} );
+
+	}
+
+	detectSupport() {
+
+		if ( ! this.isSupported ) {
+
+			this.isSupported = new Promise( function ( resolve ) {
+
+				const image = new Image();
+
+				// Lossy test image. Support for lossy images doesn't guarantee support for all
+				// WebP images, unfortunately.
+				image.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
+
+				image.onload = image.onerror = function () {
+
+					resolve( image.height === 1 );
+
+				};
+
+			} );
+
+		}
+
+		return this.isSupported;
+
+	}
+
+}
+
+/**
+ * AVIF Texture Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_texture_avif
+ */
+class GLTFTextureAVIFExtension {
+
+	constructor( parser ) {
+
+		this.parser = parser;
+		this.name = EXTENSIONS.EXT_TEXTURE_AVIF;
+		this.isSupported = null;
+
+	}
+
+	loadTexture( textureIndex ) {
+
+		const name = this.name;
+		const parser = this.parser;
+		const json = parser.json;
+
+		const textureDef = json.textures[ textureIndex ];
+
+		if ( ! textureDef.extensions || ! textureDef.extensions[ name ] ) {
+
+			return null;
+
+		}
+
+		const extension = textureDef.extensions[ name ];
+		const source = json.images[ extension.source ];
+
+		let loader = parser.textureLoader;
+		if ( source.uri ) {
+
+			const handler = parser.options.manager.getHandler( source.uri );
+			if ( handler !== null ) loader = handler;
+
+		}
+
+		return this.detectSupport().then( function ( isSupported ) {
+
+			if ( isSupported ) return parser.loadTextureImage( textureIndex, extension.source, loader );
+
+			if ( json.extensionsRequired && json.extensionsRequired.indexOf( name ) >= 0 ) {
+
+				throw new Error( 'THREE.GLTFLoader: AVIF required by asset but unsupported.' );
+
+			}
+
+			// Fall back to PNG or JPEG.
+			return parser.loadTexture( textureIndex );
+
+		} );
+
+	}
+
+	detectSupport() {
+
+		if ( ! this.isSupported ) {
+
+			this.isSupported = new Promise( function ( resolve ) {
+
+				const image = new Image();
+
+				// Lossy test image.
+				image.src = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAABcAAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAMAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAAB9tZGF0EgAKCBgABogQEDQgMgkQAAAAB8dSLfI=';
+				image.onload = image.onerror = function () {
+
+					resolve( image.height === 1 );
+
+				};
+
+			} );
+
+		}
+
+		return this.isSupported;
+
+	}
+
+}
+
+/**
+ * meshopt BufferView Compression Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_meshopt_compression
+ */
+class GLTFMeshoptCompression {
+
+	constructor( parser ) {
+
+		this.name = EXTENSIONS.EXT_MESHOPT_COMPRESSION;
+		this.parser = parser;
+
+	}
+
+	loadBufferView( index ) {
+
+		const json = this.parser.json;
+		const bufferView = json.bufferViews[ index ];
+
+		if ( bufferView.extensions && bufferView.extensions[ this.name ] ) {
+
+			const extensionDef = bufferView.extensions[ this.name ];
+
+			const buffer = this.parser.getDependency( 'buffer', extensionDef.buffer );
+			const decoder = this.parser.options.meshoptDecoder;
+
+			if ( ! decoder || ! decoder.supported ) {
+
+				if ( json.extensionsRequired && json.extensionsRequired.indexOf( this.name ) >= 0 ) {
+
+					throw new Error( 'THREE.GLTFLoader: setMeshoptDecoder must be called before loading compressed files' );
+
+				} else {
+
+					// Assumes that the extension is optional and that fallback buffer data is present
+					return null;
+
+				}
+
+			}
+
+			return buffer.then( function ( res ) {
+
+				const byteOffset = extensionDef.byteOffset || 0;
+				const byteLength = extensionDef.byteLength || 0;
+
+				const count = extensionDef.count;
+				const stride = extensionDef.byteStride;
+
+				const source = new Uint8Array( res, byteOffset, byteLength );
+
+				if ( decoder.decodeGltfBufferAsync ) {
+
+					return decoder.decodeGltfBufferAsync( count, stride, source, extensionDef.mode, extensionDef.filter ).then( function ( res ) {
+
+						return res.buffer;
+
+					} );
+
+				} else {
+
+					// Support for MeshoptDecoder 0.18 or earlier, without decodeGltfBufferAsync
+					return decoder.ready.then( function () {
+
+						const result = new ArrayBuffer( count * stride );
+						decoder.decodeGltfBuffer( new Uint8Array( result ), count, stride, source, extensionDef.mode, extensionDef.filter );
+						return result;
+
+					} );
+
+				}
+
+			} );
+
+		} else {
+
+			return null;
+
+		}
+
+	}
+
+}
+
+/**
+ * GPU Instancing Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Vendor/EXT_mesh_gpu_instancing
+ *
+ */
+class GLTFMeshGpuInstancing {
+
+	constructor( parser ) {
+
+		this.name = EXTENSIONS.EXT_MESH_GPU_INSTANCING;
+		this.parser = parser;
+
+	}
+
+	createNodeMesh( nodeIndex ) {
+
+		const json = this.parser.json;
+		const nodeDef = json.nodes[ nodeIndex ];
+
+		if ( ! nodeDef.extensions || ! nodeDef.extensions[ this.name ] ||
+			nodeDef.mesh === undefined ) {
+
+			return null;
+
+		}
+
+		const meshDef = json.meshes[ nodeDef.mesh ];
+
+		// No Points or Lines + Instancing support yet
+
+		for ( const primitive of meshDef.primitives ) {
+
+			if ( primitive.mode !== WEBGL_CONSTANTS.TRIANGLES &&
+				 primitive.mode !== WEBGL_CONSTANTS.TRIANGLE_STRIP &&
+				 primitive.mode !== WEBGL_CONSTANTS.TRIANGLE_FAN &&
+				 primitive.mode !== undefined ) {
+
+				return null;
+
+			}
+
+		}
+
+		const extensionDef = nodeDef.extensions[ this.name ];
+		const attributesDef = extensionDef.attributes;
+
+		// @TODO: Can we support InstancedMesh + SkinnedMesh?
+
+		const pending = [];
+		const attributes = {};
+
+		for ( const key in attributesDef ) {
+
+			pending.push( this.parser.getDependency( 'accessor', attributesDef[ key ] ).then( accessor => {
+
+				attributes[ key ] = accessor;
+				return attributes[ key ];
+
+			} ) );
+
+		}
+
+		if ( pending.length < 1 ) {
+
+			return null;
+
+		}
+
+		pending.push( this.parser.createNodeMesh( nodeIndex ) );
+
+		return Promise.all( pending ).then( results => {
+
+			const nodeObject = results.pop();
+			const meshes = nodeObject.isGroup ? nodeObject.children : [ nodeObject ];
+			const count = results[ 0 ].count; // All attribute counts should be same
+			const instancedMeshes = [];
+
+			for ( const mesh of meshes ) {
+
+				// Temporal variables
+				const m = new Matrix4();
+				const p = new Vector3();
+				const q = new Quaternion();
+				const s = new Vector3( 1, 1, 1 );
+
+				const instancedMesh = new InstancedMesh( mesh.geometry, mesh.material, count );
+
+				for ( let i = 0; i < count; i ++ ) {
+
+					if ( attributes.TRANSLATION ) {
+
+						p.fromBufferAttribute( attributes.TRANSLATION, i );
+
+					}
+
+					if ( attributes.ROTATION ) {
+
+						q.fromBufferAttribute( attributes.ROTATION, i );
+
+					}
+
+					if ( attributes.SCALE ) {
+
+						s.fromBufferAttribute( attributes.SCALE, i );
+
+					}
+
+					instancedMesh.setMatrixAt( i, m.compose( p, q, s ) );
+
+				}
+
+				// Add instance attributes to the geometry, excluding TRS.
+				for ( const attributeName in attributes ) {
+
+					if ( attributeName === '_COLOR_0' ) {
+
+						const attr = attributes[ attributeName ];
+						instancedMesh.instanceColor = new InstancedBufferAttribute( attr.array, attr.itemSize, attr.normalized );
+
+					} else if ( attributeName !== 'TRANSLATION' &&
+						 attributeName !== 'ROTATION' &&
+						 attributeName !== 'SCALE' ) {
+
+						mesh.geometry.setAttribute( attributeName, attributes[ attributeName ] );
+
+					}
+
+				}
+
+				// Just in case
+				Object3D.prototype.copy.call( instancedMesh, mesh );
+
+				this.parser.assignFinalMaterial( instancedMesh );
+
+				instancedMeshes.push( instancedMesh );
+
+			}
+
+			if ( nodeObject.isGroup ) {
+
+				nodeObject.clear();
+
+				nodeObject.add( ... instancedMeshes );
+
+				return nodeObject;
+
+			}
+
+			return instancedMeshes[ 0 ];
+
+		} );
+
+	}
+
+}
+
+/* BINARY EXTENSION */
+const BINARY_EXTENSION_HEADER_MAGIC = 'glTF';
+const BINARY_EXTENSION_HEADER_LENGTH = 12;
+const BINARY_EXTENSION_CHUNK_TYPES = { JSON: 0x4E4F534A, BIN: 0x004E4942 };
+
+class GLTFBinaryExtension {
+
+	constructor( data ) {
+
+		this.name = EXTENSIONS.KHR_BINARY_GLTF;
+		this.content = null;
+		this.body = null;
+
+		const headerView = new DataView( data, 0, BINARY_EXTENSION_HEADER_LENGTH );
+		const textDecoder = new TextDecoder();
+
+		this.header = {
+			magic: textDecoder.decode( new Uint8Array( data.slice( 0, 4 ) ) ),
+			version: headerView.getUint32( 4, true ),
+			length: headerView.getUint32( 8, true )
+		};
+
+		if ( this.header.magic !== BINARY_EXTENSION_HEADER_MAGIC ) {
+
+			throw new Error( 'THREE.GLTFLoader: Unsupported glTF-Binary header.' );
+
+		} else if ( this.header.version < 2.0 ) {
+
+			throw new Error( 'THREE.GLTFLoader: Legacy binary file detected.' );
+
+		}
+
+		const chunkContentsLength = this.header.length - BINARY_EXTENSION_HEADER_LENGTH;
+		const chunkView = new DataView( data, BINARY_EXTENSION_HEADER_LENGTH );
+		let chunkIndex = 0;
+
+		while ( chunkIndex < chunkContentsLength ) {
+
+			const chunkLength = chunkView.getUint32( chunkIndex, true );
+			chunkIndex += 4;
+
+			const chunkType = chunkView.getUint32( chunkIndex, true );
+			chunkIndex += 4;
+
+			if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON ) {
+
+				const contentArray = new Uint8Array( data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength );
+				this.content = textDecoder.decode( contentArray );
+
+			} else if ( chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN ) {
+
+				const byteOffset = BINARY_EXTENSION_HEADER_LENGTH + chunkIndex;
+				this.body = data.slice( byteOffset, byteOffset + chunkLength );
+
+			}
+
+			// Clients must ignore chunks with unknown types.
+
+			chunkIndex += chunkLength;
+
+		}
+
+		if ( this.content === null ) {
+
+			throw new Error( 'THREE.GLTFLoader: JSON content not found.' );
+
+		}
+
+	}
+
+}
+
+/**
+ * DRACO Mesh Compression Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_draco_mesh_compression
+ */
+class GLTFDracoMeshCompressionExtension {
+
+	constructor( json, dracoLoader ) {
+
+		if ( ! dracoLoader ) {
+
+			throw new Error( 'THREE.GLTFLoader: No DRACOLoader instance provided.' );
+
+		}
+
+		this.name = EXTENSIONS.KHR_DRACO_MESH_COMPRESSION;
+		this.json = json;
+		this.dracoLoader = dracoLoader;
+		this.dracoLoader.preload();
+
+	}
+
+	decodePrimitive( primitive, parser ) {
+
+		const json = this.json;
+		const dracoLoader = this.dracoLoader;
+		const bufferViewIndex = primitive.extensions[ this.name ].bufferView;
+		const gltfAttributeMap = primitive.extensions[ this.name ].attributes;
+		const threeAttributeMap = {};
+		const attributeNormalizedMap = {};
+		const attributeTypeMap = {};
+
+		for ( const attributeName in gltfAttributeMap ) {
+
+			const threeAttributeName = ATTRIBUTES[ attributeName ] || attributeName.toLowerCase();
+
+			threeAttributeMap[ threeAttributeName ] = gltfAttributeMap[ attributeName ];
+
+		}
+
+		for ( const attributeName in primitive.attributes ) {
+
+			const threeAttributeName = ATTRIBUTES[ attributeName ] || attributeName.toLowerCase();
+
+			if ( gltfAttributeMap[ attributeName ] !== undefined ) {
+
+				const accessorDef = json.accessors[ primitive.attributes[ attributeName ] ];
+				const componentType = WEBGL_COMPONENT_TYPES[ accessorDef.componentType ];
+
+				attributeTypeMap[ threeAttributeName ] = componentType.name;
+				attributeNormalizedMap[ threeAttributeName ] = accessorDef.normalized === true;
+
+			}
+
+		}
+
+		return parser.getDependency( 'bufferView', bufferViewIndex ).then( function ( bufferView ) {
+
+			return new Promise( function ( resolve ) {
+
+				dracoLoader.decodeDracoFile( bufferView, function ( geometry ) {
+
+					for ( const attributeName in geometry.attributes ) {
+
+						const attribute = geometry.attributes[ attributeName ];
+						const normalized = attributeNormalizedMap[ attributeName ];
+
+						if ( normalized !== undefined ) attribute.normalized = normalized;
+
+					}
+
+					resolve( geometry );
+
+				}, threeAttributeMap, attributeTypeMap );
+
+			} );
+
+		} );
+
+	}
+
+}
+
+/**
+ * Texture Transform Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_texture_transform
+ */
+class GLTFTextureTransformExtension {
+
+	constructor() {
+
+		this.name = EXTENSIONS.KHR_TEXTURE_TRANSFORM;
+
+	}
+
+	extendTexture( texture, transform ) {
+
+		if ( ( transform.texCoord === undefined || transform.texCoord === texture.channel )
+			&& transform.offset === undefined
+			&& transform.rotation === undefined
+			&& transform.scale === undefined ) {
+
+			// See https://github.com/mrdoob/three.js/issues/21819.
+			return texture;
+
+		}
+
+		texture = texture.clone();
+
+		if ( transform.texCoord !== undefined ) {
+
+			texture.channel = transform.texCoord;
+
+		}
+
+		if ( transform.offset !== undefined ) {
+
+			texture.offset.fromArray( transform.offset );
+
+		}
+
+		if ( transform.rotation !== undefined ) {
+
+			texture.rotation = transform.rotation;
+
+		}
+
+		if ( transform.scale !== undefined ) {
+
+			texture.repeat.fromArray( transform.scale );
+
+		}
+
+		texture.needsUpdate = true;
+
+		return texture;
+
+	}
+
+}
+
+/**
+ * Mesh Quantization Extension
+ *
+ * Specification: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization
+ */
+class GLTFMeshQuantizationExtension {
+
+	constructor() {
+
+		this.name = EXTENSIONS.KHR_MESH_QUANTIZATION;
+
+	}
+
+}
+
+/*********************************/
+/********** INTERPOLATION ********/
+/*********************************/
+
+// Spline Interpolation
+// Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#appendix-c-spline-interpolation
+class GLTFCubicSplineInterpolant extends Interpolant {
+
+	constructor( parameterPositions, sampleValues, sampleSize, resultBuffer ) {
+
+		super( parameterPositions, sampleValues, sampleSize, resultBuffer );
+
+	}
+
+	copySampleValue_( index ) {
+
+		// Copies a sample value to the result buffer. See description of glTF
+		// CUBICSPLINE values layout in interpolate_() function below.
+
+		const result = this.resultBuffer,
+			values = this.sampleValues,
+			valueSize = this.valueSize,
+			offset = index * valueSize * 3 + valueSize;
+
+		for ( let i = 0; i !== valueSize; i ++ ) {
+
+			result[ i ] = values[ offset + i ];
+
+		}
+
+		return result;
+
+	}
+
+	interpolate_( i1, t0, t, t1 ) {
+
+		const result = this.resultBuffer;
+		const values = this.sampleValues;
+		const stride = this.valueSize;
+
+		const stride2 = stride * 2;
+		const stride3 = stride * 3;
+
+		const td = t1 - t0;
+
+		const p = ( t - t0 ) / td;
+		const pp = p * p;
+		const ppp = pp * p;
+
+		const offset1 = i1 * stride3;
+		const offset0 = offset1 - stride3;
+
+		const s2 = - 2 * ppp + 3 * pp;
+		const s3 = ppp - pp;
+		const s0 = 1 - s2;
+		const s1 = s3 - pp + p;
+
+		// Layout of keyframe output values for CUBICSPLINE animations:
+		//   [ inTangent_1, splineVertex_1, outTangent_1, inTangent_2, splineVertex_2, ... ]
+		for ( let i = 0; i !== stride; i ++ ) {
+
+			const p0 = values[ offset0 + i + stride ]; // splineVertex_k
+			const m0 = values[ offset0 + i + stride2 ] * td; // outTangent_k * (t_k+1 - t_k)
+			const p1 = values[ offset1 + i + stride ]; // splineVertex_k+1
+			const m1 = values[ offset1 + i ] * td; // inTangent_k+1 * (t_k+1 - t_k)
+
+			result[ i ] = s0 * p0 + s1 * m0 + s2 * p1 + s3 * m1;
+
+		}
+
+		return result;
+
+	}
+
+}
+
+const _q = new Quaternion();
+
+class GLTFCubicSplineQuaternionInterpolant extends GLTFCubicSplineInterpolant {
+
+	interpolate_( i1, t0, t, t1 ) {
+
+		const result = super.interpolate_( i1, t0, t, t1 );
+
+		_q.fromArray( result ).normalize().toArray( result );
+
+		return result;
+
+	}
+
+}
+
+
+/*********************************/
+/********** INTERNALS ************/
+/*********************************/
+
+/* CONSTANTS */
+
+const WEBGL_CONSTANTS = {
+	FLOAT: 5126,
+	//FLOAT_MAT2: 35674,
+	FLOAT_MAT3: 35675,
+	FLOAT_MAT4: 35676,
+	FLOAT_VEC2: 35664,
+	FLOAT_VEC3: 35665,
+	FLOAT_VEC4: 35666,
+	LINEAR: 9729,
+	REPEAT: 10497,
+	SAMPLER_2D: 35678,
+	POINTS: 0,
+	LINES: 1,
+	LINE_LOOP: 2,
+	LINE_STRIP: 3,
+	TRIANGLES: 4,
+	TRIANGLE_STRIP: 5,
+	TRIANGLE_FAN: 6,
+	UNSIGNED_BYTE: 5121,
+	UNSIGNED_SHORT: 5123
+};
+
+const WEBGL_COMPONENT_TYPES = {
+	5120: Int8Array,
+	5121: Uint8Array,
+	5122: Int16Array,
+	5123: Uint16Array,
+	5125: Uint32Array,
+	5126: Float32Array
+};
+
+const WEBGL_FILTERS = {
+	9728: NearestFilter,
+	9729: LinearFilter,
+	9984: NearestMipmapNearestFilter,
+	9985: LinearMipmapNearestFilter,
+	9986: NearestMipmapLinearFilter,
+	9987: LinearMipmapLinearFilter
+};
+
+const WEBGL_WRAPPINGS = {
+	33071: ClampToEdgeWrapping,
+	33648: MirroredRepeatWrapping,
+	10497: RepeatWrapping
+};
+
+const WEBGL_TYPE_SIZES = {
+	'SCALAR': 1,
+	'VEC2': 2,
+	'VEC3': 3,
+	'VEC4': 4,
+	'MAT2': 4,
+	'MAT3': 9,
+	'MAT4': 16
+};
+
+const ATTRIBUTES = {
+	POSITION: 'position',
+	NORMAL: 'normal',
+	TANGENT: 'tangent',
+	TEXCOORD_0: 'uv',
+	TEXCOORD_1: 'uv1',
+	TEXCOORD_2: 'uv2',
+	TEXCOORD_3: 'uv3',
+	COLOR_0: 'color',
+	WEIGHTS_0: 'skinWeight',
+	JOINTS_0: 'skinIndex',
+};
+
+const PATH_PROPERTIES = {
+	scale: 'scale',
+	translation: 'position',
+	rotation: 'quaternion',
+	weights: 'morphTargetInfluences'
+};
+
+const INTERPOLATION = {
+	CUBICSPLINE: undefined, // We use a custom interpolant (GLTFCubicSplineInterpolation) for CUBICSPLINE tracks. Each
+		                        // keyframe track will be initialized with a default interpolation type, then modified.
+	LINEAR: InterpolateLinear,
+	STEP: InterpolateDiscrete
+};
+
+const ALPHA_MODES = {
+	OPAQUE: 'OPAQUE',
+	MASK: 'MASK',
+	BLEND: 'BLEND'
+};
+
+/**
+ * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#default-material
+ */
+function createDefaultMaterial( cache ) {
+
+	if ( cache[ 'DefaultMaterial' ] === undefined ) {
+
+		cache[ 'DefaultMaterial' ] = new MeshStandardMaterial( {
+			color: 0xFFFFFF,
+			emissive: 0x000000,
+			metalness: 1,
+			roughness: 1,
+			transparent: false,
+			depthTest: true,
+			side: FrontSide
+		} );
+
+	}
+
+	return cache[ 'DefaultMaterial' ];
+
+}
+
+function addUnknownExtensionsToUserData( knownExtensions, object, objectDef ) {
+
+	// Add unknown glTF extensions to an object's userData.
+
+	for ( const name in objectDef.extensions ) {
+
+		if ( knownExtensions[ name ] === undefined ) {
+
+			object.userData.gltfExtensions = object.userData.gltfExtensions || {};
+			object.userData.gltfExtensions[ name ] = objectDef.extensions[ name ];
+
+		}
+
+	}
+
+}
+
+/**
+ * @param {Object3D|Material|BufferGeometry} object
+ * @param {GLTF.definition} gltfDef
+ */
+function assignExtrasToUserData( object, gltfDef ) {
+
+	if ( gltfDef.extras !== undefined ) {
+
+		if ( typeof gltfDef.extras === 'object' ) {
+
+			Object.assign( object.userData, gltfDef.extras );
+
+		} else {
+
+			console.warn( 'THREE.GLTFLoader: Ignoring primitive type .extras, ' + gltfDef.extras );
+
+		}
+
+	}
+
+}
+
+/**
+ * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#morph-targets
+ *
+ * @param {BufferGeometry} geometry
+ * @param {Array<GLTF.Target>} targets
+ * @param {GLTFParser} parser
+ * @return {Promise<BufferGeometry>}
+ */
+function addMorphTargets( geometry, targets, parser ) {
+
+	let hasMorphPosition = false;
+	let hasMorphNormal = false;
+	let hasMorphColor = false;
+
+	for ( let i = 0, il = targets.length; i < il; i ++ ) {
+
+		const target = targets[ i ];
+
+		if ( target.POSITION !== undefined ) hasMorphPosition = true;
+		if ( target.NORMAL !== undefined ) hasMorphNormal = true;
+		if ( target.COLOR_0 !== undefined ) hasMorphColor = true;
+
+		if ( hasMorphPosition && hasMorphNormal && hasMorphColor ) break;
+
+	}
+
+	if ( ! hasMorphPosition && ! hasMorphNormal && ! hasMorphColor ) return Promise.resolve( geometry );
+
+	const pendingPositionAccessors = [];
+	const pendingNormalAccessors = [];
+	const pendingColorAccessors = [];
+
+	for ( let i = 0, il = targets.length; i < il; i ++ ) {
+
+		const target = targets[ i ];
+
+		if ( hasMorphPosition ) {
+
+			const pendingAccessor = target.POSITION !== undefined
+				? parser.getDependency( 'accessor', target.POSITION )
+				: geometry.attributes.position;
+
+			pendingPositionAccessors.push( pendingAccessor );
+
+		}
+
+		if ( hasMorphNormal ) {
+
+			const pendingAccessor = target.NORMAL !== undefined
+				? parser.getDependency( 'accessor', target.NORMAL )
+				: geometry.attributes.normal;
+
+			pendingNormalAccessors.push( pendingAccessor );
+
+		}
+
+		if ( hasMorphColor ) {
+
+			const pendingAccessor = target.COLOR_0 !== undefined
+				? parser.getDependency( 'accessor', target.COLOR_0 )
+				: geometry.attributes.color;
+
+			pendingColorAccessors.push( pendingAccessor );
+
+		}
+
+	}
+
+	return Promise.all( [
+		Promise.all( pendingPositionAccessors ),
+		Promise.all( pendingNormalAccessors ),
+		Promise.all( pendingColorAccessors )
+	] ).then( function ( accessors ) {
+
+		const morphPositions = accessors[ 0 ];
+		const morphNormals = accessors[ 1 ];
+		const morphColors = accessors[ 2 ];
+
+		if ( hasMorphPosition ) geometry.morphAttributes.position = morphPositions;
+		if ( hasMorphNormal ) geometry.morphAttributes.normal = morphNormals;
+		if ( hasMorphColor ) geometry.morphAttributes.color = morphColors;
+		geometry.morphTargetsRelative = true;
+
+		return geometry;
+
+	} );
+
+}
+
+/**
+ * @param {Mesh} mesh
+ * @param {GLTF.Mesh} meshDef
+ */
+function updateMorphTargets( mesh, meshDef ) {
+
+	mesh.updateMorphTargets();
+
+	if ( meshDef.weights !== undefined ) {
+
+		for ( let i = 0, il = meshDef.weights.length; i < il; i ++ ) {
+
+			mesh.morphTargetInfluences[ i ] = meshDef.weights[ i ];
+
+		}
+
+	}
+
+	// .extras has user-defined data, so check that .extras.targetNames is an array.
+	if ( meshDef.extras && Array.isArray( meshDef.extras.targetNames ) ) {
+
+		const targetNames = meshDef.extras.targetNames;
+
+		if ( mesh.morphTargetInfluences.length === targetNames.length ) {
+
+			mesh.morphTargetDictionary = {};
+
+			for ( let i = 0, il = targetNames.length; i < il; i ++ ) {
+
+				mesh.morphTargetDictionary[ targetNames[ i ] ] = i;
+
+			}
+
+		} else {
+
+			console.warn( 'THREE.GLTFLoader: Invalid extras.targetNames length. Ignoring names.' );
+
+		}
+
+	}
+
+}
+
+function createPrimitiveKey( primitiveDef ) {
+
+	let geometryKey;
+
+	const dracoExtension = primitiveDef.extensions && primitiveDef.extensions[ EXTENSIONS.KHR_DRACO_MESH_COMPRESSION ];
+
+	if ( dracoExtension ) {
+
+		geometryKey = 'draco:' + dracoExtension.bufferView
+				+ ':' + dracoExtension.indices
+				+ ':' + createAttributesKey( dracoExtension.attributes );
+
+	} else {
+
+		geometryKey = primitiveDef.indices + ':' + createAttributesKey( primitiveDef.attributes ) + ':' + primitiveDef.mode;
+
+	}
+
+	if ( primitiveDef.targets !== undefined ) {
+
+		for ( let i = 0, il = primitiveDef.targets.length; i < il; i ++ ) {
+
+			geometryKey += ':' + createAttributesKey( primitiveDef.targets[ i ] );
+
+		}
+
+	}
+
+	return geometryKey;
+
+}
+
+function createAttributesKey( attributes ) {
+
+	let attributesKey = '';
+
+	const keys = Object.keys( attributes ).sort();
+
+	for ( let i = 0, il = keys.length; i < il; i ++ ) {
+
+		attributesKey += keys[ i ] + ':' + attributes[ keys[ i ] ] + ';';
+
+	}
+
+	return attributesKey;
+
+}
+
+function getNormalizedComponentScale( constructor ) {
+
+	// Reference:
+	// https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization#encoding-quantized-data
+
+	switch ( constructor ) {
+
+		case Int8Array:
+			return 1 / 127;
+
+		case Uint8Array:
+			return 1 / 255;
+
+		case Int16Array:
+			return 1 / 32767;
+
+		case Uint16Array:
+			return 1 / 65535;
+
+		default:
+			throw new Error( 'THREE.GLTFLoader: Unsupported normalized accessor component type.' );
+
+	}
+
+}
+
+function getImageURIMimeType( uri ) {
+
+	if ( uri.search( /\.jpe?g($|\?)/i ) > 0 || uri.search( /^data\:image\/jpeg/ ) === 0 ) return 'image/jpeg';
+	if ( uri.search( /\.webp($|\?)/i ) > 0 || uri.search( /^data\:image\/webp/ ) === 0 ) return 'image/webp';
+
+	return 'image/png';
+
+}
+
+const _identityMatrix = new Matrix4();
+
+/* GLTF PARSER */
+
+class GLTFParser {
+
+	constructor( json = {}, options = {} ) {
+
+		this.json = json;
+		this.extensions = {};
+		this.plugins = {};
+		this.options = options;
+
+		// loader object cache
+		this.cache = new GLTFRegistry();
+
+		// associations between Three.js objects and glTF elements
+		this.associations = new Map();
+
+		// BufferGeometry caching
+		this.primitiveCache = {};
+
+		// Node cache
+		this.nodeCache = {};
+
+		// Object3D instance caches
+		this.meshCache = { refs: {}, uses: {} };
+		this.cameraCache = { refs: {}, uses: {} };
+		this.lightCache = { refs: {}, uses: {} };
+
+		this.sourceCache = {};
+		this.textureCache = {};
+
+		// Track node names, to ensure no duplicates
+		this.nodeNamesUsed = {};
+
+		// Use an ImageBitmapLoader if imageBitmaps are supported. Moves much of the
+		// expensive work of uploading a texture to the GPU off the main thread.
+
+		let isSafari = false;
+		let isFirefox = false;
+		let firefoxVersion = - 1;
+
+		if ( typeof navigator !== 'undefined' ) {
+
+			isSafari = /^((?!chrome|android).)*safari/i.test( navigator.userAgent ) === true;
+			isFirefox = navigator.userAgent.indexOf( 'Firefox' ) > - 1;
+			firefoxVersion = isFirefox ? navigator.userAgent.match( /Firefox\/([0-9]+)\./ )[ 1 ] : - 1;
+
+		}
+
+		if ( typeof createImageBitmap === 'undefined' || isSafari || ( isFirefox && firefoxVersion < 98 ) ) {
+
+			this.textureLoader = new TextureLoader( this.options.manager );
+
+		} else {
+
+			this.textureLoader = new ImageBitmapLoader( this.options.manager );
+
+		}
+
+		this.textureLoader.setCrossOrigin( this.options.crossOrigin );
+		this.textureLoader.setRequestHeader( this.options.requestHeader );
+
+		this.fileLoader = new FileLoader( this.options.manager );
+		this.fileLoader.setResponseType( 'arraybuffer' );
+
+		if ( this.options.crossOrigin === 'use-credentials' ) {
+
+			this.fileLoader.setWithCredentials( true );
+
+		}
+
+	}
+
+	setExtensions( extensions ) {
+
+		this.extensions = extensions;
+
+	}
+
+	setPlugins( plugins ) {
+
+		this.plugins = plugins;
+
+	}
+
+	parse( onLoad, onError ) {
+
+		const parser = this;
+		const json = this.json;
+		const extensions = this.extensions;
+
+		// Clear the loader cache
+		this.cache.removeAll();
+		this.nodeCache = {};
+
+		// Mark the special nodes/meshes in json for efficient parse
+		this._invokeAll( function ( ext ) {
+
+			return ext._markDefs && ext._markDefs();
+
+		} );
+
+		Promise.all( this._invokeAll( function ( ext ) {
+
+			return ext.beforeRoot && ext.beforeRoot();
+
+		} ) ).then( function () {
+
+			return Promise.all( [
+
+				parser.getDependencies( 'scene' ),
+				parser.getDependencies( 'animation' ),
+				parser.getDependencies( 'camera' ),
+
+			] );
+
+		} ).then( function ( dependencies ) {
+
+			const result = {
+				scene: dependencies[ 0 ][ json.scene || 0 ],
+				scenes: dependencies[ 0 ],
+				animations: dependencies[ 1 ],
+				cameras: dependencies[ 2 ],
+				asset: json.asset,
+				parser: parser,
+				userData: {}
+			};
+
+			addUnknownExtensionsToUserData( extensions, result, json );
+
+			assignExtrasToUserData( result, json );
+
+			return Promise.all( parser._invokeAll( function ( ext ) {
+
+				return ext.afterRoot && ext.afterRoot( result );
+
+			} ) ).then( function () {
+
+				onLoad( result );
+
+			} );
+
+		} ).catch( onError );
+
+	}
+
+	/**
+	 * Marks the special nodes/meshes in json for efficient parse.
+	 */
+	_markDefs() {
+
+		const nodeDefs = this.json.nodes || [];
+		const skinDefs = this.json.skins || [];
+		const meshDefs = this.json.meshes || [];
+
+		// Nothing in the node definition indicates whether it is a Bone or an
+		// Object3D. Use the skins' joint references to mark bones.
+		for ( let skinIndex = 0, skinLength = skinDefs.length; skinIndex < skinLength; skinIndex ++ ) {
+
+			const joints = skinDefs[ skinIndex ].joints;
+
+			for ( let i = 0, il = joints.length; i < il; i ++ ) {
+
+				nodeDefs[ joints[ i ] ].isBone = true;
+
+			}
+
+		}
+
+		// Iterate over all nodes, marking references to shared resources,
+		// as well as skeleton joints.
+		for ( let nodeIndex = 0, nodeLength = nodeDefs.length; nodeIndex < nodeLength; nodeIndex ++ ) {
+
+			const nodeDef = nodeDefs[ nodeIndex ];
+
+			if ( nodeDef.mesh !== undefined ) {
+
+				this._addNodeRef( this.meshCache, nodeDef.mesh );
+
+				// Nothing in the mesh definition indicates whether it is
+				// a SkinnedMesh or Mesh. Use the node's mesh reference
+				// to mark SkinnedMesh if node has skin.
+				if ( nodeDef.skin !== undefined ) {
+
+					meshDefs[ nodeDef.mesh ].isSkinnedMesh = true;
+
+				}
+
+			}
+
+			if ( nodeDef.camera !== undefined ) {
+
+				this._addNodeRef( this.cameraCache, nodeDef.camera );
+
+			}
+
+		}
+
+	}
+
+	/**
+	 * Counts references to shared node / Object3D resources. These resources
+	 * can be reused, or "instantiated", at multiple nodes in the scene
+	 * hierarchy. Mesh, Camera, and Light instances are instantiated and must
+	 * be marked. Non-scenegraph resources (like Materials, Geometries, and
+	 * Textures) can be reused directly and are not marked here.
+	 *
+	 * Example: CesiumMilkTruck sample model reuses "Wheel" meshes.
+	 */
+	_addNodeRef( cache, index ) {
+
+		if ( index === undefined ) return;
+
+		if ( cache.refs[ index ] === undefined ) {
+
+			cache.refs[ index ] = cache.uses[ index ] = 0;
+
+		}
+
+		cache.refs[ index ] ++;
+
+	}
+
+	/** Returns a reference to a shared resource, cloning it if necessary. */
+	_getNodeRef( cache, index, object ) {
+
+		if ( cache.refs[ index ] <= 1 ) return object;
+
+		const ref = object.clone();
+
+		// Propagates mappings to the cloned object, prevents mappings on the
+		// original object from being lost.
+		const updateMappings = ( original, clone ) => {
+
+			const mappings = this.associations.get( original );
+			if ( mappings != null ) {
+
+				this.associations.set( clone, mappings );
+
+			}
+
+			for ( const [ i, child ] of original.children.entries() ) {
+
+				updateMappings( child, clone.children[ i ] );
+
+			}
+
+		};
+
+		updateMappings( object, ref );
+
+		ref.name += '_instance_' + ( cache.uses[ index ] ++ );
+
+		return ref;
+
+	}
+
+	_invokeOne( func ) {
+
+		const extensions = Object.values( this.plugins );
+		extensions.push( this );
+
+		for ( let i = 0; i < extensions.length; i ++ ) {
+
+			const result = func( extensions[ i ] );
+
+			if ( result ) return result;
+
+		}
+
+		return null;
+
+	}
+
+	_invokeAll( func ) {
+
+		const extensions = Object.values( this.plugins );
+		extensions.unshift( this );
+
+		const pending = [];
+
+		for ( let i = 0; i < extensions.length; i ++ ) {
+
+			const result = func( extensions[ i ] );
+
+			if ( result ) pending.push( result );
+
+		}
+
+		return pending;
+
+	}
+
+	/**
+	 * Requests the specified dependency asynchronously, with caching.
+	 * @param {string} type
+	 * @param {number} index
+	 * @return {Promise<Object3D|Material|THREE.Texture|AnimationClip|ArrayBuffer|Object>}
+	 */
+	getDependency( type, index ) {
+
+		const cacheKey = type + ':' + index;
+		let dependency = this.cache.get( cacheKey );
+
+		if ( ! dependency ) {
+
+			switch ( type ) {
+
+				case 'scene':
+					dependency = this.loadScene( index );
+					break;
+
+				case 'node':
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext.loadNode && ext.loadNode( index );
+
+					} );
+					break;
+
+				case 'mesh':
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext.loadMesh && ext.loadMesh( index );
+
+					} );
+					break;
+
+				case 'accessor':
+					dependency = this.loadAccessor( index );
+					break;
+
+				case 'bufferView':
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext.loadBufferView && ext.loadBufferView( index );
+
+					} );
+					break;
+
+				case 'buffer':
+					dependency = this.loadBuffer( index );
+					break;
+
+				case 'material':
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext.loadMaterial && ext.loadMaterial( index );
+
+					} );
+					break;
+
+				case 'texture':
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext.loadTexture && ext.loadTexture( index );
+
+					} );
+					break;
+
+				case 'skin':
+					dependency = this.loadSkin( index );
+					break;
+
+				case 'animation':
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext.loadAnimation && ext.loadAnimation( index );
+
+					} );
+					break;
+
+				case 'camera':
+					dependency = this.loadCamera( index );
+					break;
+
+				default:
+					dependency = this._invokeOne( function ( ext ) {
+
+						return ext != this && ext.getDependency && ext.getDependency( type, index );
+
+					} );
+
+					if ( ! dependency ) {
+
+						throw new Error( 'Unknown type: ' + type );
+
+					}
+
+					break;
+
+			}
+
+			this.cache.add( cacheKey, dependency );
+
+		}
+
+		return dependency;
+
+	}
+
+	/**
+	 * Requests all dependencies of the specified type asynchronously, with caching.
+	 * @param {string} type
+	 * @return {Promise<Array<Object>>}
+	 */
+	getDependencies( type ) {
+
+		let dependencies = this.cache.get( type );
+
+		if ( ! dependencies ) {
+
+			const parser = this;
+			const defs = this.json[ type + ( type === 'mesh' ? 'es' : 's' ) ] || [];
+
+			dependencies = Promise.all( defs.map( function ( def, index ) {
+
+				return parser.getDependency( type, index );
+
+			} ) );
+
+			this.cache.add( type, dependencies );
+
+		}
+
+		return dependencies;
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#buffers-and-buffer-views
+	 * @param {number} bufferIndex
+	 * @return {Promise<ArrayBuffer>}
+	 */
+	loadBuffer( bufferIndex ) {
+
+		const bufferDef = this.json.buffers[ bufferIndex ];
+		const loader = this.fileLoader;
+
+		if ( bufferDef.type && bufferDef.type !== 'arraybuffer' ) {
+
+			throw new Error( 'THREE.GLTFLoader: ' + bufferDef.type + ' buffer type is not supported.' );
+
+		}
+
+		// If present, GLB container is required to be the first buffer.
+		if ( bufferDef.uri === undefined && bufferIndex === 0 ) {
+
+			return Promise.resolve( this.extensions[ EXTENSIONS.KHR_BINARY_GLTF ].body );
+
+		}
+
+		const options = this.options;
+
+		return new Promise( function ( resolve, reject ) {
+
+			loader.load( LoaderUtils.resolveURL( bufferDef.uri, options.path ), resolve, undefined, function () {
+
+				reject( new Error( 'THREE.GLTFLoader: Failed to load buffer "' + bufferDef.uri + '".' ) );
+
+			} );
+
+		} );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#buffers-and-buffer-views
+	 * @param {number} bufferViewIndex
+	 * @return {Promise<ArrayBuffer>}
+	 */
+	loadBufferView( bufferViewIndex ) {
+
+		const bufferViewDef = this.json.bufferViews[ bufferViewIndex ];
+
+		return this.getDependency( 'buffer', bufferViewDef.buffer ).then( function ( buffer ) {
+
+			const byteLength = bufferViewDef.byteLength || 0;
+			const byteOffset = bufferViewDef.byteOffset || 0;
+			return buffer.slice( byteOffset, byteOffset + byteLength );
+
+		} );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#accessors
+	 * @param {number} accessorIndex
+	 * @return {Promise<BufferAttribute|InterleavedBufferAttribute>}
+	 */
+	loadAccessor( accessorIndex ) {
+
+		const parser = this;
+		const json = this.json;
+
+		const accessorDef = this.json.accessors[ accessorIndex ];
+
+		if ( accessorDef.bufferView === undefined && accessorDef.sparse === undefined ) {
+
+			const itemSize = WEBGL_TYPE_SIZES[ accessorDef.type ];
+			const TypedArray = WEBGL_COMPONENT_TYPES[ accessorDef.componentType ];
+			const normalized = accessorDef.normalized === true;
+
+			const array = new TypedArray( accessorDef.count * itemSize );
+			return Promise.resolve( new BufferAttribute( array, itemSize, normalized ) );
+
+		}
+
+		const pendingBufferViews = [];
+
+		if ( accessorDef.bufferView !== undefined ) {
+
+			pendingBufferViews.push( this.getDependency( 'bufferView', accessorDef.bufferView ) );
+
+		} else {
+
+			pendingBufferViews.push( null );
+
+		}
+
+		if ( accessorDef.sparse !== undefined ) {
+
+			pendingBufferViews.push( this.getDependency( 'bufferView', accessorDef.sparse.indices.bufferView ) );
+			pendingBufferViews.push( this.getDependency( 'bufferView', accessorDef.sparse.values.bufferView ) );
+
+		}
+
+		return Promise.all( pendingBufferViews ).then( function ( bufferViews ) {
+
+			const bufferView = bufferViews[ 0 ];
+
+			const itemSize = WEBGL_TYPE_SIZES[ accessorDef.type ];
+			const TypedArray = WEBGL_COMPONENT_TYPES[ accessorDef.componentType ];
+
+			// For VEC3: itemSize is 3, elementBytes is 4, itemBytes is 12.
+			const elementBytes = TypedArray.BYTES_PER_ELEMENT;
+			const itemBytes = elementBytes * itemSize;
+			const byteOffset = accessorDef.byteOffset || 0;
+			const byteStride = accessorDef.bufferView !== undefined ? json.bufferViews[ accessorDef.bufferView ].byteStride : undefined;
+			const normalized = accessorDef.normalized === true;
+			let array, bufferAttribute;
+
+			// The buffer is not interleaved if the stride is the item size in bytes.
+			if ( byteStride && byteStride !== itemBytes ) {
+
+				// Each "slice" of the buffer, as defined by 'count' elements of 'byteStride' bytes, gets its own InterleavedBuffer
+				// This makes sure that IBA.count reflects accessor.count properly
+				const ibSlice = Math.floor( byteOffset / byteStride );
+				const ibCacheKey = 'InterleavedBuffer:' + accessorDef.bufferView + ':' + accessorDef.componentType + ':' + ibSlice + ':' + accessorDef.count;
+				let ib = parser.cache.get( ibCacheKey );
+
+				if ( ! ib ) {
+
+					array = new TypedArray( bufferView, ibSlice * byteStride, accessorDef.count * byteStride / elementBytes );
+
+					// Integer parameters to IB/IBA are in array elements, not bytes.
+					ib = new InterleavedBuffer( array, byteStride / elementBytes );
+
+					parser.cache.add( ibCacheKey, ib );
+
+				}
+
+				bufferAttribute = new InterleavedBufferAttribute( ib, itemSize, ( byteOffset % byteStride ) / elementBytes, normalized );
+
+			} else {
+
+				if ( bufferView === null ) {
+
+					array = new TypedArray( accessorDef.count * itemSize );
+
+				} else {
+
+					array = new TypedArray( bufferView, byteOffset, accessorDef.count * itemSize );
+
+				}
+
+				bufferAttribute = new BufferAttribute( array, itemSize, normalized );
+
+			}
+
+			// https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#sparse-accessors
+			if ( accessorDef.sparse !== undefined ) {
+
+				const itemSizeIndices = WEBGL_TYPE_SIZES.SCALAR;
+				const TypedArrayIndices = WEBGL_COMPONENT_TYPES[ accessorDef.sparse.indices.componentType ];
+
+				const byteOffsetIndices = accessorDef.sparse.indices.byteOffset || 0;
+				const byteOffsetValues = accessorDef.sparse.values.byteOffset || 0;
+
+				const sparseIndices = new TypedArrayIndices( bufferViews[ 1 ], byteOffsetIndices, accessorDef.sparse.count * itemSizeIndices );
+				const sparseValues = new TypedArray( bufferViews[ 2 ], byteOffsetValues, accessorDef.sparse.count * itemSize );
+
+				if ( bufferView !== null ) {
+
+					// Avoid modifying the original ArrayBuffer, if the bufferView wasn't initialized with zeroes.
+					bufferAttribute = new BufferAttribute( bufferAttribute.array.slice(), bufferAttribute.itemSize, bufferAttribute.normalized );
+
+				}
+
+				for ( let i = 0, il = sparseIndices.length; i < il; i ++ ) {
+
+					const index = sparseIndices[ i ];
+
+					bufferAttribute.setX( index, sparseValues[ i * itemSize ] );
+					if ( itemSize >= 2 ) bufferAttribute.setY( index, sparseValues[ i * itemSize + 1 ] );
+					if ( itemSize >= 3 ) bufferAttribute.setZ( index, sparseValues[ i * itemSize + 2 ] );
+					if ( itemSize >= 4 ) bufferAttribute.setW( index, sparseValues[ i * itemSize + 3 ] );
+					if ( itemSize >= 5 ) throw new Error( 'THREE.GLTFLoader: Unsupported itemSize in sparse BufferAttribute.' );
+
+				}
+
+			}
+
+			return bufferAttribute;
+
+		} );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#textures
+	 * @param {number} textureIndex
+	 * @return {Promise<THREE.Texture|null>}
+	 */
+	loadTexture( textureIndex ) {
+
+		const json = this.json;
+		const options = this.options;
+		const textureDef = json.textures[ textureIndex ];
+		const sourceIndex = textureDef.source;
+		const sourceDef = json.images[ sourceIndex ];
+
+		let loader = this.textureLoader;
+
+		if ( sourceDef.uri ) {
+
+			const handler = options.manager.getHandler( sourceDef.uri );
+			if ( handler !== null ) loader = handler;
+
+		}
+
+		return this.loadTextureImage( textureIndex, sourceIndex, loader );
+
+	}
+
+	loadTextureImage( textureIndex, sourceIndex, loader ) {
+
+		const parser = this;
+		const json = this.json;
+
+		const textureDef = json.textures[ textureIndex ];
+		const sourceDef = json.images[ sourceIndex ];
+
+		const cacheKey = ( sourceDef.uri || sourceDef.bufferView ) + ':' + textureDef.sampler;
+
+		if ( this.textureCache[ cacheKey ] ) {
+
+			// See https://github.com/mrdoob/three.js/issues/21559.
+			return this.textureCache[ cacheKey ];
+
+		}
+
+		const promise = this.loadImageSource( sourceIndex, loader ).then( function ( texture ) {
+
+			texture.flipY = false;
+
+			texture.name = textureDef.name || sourceDef.name || '';
+
+			if ( texture.name === '' && typeof sourceDef.uri === 'string' && sourceDef.uri.startsWith( 'data:image/' ) === false ) {
+
+				texture.name = sourceDef.uri;
+
+			}
+
+			const samplers = json.samplers || {};
+			const sampler = samplers[ textureDef.sampler ] || {};
+
+			texture.magFilter = WEBGL_FILTERS[ sampler.magFilter ] || LinearFilter;
+			texture.minFilter = WEBGL_FILTERS[ sampler.minFilter ] || LinearMipmapLinearFilter;
+			texture.wrapS = WEBGL_WRAPPINGS[ sampler.wrapS ] || RepeatWrapping;
+			texture.wrapT = WEBGL_WRAPPINGS[ sampler.wrapT ] || RepeatWrapping;
+
+			parser.associations.set( texture, { textures: textureIndex } );
+
+			return texture;
+
+		} ).catch( function () {
+
+			return null;
+
+		} );
+
+		this.textureCache[ cacheKey ] = promise;
+
+		return promise;
+
+	}
+
+	loadImageSource( sourceIndex, loader ) {
+
+		const parser = this;
+		const json = this.json;
+		const options = this.options;
+
+		if ( this.sourceCache[ sourceIndex ] !== undefined ) {
+
+			return this.sourceCache[ sourceIndex ].then( ( texture ) => texture.clone() );
+
+		}
+
+		const sourceDef = json.images[ sourceIndex ];
+
+		const URL = self.URL || self.webkitURL;
+
+		let sourceURI = sourceDef.uri || '';
+		let isObjectURL = false;
+
+		if ( sourceDef.bufferView !== undefined ) {
+
+			// Load binary image data from bufferView, if provided.
+
+			sourceURI = parser.getDependency( 'bufferView', sourceDef.bufferView ).then( function ( bufferView ) {
+
+				isObjectURL = true;
+				const blob = new Blob( [ bufferView ], { type: sourceDef.mimeType } );
+				sourceURI = URL.createObjectURL( blob );
+				return sourceURI;
+
+			} );
+
+		} else if ( sourceDef.uri === undefined ) {
+
+			throw new Error( 'THREE.GLTFLoader: Image ' + sourceIndex + ' is missing URI and bufferView' );
+
+		}
+
+		const promise = Promise.resolve( sourceURI ).then( function ( sourceURI ) {
+
+			return new Promise( function ( resolve, reject ) {
+
+				let onLoad = resolve;
+
+				if ( loader.isImageBitmapLoader === true ) {
+
+					onLoad = function ( imageBitmap ) {
+
+						const texture = new Texture( imageBitmap );
+						texture.needsUpdate = true;
+
+						resolve( texture );
+
+					};
+
+				}
+
+				loader.load( LoaderUtils.resolveURL( sourceURI, options.path ), onLoad, undefined, reject );
+
+			} );
+
+		} ).then( function ( texture ) {
+
+			// Clean up resources and configure Texture.
+
+			if ( isObjectURL === true ) {
+
+				URL.revokeObjectURL( sourceURI );
+
+			}
+
+			texture.userData.mimeType = sourceDef.mimeType || getImageURIMimeType( sourceDef.uri );
+
+			return texture;
+
+		} ).catch( function ( error ) {
+
+			console.error( 'THREE.GLTFLoader: Couldn\'t load texture', sourceURI );
+			throw error;
+
+		} );
+
+		this.sourceCache[ sourceIndex ] = promise;
+		return promise;
+
+	}
+
+	/**
+	 * Asynchronously assigns a texture to the given material parameters.
+	 * @param {Object} materialParams
+	 * @param {string} mapName
+	 * @param {Object} mapDef
+	 * @return {Promise<Texture>}
+	 */
+	assignTexture( materialParams, mapName, mapDef, colorSpace ) {
+
+		const parser = this;
+
+		return this.getDependency( 'texture', mapDef.index ).then( function ( texture ) {
+
+			if ( ! texture ) return null;
+
+			if ( mapDef.texCoord !== undefined && mapDef.texCoord > 0 ) {
+
+				texture = texture.clone();
+				texture.channel = mapDef.texCoord;
+
+			}
+
+			if ( parser.extensions[ EXTENSIONS.KHR_TEXTURE_TRANSFORM ] ) {
+
+				const transform = mapDef.extensions !== undefined ? mapDef.extensions[ EXTENSIONS.KHR_TEXTURE_TRANSFORM ] : undefined;
+
+				if ( transform ) {
+
+					const gltfReference = parser.associations.get( texture );
+					texture = parser.extensions[ EXTENSIONS.KHR_TEXTURE_TRANSFORM ].extendTexture( texture, transform );
+					parser.associations.set( texture, gltfReference );
+
+				}
+
+			}
+
+			if ( colorSpace !== undefined ) {
+
+				texture.colorSpace = colorSpace;
+
+			}
+
+			materialParams[ mapName ] = texture;
+
+			return texture;
+
+		} );
+
+	}
+
+	/**
+	 * Assigns final material to a Mesh, Line, or Points instance. The instance
+	 * already has a material (generated from the glTF material options alone)
+	 * but reuse of the same glTF material may require multiple threejs materials
+	 * to accommodate different primitive types, defines, etc. New materials will
+	 * be created if necessary, and reused from a cache.
+	 * @param  {Object3D} mesh Mesh, Line, or Points instance.
+	 */
+	assignFinalMaterial( mesh ) {
+
+		const geometry = mesh.geometry;
+		let material = mesh.material;
+
+		const useDerivativeTangents = geometry.attributes.tangent === undefined;
+		const useVertexColors = geometry.attributes.color !== undefined;
+		const useFlatShading = geometry.attributes.normal === undefined;
+
+		if ( mesh.isPoints ) {
+
+			const cacheKey = 'PointsMaterial:' + material.uuid;
+
+			let pointsMaterial = this.cache.get( cacheKey );
+
+			if ( ! pointsMaterial ) {
+
+				pointsMaterial = new PointsMaterial();
+				Material.prototype.copy.call( pointsMaterial, material );
+				pointsMaterial.color.copy( material.color );
+				pointsMaterial.map = material.map;
+				pointsMaterial.sizeAttenuation = false; // glTF spec says points should be 1px
+
+				this.cache.add( cacheKey, pointsMaterial );
+
+			}
+
+			material = pointsMaterial;
+
+		} else if ( mesh.isLine ) {
+
+			const cacheKey = 'LineBasicMaterial:' + material.uuid;
+
+			let lineMaterial = this.cache.get( cacheKey );
+
+			if ( ! lineMaterial ) {
+
+				lineMaterial = new LineBasicMaterial();
+				Material.prototype.copy.call( lineMaterial, material );
+				lineMaterial.color.copy( material.color );
+				lineMaterial.map = material.map;
+
+				this.cache.add( cacheKey, lineMaterial );
+
+			}
+
+			material = lineMaterial;
+
+		}
+
+		// Clone the material if it will be modified
+		if ( useDerivativeTangents || useVertexColors || useFlatShading ) {
+
+			let cacheKey = 'ClonedMaterial:' + material.uuid + ':';
+
+			if ( useDerivativeTangents ) cacheKey += 'derivative-tangents:';
+			if ( useVertexColors ) cacheKey += 'vertex-colors:';
+			if ( useFlatShading ) cacheKey += 'flat-shading:';
+
+			let cachedMaterial = this.cache.get( cacheKey );
+
+			if ( ! cachedMaterial ) {
+
+				cachedMaterial = material.clone();
+
+				if ( useVertexColors ) cachedMaterial.vertexColors = true;
+				if ( useFlatShading ) cachedMaterial.flatShading = true;
+
+				if ( useDerivativeTangents ) {
+
+					// https://github.com/mrdoob/three.js/issues/11438#issuecomment-507003995
+					if ( cachedMaterial.normalScale ) cachedMaterial.normalScale.y *= - 1;
+					if ( cachedMaterial.clearcoatNormalScale ) cachedMaterial.clearcoatNormalScale.y *= - 1;
+
+				}
+
+				this.cache.add( cacheKey, cachedMaterial );
+
+				this.associations.set( cachedMaterial, this.associations.get( material ) );
+
+			}
+
+			material = cachedMaterial;
+
+		}
+
+		mesh.material = material;
+
+	}
+
+	getMaterialType( /* materialIndex */ ) {
+
+		return MeshStandardMaterial;
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#materials
+	 * @param {number} materialIndex
+	 * @return {Promise<Material>}
+	 */
+	loadMaterial( materialIndex ) {
+
+		const parser = this;
+		const json = this.json;
+		const extensions = this.extensions;
+		const materialDef = json.materials[ materialIndex ];
+
+		let materialType;
+		const materialParams = {};
+		const materialExtensions = materialDef.extensions || {};
+
+		const pending = [];
+
+		if ( materialExtensions[ EXTENSIONS.KHR_MATERIALS_UNLIT ] ) {
+
+			const kmuExtension = extensions[ EXTENSIONS.KHR_MATERIALS_UNLIT ];
+			materialType = kmuExtension.getMaterialType();
+			pending.push( kmuExtension.extendParams( materialParams, materialDef, parser ) );
+
+		} else {
+
+			// Specification:
+			// https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metallic-roughness-material
+
+			const metallicRoughness = materialDef.pbrMetallicRoughness || {};
+
+			materialParams.color = new Color( 1.0, 1.0, 1.0 );
+			materialParams.opacity = 1.0;
+
+			if ( Array.isArray( metallicRoughness.baseColorFactor ) ) {
+
+				const array = metallicRoughness.baseColorFactor;
+
+				materialParams.color.setRGB( array[ 0 ], array[ 1 ], array[ 2 ], LinearSRGBColorSpace );
+				materialParams.opacity = array[ 3 ];
+
+			}
+
+			if ( metallicRoughness.baseColorTexture !== undefined ) {
+
+				pending.push( parser.assignTexture( materialParams, 'map', metallicRoughness.baseColorTexture, SRGBColorSpace ) );
+
+			}
+
+			materialParams.metalness = metallicRoughness.metallicFactor !== undefined ? metallicRoughness.metallicFactor : 1.0;
+			materialParams.roughness = metallicRoughness.roughnessFactor !== undefined ? metallicRoughness.roughnessFactor : 1.0;
+
+			if ( metallicRoughness.metallicRoughnessTexture !== undefined ) {
+
+				pending.push( parser.assignTexture( materialParams, 'metalnessMap', metallicRoughness.metallicRoughnessTexture ) );
+				pending.push( parser.assignTexture( materialParams, 'roughnessMap', metallicRoughness.metallicRoughnessTexture ) );
+
+			}
+
+			materialType = this._invokeOne( function ( ext ) {
+
+				return ext.getMaterialType && ext.getMaterialType( materialIndex );
+
+			} );
+
+			pending.push( Promise.all( this._invokeAll( function ( ext ) {
+
+				return ext.extendMaterialParams && ext.extendMaterialParams( materialIndex, materialParams );
+
+			} ) ) );
+
+		}
+
+		if ( materialDef.doubleSided === true ) {
+
+			materialParams.side = DoubleSide;
+
+		}
+
+		const alphaMode = materialDef.alphaMode || ALPHA_MODES.OPAQUE;
+
+		if ( alphaMode === ALPHA_MODES.BLEND ) {
+
+			materialParams.transparent = true;
+
+			// See: https://github.com/mrdoob/three.js/issues/17706
+			materialParams.depthWrite = false;
+
+		} else {
+
+			materialParams.transparent = false;
+
+			if ( alphaMode === ALPHA_MODES.MASK ) {
+
+				materialParams.alphaTest = materialDef.alphaCutoff !== undefined ? materialDef.alphaCutoff : 0.5;
+
+			}
+
+		}
+
+		if ( materialDef.normalTexture !== undefined && materialType !== MeshBasicMaterial ) {
+
+			pending.push( parser.assignTexture( materialParams, 'normalMap', materialDef.normalTexture ) );
+
+			materialParams.normalScale = new Vector2( 1, 1 );
+
+			if ( materialDef.normalTexture.scale !== undefined ) {
+
+				const scale = materialDef.normalTexture.scale;
+
+				materialParams.normalScale.set( scale, scale );
+
+			}
+
+		}
+
+		if ( materialDef.occlusionTexture !== undefined && materialType !== MeshBasicMaterial ) {
+
+			pending.push( parser.assignTexture( materialParams, 'aoMap', materialDef.occlusionTexture ) );
+
+			if ( materialDef.occlusionTexture.strength !== undefined ) {
+
+				materialParams.aoMapIntensity = materialDef.occlusionTexture.strength;
+
+			}
+
+		}
+
+		if ( materialDef.emissiveFactor !== undefined && materialType !== MeshBasicMaterial ) {
+
+			const emissiveFactor = materialDef.emissiveFactor;
+			materialParams.emissive = new Color().setRGB( emissiveFactor[ 0 ], emissiveFactor[ 1 ], emissiveFactor[ 2 ], LinearSRGBColorSpace );
+
+		}
+
+		if ( materialDef.emissiveTexture !== undefined && materialType !== MeshBasicMaterial ) {
+
+			pending.push( parser.assignTexture( materialParams, 'emissiveMap', materialDef.emissiveTexture, SRGBColorSpace ) );
+
+		}
+
+		return Promise.all( pending ).then( function () {
+
+			const material = new materialType( materialParams );
+
+			if ( materialDef.name ) material.name = materialDef.name;
+
+			assignExtrasToUserData( material, materialDef );
+
+			parser.associations.set( material, { materials: materialIndex } );
+
+			if ( materialDef.extensions ) addUnknownExtensionsToUserData( extensions, material, materialDef );
+
+			return material;
+
+		} );
+
+	}
+
+	/** When Object3D instances are targeted by animation, they need unique names. */
+	createUniqueName( originalName ) {
+
+		const sanitizedName = PropertyBinding.sanitizeNodeName( originalName || '' );
+
+		if ( sanitizedName in this.nodeNamesUsed ) {
+
+			return sanitizedName + '_' + ( ++ this.nodeNamesUsed[ sanitizedName ] );
+
+		} else {
+
+			this.nodeNamesUsed[ sanitizedName ] = 0;
+
+			return sanitizedName;
+
+		}
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#geometry
+	 *
+	 * Creates BufferGeometries from primitives.
+	 *
+	 * @param {Array<GLTF.Primitive>} primitives
+	 * @return {Promise<Array<BufferGeometry>>}
+	 */
+	loadGeometries( primitives ) {
+
+		const parser = this;
+		const extensions = this.extensions;
+		const cache = this.primitiveCache;
+
+		function createDracoPrimitive( primitive ) {
+
+			return extensions[ EXTENSIONS.KHR_DRACO_MESH_COMPRESSION ]
+				.decodePrimitive( primitive, parser )
+				.then( function ( geometry ) {
+
+					return addPrimitiveAttributes( geometry, primitive, parser );
+
+				} );
+
+		}
+
+		const pending = [];
+
+		for ( let i = 0, il = primitives.length; i < il; i ++ ) {
+
+			const primitive = primitives[ i ];
+			const cacheKey = createPrimitiveKey( primitive );
+
+			// See if we've already created this geometry
+			const cached = cache[ cacheKey ];
+
+			if ( cached ) {
+
+				// Use the cached geometry if it exists
+				pending.push( cached.promise );
+
+			} else {
+
+				let geometryPromise;
+
+				if ( primitive.extensions && primitive.extensions[ EXTENSIONS.KHR_DRACO_MESH_COMPRESSION ] ) {
+
+					// Use DRACO geometry if available
+					geometryPromise = createDracoPrimitive( primitive );
+
+				} else {
+
+					// Otherwise create a new geometry
+					geometryPromise = addPrimitiveAttributes( new BufferGeometry(), primitive, parser );
+
+				}
+
+				// Cache this geometry
+				cache[ cacheKey ] = { primitive: primitive, promise: geometryPromise };
+
+				pending.push( geometryPromise );
+
+			}
+
+		}
+
+		return Promise.all( pending );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#meshes
+	 * @param {number} meshIndex
+	 * @return {Promise<Group|Mesh|SkinnedMesh>}
+	 */
+	loadMesh( meshIndex ) {
+
+		const parser = this;
+		const json = this.json;
+		const extensions = this.extensions;
+
+		const meshDef = json.meshes[ meshIndex ];
+		const primitives = meshDef.primitives;
+
+		const pending = [];
+
+		for ( let i = 0, il = primitives.length; i < il; i ++ ) {
+
+			const material = primitives[ i ].material === undefined
+				? createDefaultMaterial( this.cache )
+				: this.getDependency( 'material', primitives[ i ].material );
+
+			pending.push( material );
+
+		}
+
+		pending.push( parser.loadGeometries( primitives ) );
+
+		return Promise.all( pending ).then( function ( results ) {
+
+			const materials = results.slice( 0, results.length - 1 );
+			const geometries = results[ results.length - 1 ];
+
+			const meshes = [];
+
+			for ( let i = 0, il = geometries.length; i < il; i ++ ) {
+
+				const geometry = geometries[ i ];
+				const primitive = primitives[ i ];
+
+				// 1. create Mesh
+
+				let mesh;
+
+				const material = materials[ i ];
+
+				if ( primitive.mode === WEBGL_CONSTANTS.TRIANGLES ||
+						primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP ||
+						primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN ||
+						primitive.mode === undefined ) {
+
+					// .isSkinnedMesh isn't in glTF spec. See ._markDefs()
+					mesh = meshDef.isSkinnedMesh === true
+						? new SkinnedMesh( geometry, material )
+						: new Mesh( geometry, material );
+
+					if ( mesh.isSkinnedMesh === true ) {
+
+						// normalize skin weights to fix malformed assets (see #15319)
+						mesh.normalizeSkinWeights();
+
+					}
+
+					if ( primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP ) {
+
+						mesh.geometry = toTrianglesDrawMode( mesh.geometry, TriangleStripDrawMode );
+
+					} else if ( primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN ) {
+
+						mesh.geometry = toTrianglesDrawMode( mesh.geometry, TriangleFanDrawMode );
+
+					}
+
+				} else if ( primitive.mode === WEBGL_CONSTANTS.LINES ) {
+
+					mesh = new LineSegments( geometry, material );
+
+				} else if ( primitive.mode === WEBGL_CONSTANTS.LINE_STRIP ) {
+
+					mesh = new Line( geometry, material );
+
+				} else if ( primitive.mode === WEBGL_CONSTANTS.LINE_LOOP ) {
+
+					mesh = new LineLoop( geometry, material );
+
+				} else if ( primitive.mode === WEBGL_CONSTANTS.POINTS ) {
+
+					mesh = new Points( geometry, material );
+
+				} else {
+
+					throw new Error( 'THREE.GLTFLoader: Primitive mode unsupported: ' + primitive.mode );
+
+				}
+
+				if ( Object.keys( mesh.geometry.morphAttributes ).length > 0 ) {
+
+					updateMorphTargets( mesh, meshDef );
+
+				}
+
+				mesh.name = parser.createUniqueName( meshDef.name || ( 'mesh_' + meshIndex ) );
+
+				assignExtrasToUserData( mesh, meshDef );
+
+				if ( primitive.extensions ) addUnknownExtensionsToUserData( extensions, mesh, primitive );
+
+				parser.assignFinalMaterial( mesh );
+
+				meshes.push( mesh );
+
+			}
+
+			for ( let i = 0, il = meshes.length; i < il; i ++ ) {
+
+				parser.associations.set( meshes[ i ], {
+					meshes: meshIndex,
+					primitives: i
+				} );
+
+			}
+
+			if ( meshes.length === 1 ) {
+
+				if ( meshDef.extensions ) addUnknownExtensionsToUserData( extensions, meshes[ 0 ], meshDef );
+
+				return meshes[ 0 ];
+
+			}
+
+			const group = new Group();
+
+			if ( meshDef.extensions ) addUnknownExtensionsToUserData( extensions, group, meshDef );
+
+			parser.associations.set( group, { meshes: meshIndex } );
+
+			for ( let i = 0, il = meshes.length; i < il; i ++ ) {
+
+				group.add( meshes[ i ] );
+
+			}
+
+			return group;
+
+		} );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#cameras
+	 * @param {number} cameraIndex
+	 * @return {Promise<THREE.Camera>}
+	 */
+	loadCamera( cameraIndex ) {
+
+		let camera;
+		const cameraDef = this.json.cameras[ cameraIndex ];
+		const params = cameraDef[ cameraDef.type ];
+
+		if ( ! params ) {
+
+			console.warn( 'THREE.GLTFLoader: Missing camera parameters.' );
+			return;
+
+		}
+
+		if ( cameraDef.type === 'perspective' ) {
+
+			camera = new PerspectiveCamera( MathUtils.radToDeg( params.yfov ), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6 );
+
+		} else if ( cameraDef.type === 'orthographic' ) {
+
+			camera = new OrthographicCamera( - params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar );
+
+		}
+
+		if ( cameraDef.name ) camera.name = this.createUniqueName( cameraDef.name );
+
+		assignExtrasToUserData( camera, cameraDef );
+
+		return Promise.resolve( camera );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#skins
+	 * @param {number} skinIndex
+	 * @return {Promise<Skeleton>}
+	 */
+	loadSkin( skinIndex ) {
+
+		const skinDef = this.json.skins[ skinIndex ];
+
+		const pending = [];
+
+		for ( let i = 0, il = skinDef.joints.length; i < il; i ++ ) {
+
+			pending.push( this._loadNodeShallow( skinDef.joints[ i ] ) );
+
+		}
+
+		if ( skinDef.inverseBindMatrices !== undefined ) {
+
+			pending.push( this.getDependency( 'accessor', skinDef.inverseBindMatrices ) );
+
+		} else {
+
+			pending.push( null );
+
+		}
+
+		return Promise.all( pending ).then( function ( results ) {
+
+			const inverseBindMatrices = results.pop();
+			const jointNodes = results;
+
+			// Note that bones (joint nodes) may or may not be in the
+			// scene graph at this time.
+
+			const bones = [];
+			const boneInverses = [];
+
+			for ( let i = 0, il = jointNodes.length; i < il; i ++ ) {
+
+				const jointNode = jointNodes[ i ];
+
+				if ( jointNode ) {
+
+					bones.push( jointNode );
+
+					const mat = new Matrix4();
+
+					if ( inverseBindMatrices !== null ) {
+
+						mat.fromArray( inverseBindMatrices.array, i * 16 );
+
+					}
+
+					boneInverses.push( mat );
+
+				} else {
+
+					console.warn( 'THREE.GLTFLoader: Joint "%s" could not be found.', skinDef.joints[ i ] );
+
+				}
+
+			}
+
+			return new Skeleton( bones, boneInverses );
+
+		} );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#animations
+	 * @param {number} animationIndex
+	 * @return {Promise<AnimationClip>}
+	 */
+	loadAnimation( animationIndex ) {
+
+		const json = this.json;
+		const parser = this;
+
+		const animationDef = json.animations[ animationIndex ];
+		const animationName = animationDef.name ? animationDef.name : 'animation_' + animationIndex;
+
+		const pendingNodes = [];
+		const pendingInputAccessors = [];
+		const pendingOutputAccessors = [];
+		const pendingSamplers = [];
+		const pendingTargets = [];
+
+		for ( let i = 0, il = animationDef.channels.length; i < il; i ++ ) {
+
+			const channel = animationDef.channels[ i ];
+			const sampler = animationDef.samplers[ channel.sampler ];
+			const target = channel.target;
+			const name = target.node;
+			const input = animationDef.parameters !== undefined ? animationDef.parameters[ sampler.input ] : sampler.input;
+			const output = animationDef.parameters !== undefined ? animationDef.parameters[ sampler.output ] : sampler.output;
+
+			if ( target.node === undefined ) continue;
+
+			pendingNodes.push( this.getDependency( 'node', name ) );
+			pendingInputAccessors.push( this.getDependency( 'accessor', input ) );
+			pendingOutputAccessors.push( this.getDependency( 'accessor', output ) );
+			pendingSamplers.push( sampler );
+			pendingTargets.push( target );
+
+		}
+
+		return Promise.all( [
+
+			Promise.all( pendingNodes ),
+			Promise.all( pendingInputAccessors ),
+			Promise.all( pendingOutputAccessors ),
+			Promise.all( pendingSamplers ),
+			Promise.all( pendingTargets )
+
+		] ).then( function ( dependencies ) {
+
+			const nodes = dependencies[ 0 ];
+			const inputAccessors = dependencies[ 1 ];
+			const outputAccessors = dependencies[ 2 ];
+			const samplers = dependencies[ 3 ];
+			const targets = dependencies[ 4 ];
+
+			const tracks = [];
+
+			for ( let i = 0, il = nodes.length; i < il; i ++ ) {
+
+				const node = nodes[ i ];
+				const inputAccessor = inputAccessors[ i ];
+				const outputAccessor = outputAccessors[ i ];
+				const sampler = samplers[ i ];
+				const target = targets[ i ];
+
+				if ( node === undefined ) continue;
+
+				if ( node.updateMatrix ) {
+
+					node.updateMatrix();
+
+				}
+
+				const createdTracks = parser._createAnimationTracks( node, inputAccessor, outputAccessor, sampler, target );
+
+				if ( createdTracks ) {
+
+					for ( let k = 0; k < createdTracks.length; k ++ ) {
+
+						tracks.push( createdTracks[ k ] );
+
+					}
+
+				}
+
+			}
+
+			return new AnimationClip( animationName, undefined, tracks );
+
+		} );
+
+	}
+
+	createNodeMesh( nodeIndex ) {
+
+		const json = this.json;
+		const parser = this;
+		const nodeDef = json.nodes[ nodeIndex ];
+
+		if ( nodeDef.mesh === undefined ) return null;
+
+		return parser.getDependency( 'mesh', nodeDef.mesh ).then( function ( mesh ) {
+
+			const node = parser._getNodeRef( parser.meshCache, nodeDef.mesh, mesh );
+
+			// if weights are provided on the node, override weights on the mesh.
+			if ( nodeDef.weights !== undefined ) {
+
+				node.traverse( function ( o ) {
+
+					if ( ! o.isMesh ) return;
+
+					for ( let i = 0, il = nodeDef.weights.length; i < il; i ++ ) {
+
+						o.morphTargetInfluences[ i ] = nodeDef.weights[ i ];
+
+					}
+
+				} );
+
+			}
+
+			return node;
+
+		} );
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#nodes-and-hierarchy
+	 * @param {number} nodeIndex
+	 * @return {Promise<Object3D>}
+	 */
+	loadNode( nodeIndex ) {
+
+		const json = this.json;
+		const parser = this;
+
+		const nodeDef = json.nodes[ nodeIndex ];
+
+		const nodePending = parser._loadNodeShallow( nodeIndex );
+
+		const childPending = [];
+		const childrenDef = nodeDef.children || [];
+
+		for ( let i = 0, il = childrenDef.length; i < il; i ++ ) {
+
+			childPending.push( parser.getDependency( 'node', childrenDef[ i ] ) );
+
+		}
+
+		const skeletonPending = nodeDef.skin === undefined
+			? Promise.resolve( null )
+			: parser.getDependency( 'skin', nodeDef.skin );
+
+		return Promise.all( [
+			nodePending,
+			Promise.all( childPending ),
+			skeletonPending
+		] ).then( function ( results ) {
+
+			const node = results[ 0 ];
+			const children = results[ 1 ];
+			const skeleton = results[ 2 ];
+
+			if ( skeleton !== null ) {
+
+				// This full traverse should be fine because
+				// child glTF nodes have not been added to this node yet.
+				node.traverse( function ( mesh ) {
+
+					if ( ! mesh.isSkinnedMesh ) return;
+
+					mesh.bind( skeleton, _identityMatrix );
+
+				} );
+
+			}
+
+			for ( let i = 0, il = children.length; i < il; i ++ ) {
+
+				node.add( children[ i ] );
+
+			}
+
+			return node;
+
+		} );
+
+	}
+
+	// ._loadNodeShallow() parses a single node.
+	// skin and child nodes are created and added in .loadNode() (no '_' prefix).
+	_loadNodeShallow( nodeIndex ) {
+
+		const json = this.json;
+		const extensions = this.extensions;
+		const parser = this;
+
+		// This method is called from .loadNode() and .loadSkin().
+		// Cache a node to avoid duplication.
+
+		if ( this.nodeCache[ nodeIndex ] !== undefined ) {
+
+			return this.nodeCache[ nodeIndex ];
+
+		}
+
+		const nodeDef = json.nodes[ nodeIndex ];
+
+		// reserve node's name before its dependencies, so the root has the intended name.
+		const nodeName = nodeDef.name ? parser.createUniqueName( nodeDef.name ) : '';
+
+		const pending = [];
+
+		const meshPromise = parser._invokeOne( function ( ext ) {
+
+			return ext.createNodeMesh && ext.createNodeMesh( nodeIndex );
+
+		} );
+
+		if ( meshPromise ) {
+
+			pending.push( meshPromise );
+
+		}
+
+		if ( nodeDef.camera !== undefined ) {
+
+			pending.push( parser.getDependency( 'camera', nodeDef.camera ).then( function ( camera ) {
+
+				return parser._getNodeRef( parser.cameraCache, nodeDef.camera, camera );
+
+			} ) );
+
+		}
+
+		parser._invokeAll( function ( ext ) {
+
+			return ext.createNodeAttachment && ext.createNodeAttachment( nodeIndex );
+
+		} ).forEach( function ( promise ) {
+
+			pending.push( promise );
+
+		} );
+
+		this.nodeCache[ nodeIndex ] = Promise.all( pending ).then( function ( objects ) {
+
+			let node;
+
+			// .isBone isn't in glTF spec. See ._markDefs
+			if ( nodeDef.isBone === true ) {
+
+				node = new Bone();
+
+			} else if ( objects.length > 1 ) {
+
+				node = new Group();
+
+			} else if ( objects.length === 1 ) {
+
+				node = objects[ 0 ];
+
+			} else {
+
+				node = new Object3D();
+
+			}
+
+			if ( node !== objects[ 0 ] ) {
+
+				for ( let i = 0, il = objects.length; i < il; i ++ ) {
+
+					node.add( objects[ i ] );
+
+				}
+
+			}
+
+			if ( nodeDef.name ) {
+
+				node.userData.name = nodeDef.name;
+				node.name = nodeName;
+
+			}
+
+			assignExtrasToUserData( node, nodeDef );
+
+			if ( nodeDef.extensions ) addUnknownExtensionsToUserData( extensions, node, nodeDef );
+
+			if ( nodeDef.matrix !== undefined ) {
+
+				const matrix = new Matrix4();
+				matrix.fromArray( nodeDef.matrix );
+				node.applyMatrix4( matrix );
+
+			} else {
+
+				if ( nodeDef.translation !== undefined ) {
+
+					node.position.fromArray( nodeDef.translation );
+
+				}
+
+				if ( nodeDef.rotation !== undefined ) {
+
+					node.quaternion.fromArray( nodeDef.rotation );
+
+				}
+
+				if ( nodeDef.scale !== undefined ) {
+
+					node.scale.fromArray( nodeDef.scale );
+
+				}
+
+			}
+
+			if ( ! parser.associations.has( node ) ) {
+
+				parser.associations.set( node, {} );
+
+			}
+
+			parser.associations.get( node ).nodes = nodeIndex;
+
+			return node;
+
+		} );
+
+		return this.nodeCache[ nodeIndex ];
+
+	}
+
+	/**
+	 * Specification: https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#scenes
+	 * @param {number} sceneIndex
+	 * @return {Promise<Group>}
+	 */
+	loadScene( sceneIndex ) {
+
+		const extensions = this.extensions;
+		const sceneDef = this.json.scenes[ sceneIndex ];
+		const parser = this;
+
+		// Loader returns Group, not Scene.
+		// See: https://github.com/mrdoob/three.js/issues/18342#issuecomment-578981172
+		const scene = new Group();
+		if ( sceneDef.name ) scene.name = parser.createUniqueName( sceneDef.name );
+
+		assignExtrasToUserData( scene, sceneDef );
+
+		if ( sceneDef.extensions ) addUnknownExtensionsToUserData( extensions, scene, sceneDef );
+
+		const nodeIds = sceneDef.nodes || [];
+
+		const pending = [];
+
+		for ( let i = 0, il = nodeIds.length; i < il; i ++ ) {
+
+			pending.push( parser.getDependency( 'node', nodeIds[ i ] ) );
+
+		}
+
+		return Promise.all( pending ).then( function ( nodes ) {
+
+			for ( let i = 0, il = nodes.length; i < il; i ++ ) {
+
+				scene.add( nodes[ i ] );
+
+			}
+
+			// Removes dangling associations, associations that reference a node that
+			// didn't make it into the scene.
+			const reduceAssociations = ( node ) => {
+
+				const reducedAssociations = new Map();
+
+				for ( const [ key, value ] of parser.associations ) {
+
+					if ( key instanceof Material || key instanceof Texture ) {
+
+						reducedAssociations.set( key, value );
+
+					}
+
+				}
+
+				node.traverse( ( node ) => {
+
+					const mappings = parser.associations.get( node );
+
+					if ( mappings != null ) {
+
+						reducedAssociations.set( node, mappings );
+
+					}
+
+				} );
+
+				return reducedAssociations;
+
+			};
+
+			parser.associations = reduceAssociations( scene );
+
+			return scene;
+
+		} );
+
+	}
+
+	_createAnimationTracks( node, inputAccessor, outputAccessor, sampler, target ) {
+
+		const tracks = [];
+
+		const targetName = node.name ? node.name : node.uuid;
+		const targetNames = [];
+
+		if ( PATH_PROPERTIES[ target.path ] === PATH_PROPERTIES.weights ) {
+
+			node.traverse( function ( object ) {
+
+				if ( object.morphTargetInfluences ) {
+
+					targetNames.push( object.name ? object.name : object.uuid );
+
+				}
+
+			} );
+
+		} else {
+
+			targetNames.push( targetName );
+
+		}
+
+		let TypedKeyframeTrack;
+
+		switch ( PATH_PROPERTIES[ target.path ] ) {
+
+			case PATH_PROPERTIES.weights:
+
+				TypedKeyframeTrack = NumberKeyframeTrack;
+				break;
+
+			case PATH_PROPERTIES.rotation:
+
+				TypedKeyframeTrack = QuaternionKeyframeTrack;
+				break;
+
+			case PATH_PROPERTIES.position:
+			case PATH_PROPERTIES.scale:
+
+				TypedKeyframeTrack = VectorKeyframeTrack;
+				break;
+
+			default:
+
+				switch ( outputAccessor.itemSize ) {
+
+					case 1:
+						TypedKeyframeTrack = NumberKeyframeTrack;
+						break;
+					case 2:
+					case 3:
+					default:
+						TypedKeyframeTrack = VectorKeyframeTrack;
+						break;
+
+				}
+
+				break;
+
+		}
+
+		const interpolation = sampler.interpolation !== undefined ? INTERPOLATION[ sampler.interpolation ] : InterpolateLinear;
+
+
+		const outputArray = this._getArrayFromAccessor( outputAccessor );
+
+		for ( let j = 0, jl = targetNames.length; j < jl; j ++ ) {
+
+			const track = new TypedKeyframeTrack(
+				targetNames[ j ] + '.' + PATH_PROPERTIES[ target.path ],
+				inputAccessor.array,
+				outputArray,
+				interpolation
+			);
+
+			// Override interpolation with custom factory method.
+			if ( sampler.interpolation === 'CUBICSPLINE' ) {
+
+				this._createCubicSplineTrackInterpolant( track );
+
+			}
+
+			tracks.push( track );
+
+		}
+
+		return tracks;
+
+	}
+
+	_getArrayFromAccessor( accessor ) {
+
+		let outputArray = accessor.array;
+
+		if ( accessor.normalized ) {
+
+			const scale = getNormalizedComponentScale( outputArray.constructor );
+			const scaled = new Float32Array( outputArray.length );
+
+			for ( let j = 0, jl = outputArray.length; j < jl; j ++ ) {
+
+				scaled[ j ] = outputArray[ j ] * scale;
+
+			}
+
+			outputArray = scaled;
+
+		}
+
+		return outputArray;
+
+	}
+
+	_createCubicSplineTrackInterpolant( track ) {
+
+		track.createInterpolant = function InterpolantFactoryMethodGLTFCubicSpline( result ) {
+
+			// A CUBICSPLINE keyframe in glTF has three output values for each input value,
+			// representing inTangent, splineVertex, and outTangent. As a result, track.getValueSize()
+			// must be divided by three to get the interpolant's sampleSize argument.
+
+			const interpolantType = ( this instanceof QuaternionKeyframeTrack ) ? GLTFCubicSplineQuaternionInterpolant : GLTFCubicSplineInterpolant;
+
+			return new interpolantType( this.times, this.values, this.getValueSize() / 3, result );
+
+		};
+
+		// Mark as CUBICSPLINE. `track.getInterpolation()` doesn't support custom interpolants.
+		track.createInterpolant.isInterpolantFactoryMethodGLTFCubicSpline = true;
+
+	}
+
+}
+
+/**
+ * @param {BufferGeometry} geometry
+ * @param {GLTF.Primitive} primitiveDef
+ * @param {GLTFParser} parser
+ */
+function computeBounds( geometry, primitiveDef, parser ) {
+
+	const attributes = primitiveDef.attributes;
+
+	const box = new Box3();
+
+	if ( attributes.POSITION !== undefined ) {
+
+		const accessor = parser.json.accessors[ attributes.POSITION ];
+
+		const min = accessor.min;
+		const max = accessor.max;
+
+		// glTF requires 'min' and 'max', but VRM (which extends glTF) currently ignores that requirement.
+
+		if ( min !== undefined && max !== undefined ) {
+
+			box.set(
+				new Vector3( min[ 0 ], min[ 1 ], min[ 2 ] ),
+				new Vector3( max[ 0 ], max[ 1 ], max[ 2 ] )
+			);
+
+			if ( accessor.normalized ) {
+
+				const boxScale = getNormalizedComponentScale( WEBGL_COMPONENT_TYPES[ accessor.componentType ] );
+				box.min.multiplyScalar( boxScale );
+				box.max.multiplyScalar( boxScale );
+
+			}
+
+		} else {
+
+			console.warn( 'THREE.GLTFLoader: Missing min/max properties for accessor POSITION.' );
+
+			return;
+
+		}
+
+	} else {
+
+		return;
+
+	}
+
+	const targets = primitiveDef.targets;
+
+	if ( targets !== undefined ) {
+
+		const maxDisplacement = new Vector3();
+		const vector = new Vector3();
+
+		for ( let i = 0, il = targets.length; i < il; i ++ ) {
+
+			const target = targets[ i ];
+
+			if ( target.POSITION !== undefined ) {
+
+				const accessor = parser.json.accessors[ target.POSITION ];
+				const min = accessor.min;
+				const max = accessor.max;
+
+				// glTF requires 'min' and 'max', but VRM (which extends glTF) currently ignores that requirement.
+
+				if ( min !== undefined && max !== undefined ) {
+
+					// we need to get max of absolute components because target weight is [-1,1]
+					vector.setX( Math.max( Math.abs( min[ 0 ] ), Math.abs( max[ 0 ] ) ) );
+					vector.setY( Math.max( Math.abs( min[ 1 ] ), Math.abs( max[ 1 ] ) ) );
+					vector.setZ( Math.max( Math.abs( min[ 2 ] ), Math.abs( max[ 2 ] ) ) );
+
+
+					if ( accessor.normalized ) {
+
+						const boxScale = getNormalizedComponentScale( WEBGL_COMPONENT_TYPES[ accessor.componentType ] );
+						vector.multiplyScalar( boxScale );
+
+					}
+
+					// Note: this assumes that the sum of all weights is at most 1. This isn't quite correct - it's more conservative
+					// to assume that each target can have a max weight of 1. However, for some use cases - notably, when morph targets
+					// are used to implement key-frame animations and as such only two are active at a time - this results in very large
+					// boxes. So for now we make a box that's sometimes a touch too small but is hopefully mostly of reasonable size.
+					maxDisplacement.max( vector );
+
+				} else {
+
+					console.warn( 'THREE.GLTFLoader: Missing min/max properties for accessor POSITION.' );
+
+				}
+
+			}
+
+		}
+
+		// As per comment above this box isn't conservative, but has a reasonable size for a very large number of morph targets.
+		box.expandByVector( maxDisplacement );
+
+	}
+
+	geometry.boundingBox = box;
+
+	const sphere = new Sphere();
+
+	box.getCenter( sphere.center );
+	sphere.radius = box.min.distanceTo( box.max ) / 2;
+
+	geometry.boundingSphere = sphere;
+
+}
+
+/**
+ * @param {BufferGeometry} geometry
+ * @param {GLTF.Primitive} primitiveDef
+ * @param {GLTFParser} parser
+ * @return {Promise<BufferGeometry>}
+ */
+function addPrimitiveAttributes( geometry, primitiveDef, parser ) {
+
+	const attributes = primitiveDef.attributes;
+
+	const pending = [];
+
+	function assignAttributeAccessor( accessorIndex, attributeName ) {
+
+		return parser.getDependency( 'accessor', accessorIndex )
+			.then( function ( accessor ) {
+
+				geometry.setAttribute( attributeName, accessor );
+
+			} );
+
+	}
+
+	for ( const gltfAttributeName in attributes ) {
+
+		const threeAttributeName = ATTRIBUTES[ gltfAttributeName ] || gltfAttributeName.toLowerCase();
+
+		// Skip attributes already provided by e.g. Draco extension.
+		if ( threeAttributeName in geometry.attributes ) continue;
+
+		pending.push( assignAttributeAccessor( attributes[ gltfAttributeName ], threeAttributeName ) );
+
+	}
+
+	if ( primitiveDef.indices !== undefined && ! geometry.index ) {
+
+		const accessor = parser.getDependency( 'accessor', primitiveDef.indices ).then( function ( accessor ) {
+
+			geometry.setIndex( accessor );
+
+		} );
+
+		pending.push( accessor );
+
+	}
+
+	if ( ColorManagement.workingColorSpace !== LinearSRGBColorSpace && 'COLOR_0' in attributes ) {
+
+		console.warn( `THREE.GLTFLoader: Converting vertex colors from "srgb-linear" to "${ColorManagement.workingColorSpace}" not supported.` );
+
+	}
+
+	assignExtrasToUserData( geometry, primitiveDef );
+
+	computeBounds( geometry, primitiveDef, parser );
+
+	return Promise.all( pending ).then( function () {
+
+		return primitiveDef.targets !== undefined
+			? addMorphTargets( geometry, primitiveDef.targets, parser )
+			: geometry;
+
+	} );
+
+}
+
+export { GLTFLoader };
