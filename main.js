@@ -14,12 +14,10 @@ function setStatus(msg) {
 /* ---------------- SCENE SETUP ---------------- */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeeee);
-
-// Helpful axes
-scene.add(new THREE.AxesHelper(3));
+scene.add(new THREE.AxesHelper(5)); // Larger axes for better visibility
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(5, 5, 5);
+camera.position.set(6, 6, 6);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -33,9 +31,8 @@ controls.target.set(0, 0, 0);
 controls.update();
 
 /* ---------------- LIGHTING ---------------- */
-scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
 dirLight.position.set(10, 15, 10);
 dirLight.castShadow = true;
 scene.add(dirLight);
@@ -53,24 +50,36 @@ function removeCurrentObject() {
 function placeObject(object) {
   removeCurrentObject();
 
-  // Collect valid meshes
   const meshes = [];
   object.traverse((child) => {
-    if (child.isMesh && child.geometry.attributes.position && child.geometry.attributes.position.count > 3) {
-      meshes.push(child);
+    if (child.isMesh) {
+      const pos = child.geometry.attributes.position;
+      if (pos && pos.count >= 3) { // Minimum for a possible triangle
+        meshes.push(child);
+      }
     }
   });
 
   if (meshes.length === 0) {
-    setStatus('Error: No valid geometry found in model');
+    setStatus('Error: No valid meshes found in model');
     return;
   }
 
-  // Apply visible material and fix normals
+  let totalVertices = 0;
   meshes.forEach(mesh => {
-    mesh.geometry.computeVertexNormals();
-    mesh.geometry.computeBoundingBox();
+    const geo = mesh.geometry;
+    const posCount = geo.attributes.position.count;
+    const indexCount = geo.index ? geo.index.count : 0;
+    const faceEstimate = indexCount ? indexCount / 3 : Math.floor(posCount / 3);
 
+    console.log(`Mesh "${mesh.name}": ${posCount} vertices, ${indexCount} indices, ~${faceEstimate} faces`);
+
+    totalVertices += posCount;
+
+    // Compute normals (critical for MeshStandardMaterial)
+    geo.computeVertexNormals();
+
+    // Override material for reliable visibility
     mesh.material = new THREE.MeshStandardMaterial({
       color: 0x7799ff,
       metalness: 0.1,
@@ -78,31 +87,33 @@ function placeObject(object) {
       side: THREE.DoubleSide
     });
 
+    // DEBUG: Uncomment for bright red wireframe (ignores lighting/normals)
+    // mesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+
     mesh.castShadow = true;
     mesh.receiveShadow = true;
   });
 
-  // Temporarily add to scene to get accurate world-space bounding box
+  // Temporary add for correct world-space bounding box
   scene.add(object);
   const box = new THREE.Box3().setFromObject(object);
   scene.remove(object);
 
   const size = box.getSize(new THREE.Vector3());
   if (size.length() < 0.0001) {
-    setStatus('Error: Model has zero size (degenerate)');
+    setStatus('Error: Model degenerate (zero size)');
+    console.warn('Degenerate box:', box);
     return;
   }
 
   const center = box.getCenter(new THREE.Vector3());
-
-  // Center and uniformly scale to fit view
   object.position.sub(center);
+
   const maxDim = Math.max(size.x, size.y, size.z);
-  const targetSize = 4; // Adjust as needed
+  const targetSize = 5; // Slightly larger view fit
   const scale = targetSize / maxDim;
   object.scale.setScalar(scale);
 
-  // Final add
   scene.add(object);
   currentObject = object;
 
@@ -110,32 +121,31 @@ function placeObject(object) {
   controls.reset();
   controls.update();
 
-  const totalVerts = meshes.reduce((sum, m) => sum + m.geometry.attributes.position.count, 0);
-  setStatus(`Loaded: ${meshes.length} mesh(s), ${totalVerts} vertices`);
+  setStatus(`Loaded: ${meshes.length} mesh(s), ${totalVertices} vertices total`);
 }
 
 /* ---------------- PRIMITIVES ---------------- */
 function createCube() {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshStandardMaterial({ color: 0x44aa88 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0x44aa88 })
+  );
   placeObject(mesh);
 }
 
 function createSphere() {
-  const geometry = new THREE.SphereGeometry(0.8, 32, 24);
-  const material = new THREE.MeshStandardMaterial({ color: 0xaa8844 });
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 32, 24),
+    new THREE.MeshStandardMaterial({ color: 0xaa8844 })
+  );
   placeObject(mesh);
 }
 
 /* ---------------- OBJ LOADING ---------------- */
 document.getElementById('objInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-
-  if (!file.name.toLowerCase().endsWith('.obj')) {
-    setStatus('Please select a .obj file');
+  if (!file || !file.name.toLowerCase().endsWith('.obj')) {
+    setStatus('Please select a valid .obj file');
     return;
   }
 
@@ -146,6 +156,12 @@ document.getElementById('objInput').addEventListener('change', (e) => {
     try {
       const loader = new OBJLoader();
       const object = loader.parse(event.target.result);
+
+      if (object.children.length === 0) {
+        setStatus('Error: Parsed OBJ is empty');
+        return;
+      }
+
       placeObject(object);
     } catch (err) {
       setStatus('Failed to parse OBJ');
@@ -160,26 +176,12 @@ document.getElementById('objInput').addEventListener('change', (e) => {
 document.getElementById('newCube').onclick = createCube;
 document.getElementById('newSphere').onclick = createSphere;
 
-// Placeholder stubs for future features
-document.getElementById('convertBtn').onclick = () => {
-  setStatus('Convert to Voxels: Not implemented yet');
-};
-
-document.getElementById('exportBtn').onclick = () => {
-  setStatus('Export JSON: Not implemented yet');
-};
-
-document.getElementById('paintBtn').onclick = () => {
-  setStatus('Paint mode: Coming soon');
-};
-
-document.getElementById('scaleBtn').onclick = () => {
-  setStatus('Scale tool: Coming soon');
-};
-
-document.getElementById('moveBtn').onclick = () => {
-  setStatus('Move tool: Coming soon');
-};
+// Stubs for future voxel features
+document.getElementById('convertBtn').onclick = () => setStatus('Voxel conversion: Not implemented yet');
+document.getElementById('exportBtn').onclick = () => setStatus('Export JSON: Not implemented yet');
+document.getElementById('paintBtn').onclick = () => setStatus('Paint tool: Coming soon');
+document.getElementById('scaleBtn').onclick = () => setStatus('Scale tool: Coming soon');
+document.getElementById('moveBtn').onclick = () => setStatus('Move tool: Coming soon');
 
 /* ---------------- ANIMATION LOOP ---------------- */
 function animate() {
