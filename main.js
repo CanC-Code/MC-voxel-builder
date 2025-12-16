@@ -1,6 +1,5 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { TransformControls } from './three/TransformControls.js';
 import { OBJLoader } from './three/OBJLoader.js';
 import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
 
@@ -8,18 +7,20 @@ import { MeshBVH, acceleratedRaycast } from './lib/index.module.js';
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 let scene, camera, renderer;
-let orbitControls, transformControls;
+let controls;
 
-let sourceGroup, voxelGroup;
+let sourceGroup;
 let activeMesh = null;
 
 function init() {
     const canvas = document.getElementById('canvas');
     const status = document.getElementById('status');
 
+    // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
 
+    // Camera
     camera = new THREE.PerspectiveCamera(
         70,
         window.innerWidth / window.innerHeight,
@@ -27,18 +28,19 @@ function init() {
         1000
     );
     camera.position.set(3, 3, 3);
+    camera.lookAt(0, 0, 0);
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    orbitControls = new OrbitControls(camera, renderer.domElement);
-    orbitControls.enableDamping = true;
-
-    transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.addEventListener('dragging-changed', e => {
-        orbitControls.enabled = !e.value;
+    // Renderer
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true
     });
-    scene.add(transformControls);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    // Controls
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
 
     // Lights
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
@@ -46,23 +48,20 @@ function init() {
     dirLight.position.set(10, 10, 10);
     scene.add(dirLight);
 
-    // Groups
-    sourceGroup = new THREE.Group();
-    voxelGroup = new THREE.Group();
-    scene.add(sourceGroup);
-    scene.add(voxelGroup);
-
     // Helpers
     scene.add(new THREE.GridHelper(10, 10));
     scene.add(new THREE.AxesHelper(2));
 
+    // Groups
+    sourceGroup = new THREE.Group();
+    scene.add(sourceGroup);
+
     // Default primitive
     createCube();
 
-    // UI bindings
+    // UI
     document.getElementById('newCube').onclick = createCube;
     document.getElementById('newSphere').onclick = createSphere;
-
     document.getElementById('objInput').addEventListener('change', loadOBJ);
 
     window.addEventListener('resize', onResize);
@@ -70,13 +69,11 @@ function init() {
 
 function setActiveMesh(mesh) {
     if (activeMesh) {
-        transformControls.detach();
         sourceGroup.remove(activeMesh);
     }
 
     activeMesh = mesh;
     sourceGroup.add(activeMesh);
-    transformControls.attach(activeMesh);
 }
 
 function createCube() {
@@ -85,7 +82,6 @@ function createCube() {
     const mesh = new THREE.Mesh(geo, mat);
 
     mesh.geometry.computeBoundsTree();
-
     setActiveMesh(mesh);
 }
 
@@ -95,7 +91,6 @@ function createSphere() {
     const mesh = new THREE.Mesh(geo, mat);
 
     mesh.geometry.computeBoundsTree();
-
     setActiveMesh(mesh);
 }
 
@@ -110,21 +105,19 @@ function loadOBJ(e) {
 
         let mesh = null;
         object.traverse(child => {
-            if (child.isMesh) {
-                mesh = child;
-            }
+            if (child.isMesh) mesh = child;
         });
 
         if (!mesh) return;
 
-        // Normalize size
         const box = new THREE.Box3().setFromObject(mesh);
-        const size = box.getSize(new THREE.Vector3()).length();
-        const scale = 2 / size;
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
+        const scale = 2 / maxDim;
         mesh.scale.setScalar(scale);
-        box.setFromObject(mesh);
 
+        box.setFromObject(mesh);
         const center = box.getCenter(new THREE.Vector3());
         mesh.position.sub(center);
 
@@ -145,7 +138,7 @@ function onResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-    orbitControls.update();
+    controls.update();
     renderer.render(scene, camera);
 }
 
