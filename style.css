@@ -13,31 +13,31 @@ html, body {
   display: block;
 }
 
-#toolbar {
+/* Panel */
+
+#panel {
   position: fixed;
   top: 10px;
   left: 10px;
+  width: 260px;
   background: rgba(30, 30, 30, 0.95);
   border-radius: 6px;
-  width: 240px;
   z-index: 10;
   transition: transform 0.25s ease;
 }
 
-#toolbar.collapsed {
-  transform: translateX(-200px);
+#panel.collapsed {
+  transform: translateX(-220px);
 }
 
-#toolbar-header {
+#panel-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   padding: 6px 8px;
   background: #222;
-  cursor: pointer;
 }
 
-#toolbar-header button {
+#panel-header button {
   background: none;
   color: #eee;
   border: none;
@@ -45,17 +45,42 @@ html, body {
   cursor: pointer;
 }
 
-#toolbar-content {
-  padding: 8px;
+/* Tabs */
+
+#tabs {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 2px;
+  padding: 4px;
 }
 
-.section {
-  display: flex;
+#tabs button {
+  flex: 1;
+  padding: 4px;
+  background: #333;
+  border: none;
+  color: #eee;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+#tabs button.active {
+  background: #5a8dee;
+}
+
+/* Tab content */
+
+#tab-content {
+  padding: 8px;
+}
+
+.tab {
+  display: none;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+}
+
+.tab.active {
+  display: flex;
 }
 
 button {
@@ -63,14 +88,17 @@ button {
   color: #eee;
   border: none;
   padding: 6px;
-  cursor: pointer;
   border-radius: 4px;
-}
-
-button.active {
-  background: #5a8dee;
+  cursor: pointer;
 }
 
 label {
   font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #444;
 }
