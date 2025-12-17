@@ -1,76 +1,86 @@
-// main.js – MC Voxel Builder (THREE global, ES modules for extras)
+// main.js – MC Voxel Builder (ES module, responsive)
+
+import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 
 let scene, camera, renderer, controls;
-let currentObject = null;
-let started = false;
+let currentObject = null; // only one object displayed
+let container, canvas;
 
-/** Entry point – guaranteed single execution */
 function startApp() {
-    if (started) return;
-    started = true;
+    container = document.getElementById('canvasContainer');
+    canvas = document.getElementById('canvas');
 
-    init();
+    if (!container || !canvas) {
+        console.error("Canvas container or canvas not found");
+        return;
+    }
+
+    initScene();
+    bindUI();
     animate();
 }
 
-/** DOM-ready handling */
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
 } else {
     startApp();
 }
 
-function init() {
-    // --- SCENE ---
+function initScene() {
+    // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
-    // --- CAMERA ---
-    camera = new THREE.PerspectiveCamera(
-        60,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-    );
+    // Camera
+    camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
     camera.position.set(5, 5, 5);
 
-    // --- RENDERER ---
-    const canvas = document.getElementById('canvas');
-    renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
+    resizeRenderer();
 
-    // --- CONTROLS ---
+    // Controls
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.target.set(0, 0.5, 0);
 
-    // --- LIGHTS ---
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+    // Lights
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    scene.add(hemi);
+
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
-    // --- GRID ---
+    // Grid
     scene.add(new THREE.GridHelper(20, 20));
 
-    // --- DEFAULT OBJECT (cube) ---
+    // Default cube
     addCube();
 
-    // --- UI HOOKS ---
-    bindButton('newCube', addCube);
-    bindButton('newSphere', addSphere);
-    bindButton('exportBtn', exportScene);
-    bindButton('resetScene', resetScene);
-
-    // --- RESIZE ---
-    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('resize', resizeRenderer);
 }
 
-/** Safe button binder – never throws */
+function resizeRenderer() {
+    if (!container) return;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+}
+
+function bindUI() {
+    bindButton('newCube', () => { replaceObject(createCube()); });
+    bindButton('newSphere', () => { replaceObject(createSphere()); });
+    bindButton('exportBtn', exportScene);
+}
+
 function bindButton(id, handler) {
     const el = document.getElementById(id);
     if (!el) {
@@ -80,39 +90,39 @@ function bindButton(id, handler) {
     el.addEventListener('click', handler);
 }
 
-/** Add cube (replaces existing object) */
-function addCube() {
-    if (currentObject) scene.remove(currentObject);
-    const cube = new THREE.Mesh(
+function createCube() {
+    const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({ color: 0x44aa88 })
     );
-    cube.position.y = 0.5;
-    scene.add(cube);
-    currentObject = cube;
-    updateStatus('Cube added');
+    mesh.position.y = 0.5;
+    return mesh;
 }
 
-/** Add sphere (replaces existing object) */
-function addSphere() {
-    if (currentObject) scene.remove(currentObject);
-    const sphere = new THREE.Mesh(
+function createSphere() {
+    const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 32, 32),
         new THREE.MeshStandardMaterial({ color: 0xaa4444 })
     );
-    sphere.position.y = 0.5;
-    scene.add(sphere);
-    currentObject = sphere;
-    updateStatus('Sphere added');
+    mesh.position.y = 0.5;
+    return mesh;
+}
+
+function addCube() {
+    replaceObject(createCube());
+}
+
+function replaceObject(newObj) {
+    if (currentObject) scene.remove(currentObject);
+    currentObject = newObj;
+    scene.add(currentObject);
 }
 
 function exportScene() {
+    if (!scene) return;
     const exporter = new GLTFExporter();
     exporter.parse(scene, (gltf) => {
-        const blob = new Blob(
-            [JSON.stringify(gltf, null, 2)],
-            { type: 'application/json' }
-        );
+        const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -120,25 +130,6 @@ function exportScene() {
         a.click();
         URL.revokeObjectURL(url);
     });
-}
-
-function resetScene() {
-    if (currentObject) currentObject.rotation.set(0, 0, 0);
-    controls.reset();
-}
-
-function updateStatus(msg) {
-    const status = document.getElementById('status');
-    if (status) status.textContent = msg;
-}
-
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(
-        document.getElementById('canvasContainer').clientWidth,
-        document.getElementById('canvasContainer').clientHeight
-    );
 }
 
 function animate() {
