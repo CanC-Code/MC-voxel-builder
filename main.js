@@ -1,26 +1,19 @@
-// main.js – MC Voxel Builder with Sculpt GUI
+// main.js – MC Voxel Builder (DOM-safe, cache-safe)
+
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 import { TransformControls } from './three/TransformControls.js';
-import { CSS2DRenderer, CSS2DObject } from './three/CSS2DRenderer.js';
-import GUI from './three/lil-gui.esm.min.js';
 
-let scene, camera, renderer, labelRenderer, orbitControls, transformControls;
-let currentObject;
+let scene, camera, renderer, orbitControls, transformControls;
+let activeObject; // cube or sphere
 let started = false;
 
-// --- Sculpting settings object ---
-const sculptSettings = {
-    brushSize: 1,
-    intensity: 1,
-    mode: 'inflate', // inflate, deflate, drag, pinch
-};
+// Container for responsive sizing
+let container;
 
-/**
- * Entry point – guaranteed single execution
- */
+// --- Application Entry Point ---
 function startApp() {
     if (started) return;
     started = true;
@@ -29,16 +22,22 @@ function startApp() {
     animate();
 }
 
-/**
- * DOM-ready handling
- */
+// DOM-ready handling
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
 } else {
     startApp();
 }
 
+// --- INIT ---
 function init() {
+    // Container div for canvas sizing
+    container = document.getElementById('canvas-container');
+    if (!container) {
+        console.warn('Canvas container not found, defaulting to body');
+        container = document.body;
+    }
+
     // --- SCENE ---
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
@@ -46,7 +45,7 @@ function init() {
     // --- CAMERA ---
     camera = new THREE.PerspectiveCamera(
         60,
-        window.innerWidth / window.innerHeight,
+        container.clientWidth / container.clientHeight,
         0.1,
         1000
     );
@@ -54,17 +53,9 @@ function init() {
 
     // --- RENDERER ---
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    document.body.appendChild(renderer.domElement);
-
-    // --- LABEL RENDERER (CSS2D) ---
-    labelRenderer = new CSS2DRenderer();
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.domElement.style.position = 'absolute';
-    labelRenderer.domElement.style.top = '0px';
-    labelRenderer.domElement.style.pointerEvents = 'none';
-    document.body.appendChild(labelRenderer.domElement);
+    container.appendChild(renderer.domElement);
 
     // --- ORBIT CONTROLS ---
     orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -74,9 +65,9 @@ function init() {
 
     // --- LIGHTS ---
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
-    const dir = new THREE.DirectionalLight(0xffffff, 1);
-    dir.position.set(5, 10, 7);
-    scene.add(dir);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
 
     // --- GRID ---
     scene.add(new THREE.GridHelper(20, 20));
@@ -86,17 +77,11 @@ function init() {
 
     // --- TRANSFORM CONTROLS ---
     transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.attach(currentObject);
-    transformControls.addEventListener('dragging-changed', function (event) {
+    transformControls.addEventListener('dragging-changed', (event) => {
         orbitControls.enabled = !event.value;
     });
     scene.add(transformControls);
-
-    // --- GUI ---
-    const gui = new GUI();
-    gui.add(sculptSettings, 'brushSize', 0.1, 10).name('Brush Size');
-    gui.add(sculptSettings, 'intensity', 0.1, 5).name('Intensity');
-    gui.add(sculptSettings, 'mode', ['inflate', 'deflate', 'drag', 'pinch']).name('Mode');
+    transformControls.attach(activeObject);
 
     // --- UI HOOKS ---
     bindButton('exportGLTF', exportScene);
@@ -108,7 +93,7 @@ function init() {
     window.addEventListener('resize', onWindowResize);
 }
 
-// --- Safe button binder ---
+// --- BUTTON BINDING ---
 function bindButton(id, handler) {
     const el = document.getElementById(id);
     if (!el) {
@@ -118,31 +103,47 @@ function bindButton(id, handler) {
     el.addEventListener('click', handler);
 }
 
-// --- Add or switch object ---
+// --- ADD OBJECT ---
 function addObject(type) {
-    if (currentObject) scene.remove(currentObject);
+    if (activeObject) {
+        scene.remove(activeObject);
+    }
 
     if (type === 'cube') {
-        currentObject = new THREE.Mesh(
+        activeObject = new THREE.Mesh(
             new THREE.BoxGeometry(1, 1, 1),
             new THREE.MeshStandardMaterial({ color: 0x44aa88 })
         );
     } else if (type === 'sphere') {
-        currentObject = new THREE.Mesh(
+        activeObject = new THREE.Mesh(
             new THREE.SphereGeometry(0.5, 32, 32),
             new THREE.MeshStandardMaterial({ color: 0xaa4444 })
         );
     }
 
-    currentObject.position.y = 0.5;
-    scene.add(currentObject);
-    if (transformControls) transformControls.attach(currentObject);
+    activeObject.position.y = 0.5;
+    scene.add(activeObject);
+    if (transformControls) transformControls.attach(activeObject);
 }
 
-// --- Export ---
+// --- RESET SCENE ---
+function resetScene() {
+    if (activeObject) activeObject.rotation.set(0, 0, 0);
+    if (transformControls && activeObject) transformControls.attach(activeObject);
+    orbitControls.reset();
+}
+
+// --- EXPORT SCENE ---
 function exportScene() {
     const exporter = new GLTFExporter();
-    exporter.parse(scene, (gltf) => {
+
+    // Only export mesh objects to avoid cyclic references
+    const exportScene = new THREE.Scene();
+    scene.traverse((obj) => {
+        if (obj.isMesh) exportScene.add(obj.clone());
+    });
+
+    exporter.parse(exportScene, (gltf) => {
         const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -153,33 +154,18 @@ function exportScene() {
     });
 }
 
-// --- Reset scene ---
-function resetScene() {
-    if (!currentObject) return;
-    currentObject.rotation.set(0, 0, 0);
-    if (transformControls) transformControls.attach(currentObject);
-    orbitControls.reset();
-}
-
-// --- Resize ---
+// --- WINDOW RESIZE ---
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(w, h);
 }
 
-// --- Animate ---
+// --- ANIMATION LOOP ---
 function animate() {
     requestAnimationFrame(animate);
     orbitControls.update();
     renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
-}
-
-// --- Apply sculpt tool (stub for future) ---
-function applySculpt() {
-    if (!currentObject) return;
-    const { brushSize, intensity, mode } = sculptSettings;
-    // TODO: implement sculpt logic for voxel mesh here
 }
