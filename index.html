@@ -3,41 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MC Voxel Builder v0.2</title>
+<title>MC Voxel Builder</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>MC Voxel Builder v0.2</h1>
+<h1>MC Voxel Builder</h1>
 
-<!-- Toolbar UI Node -->
+<!-- Toolbar / UI layer -->
 <div id="toolbar">
-    <!-- Object creation -->
-    <button id="newCube">New Cube</button>
-    <button id="newSphere">New Sphere</button>
-    <input type="file" id="modelInput" accept=".glb,.gltf">
-    <button id="convertBtn">Convert to Voxels</button>
-    
-    <!-- Transform tools -->
-    <button id="rotateBtn">Rotate</button>
-    <button id="scaleBtn">Scale</button>
-    <button id="inflateBtn">Inflate</button>
-    <button id="deflateBtn">Deflate</button>
-    <button id="smoothBtn">Smooth</button>
-    
-    <!-- Scene controls -->
-    <button id="resetScene">Reset Scene</button>
-    <button id="exportGLTF">Export GLB</button>
+  <button id="newCube">New Cube</button>
+  <button id="newSphere">New Sphere</button>
+  <input type="file" id="modelInput" accept=".glb,.gltf">
+  <button id="convertBtn">Convert to Voxels</button>
+  <button id="exportBtn">Export GLB</button>
+  <button id="rotateBtn">Rotate</button>
+  <button id="scaleBtn">Scale</button>
+  <button id="inflateBtn">Inflate</button>
+  <button id="deflateBtn">Deflate</button>
+  <button id="resetScene">Reset Scene</button>
 </div>
 
-<!-- Three.js canvas -->
+<!-- Dedicated canvas container -->
 <div id="canvasContainer">
-    <canvas id="canvas"></canvas>
+  <canvas id="canvas"></canvas>
 </div>
 
-<!-- Status -->
 <div id="status">Ready</div>
 
 <script type="module" src="main.js"></script>
+
 </body>
 </html>
