@@ -1,7 +1,7 @@
 import * as THREE from './three/three.module.js';
-import { OrbitControls } from './OrbitControls.js';
-import { GLTFLoader } from './GLTFLoader.js';
-import { GLTFExporter } from './GLTFExporter.js';
+import { OrbitControls } from './three/OrbitControls.js';
+import { GLTFLoader } from './three/GLTFLoader.js';
+import { GLTFExporter } from './three/GLTFExporter.js';
 
 /* ---------------- DOM ELEMENTS ---------------- */
 const canvas = document.getElementById('canvas');
