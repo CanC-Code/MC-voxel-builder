@@ -13,13 +13,18 @@
 <div id="toolbar">
   <button id="newCube">New Cube</button>
   <button id="newSphere">New Sphere</button>
-  <input type="file" id="modelInput" accept=".glb,.gltf">
-  <button id="convertBtn">Convert to Voxels</button>
+  <select id="modeSelect">
+    <option value="translate">Translate</option>
+    <option value="rotate">Rotate</option>
+    <option value="scale">Scale</option>
+  </select>
   <button id="exportGLTF">Export GLB</button>
-  <button id="resetScene">Reset</button>
+  <button id="resetScene">Reset Camera</button>
 </div>
 
-<div id="viewportContainer"></div>
+<div id="viewport-container">
+  <canvas id="canvas"></canvas>
+</div>
 
 <div id="status">Ready</div>
 
