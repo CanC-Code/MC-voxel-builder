@@ -17,12 +17,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeeeeee);
 scene.add(new THREE.AxesHelper(3));
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(5, 5, 5);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -41,7 +36,7 @@ dirLight.position.set(10, 15, 10);
 dirLight.castShadow = true;
 scene.add(dirLight);
 
-/* ---------------- BASE MODEL ---------------- */
+/* ---------------- BASE OBJECT ---------------- */
 let baseObject = null;
 
 function removeBaseObject() {
@@ -53,11 +48,11 @@ function removeBaseObject() {
 }
 
 function disposeHierarchy(node) {
-  node.traverse((child) => {
+  node.traverse(child => {
     if (child.geometry) child.geometry.dispose();
     if (child.material) {
       if (Array.isArray(child.material)) {
-        child.material.forEach((m) => m.dispose());
+        child.material.forEach(m => m.dispose());
       } else {
         child.material.dispose();
       }
@@ -68,22 +63,25 @@ function disposeHierarchy(node) {
 function setupBaseObject(object) {
   removeBaseObject();
 
+  // Center
   const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
   object.position.sub(center);
 
+  // Scale to fit view
   const maxDim = Math.max(size.x, size.y, size.z);
   const scale = 4 / maxDim;
   object.scale.setScalar(scale);
 
-  object.traverse((child) => {
+  // Apply material & shadows
+  object.traverse(child => {
     if (child.isMesh) {
       child.material = new THREE.MeshStandardMaterial({
         color: 0x7799ff,
         metalness: 0.1,
         roughness: 0.8,
-        side: THREE.DoubleSide,
+        side: THREE.DoubleSide
       });
       child.castShadow = true;
       child.receiveShadow = true;
@@ -98,10 +96,7 @@ function setupBaseObject(object) {
 
   const verts = object.isMesh
     ? object.geometry.attributes.position.count
-    : object.children.reduce(
-        (sum, c) => sum + (c.geometry?.attributes.position.count || 0),
-        0
-      );
+    : object.children.reduce((sum, c) => sum + (c.geometry?.attributes.position.count || 0), 0);
 
   setStatus(`Base model ready: ${verts} vertices`);
 }
@@ -118,7 +113,7 @@ function createSphere() {
 }
 
 /* ---------------- MODEL LOADING ---------------- */
-document.getElementById('modelInput').addEventListener('change', (e) => {
+document.getElementById('modelInput').addEventListener('change', e => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -130,12 +125,12 @@ document.getElementById('modelInput').addEventListener('change', (e) => {
     const loader = new GLTFLoader();
     loader.load(
       url,
-      (gltf) => {
+      gltf => {
         setupBaseObject(gltf.scene);
         URL.revokeObjectURL(url);
       },
       undefined,
-      (err) => {
+      err => {
         setStatus('Failed to load model');
         console.error(err);
         URL.revokeObjectURL(url);
@@ -160,7 +155,7 @@ document.getElementById('exportBtn').onclick = () => {
   const exporter = new GLTFExporter();
   exporter.parse(
     baseObject,
-    (gltf) => {
+    gltf => {
       const blob = new Blob([gltf], { type: 'model/gltf-binary' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
@@ -172,17 +167,11 @@ document.getElementById('exportBtn').onclick = () => {
   );
 };
 
-document.getElementById('convertBtn').onclick = () => {
-  if (!baseObject) {
-    setStatus('No object to voxelize');
-    return;
-  }
-  setStatus('Voxelize and export: Not implemented yet');
-};
-
-document.getElementById('paintBtn').onclick = () => setStatus('Paint mode: Coming soon');
-document.getElementById('scaleBtn').onclick = () => setStatus('Scale tool: Coming soon');
-document.getElementById('moveBtn').onclick = () => setStatus('Move tool: Coming soon');
+document.getElementById('convertBtn').onclick = () => setStatus('Voxelize: Not implemented');
+document.getElementById('rotateBtn').onclick = () => setStatus('Rotate: Coming soon');
+document.getElementById('scaleBtn').onclick = () => setStatus('Scale: Coming soon');
+document.getElementById('inflateBtn').onclick = () => setStatus('Inflate: Coming soon');
+document.getElementById('deflateBtn').onclick = () => setStatus('Deflate: Coming soon');
 
 /* ---------------- ANIMATION ---------------- */
 function animate() {
