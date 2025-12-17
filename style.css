@@ -30,41 +30,22 @@ button.active {
   color: white;
 }
 
-#canvasContainer {
+#canvas-container {
   position: relative;
   width: 90vw;
-  max-width: 1200px;
   height: 60vh;
   border: 1px solid #ccc;
-  background: #fff;
 }
 
 canvas {
   width: 100%;
   height: 100%;
   display: block;
+  background: #fff;
+  touch-action: none;
 }
 
 #status {
   margin: 8px;
   font-size: 14px;
-}
-
-/* Compass overlay */
-#compass {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 60px;
-  height: 60px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: grab;
-  color: white;
-  font-size: 20px;
-  z-index: 10;
-  user-select: none;
 }
