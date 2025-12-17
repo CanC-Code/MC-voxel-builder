@@ -1,168 +1,156 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
+import { GLTFLoader } from './three/GLTFLoader.js';
+import { GLTFExporter } from './three/GLTFExporter.js';
+import { TransformControls } from './three/TransformControls.js';
 
-let scene, camera, renderer, controls;
-let activeObject;
+let scene, camera, renderer, orbitControls, transformControls;
+let cube;
+let started = false;
 
-let gizmoScene, gizmoCamera, gizmoCube;
+function startApp() {
+    if (started) return;
+    started = true;
+    init();
+    animate();
+}
 
-const GIZMO_SIZE = 80;
-const GIZMO_MARGIN = 10;
-
-init();
-animate();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+} else {
+    startApp();
+}
 
 function init() {
-    const canvas = document.getElementById('canvas');
+    const container = document.getElementById('viewportContainer');
 
+    // Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
-    camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    // Camera
+    camera = new THREE.PerspectiveCamera(
+        60,
+        container.clientWidth / container.clientHeight,
+        0.1,
+        1000
+    );
     camera.position.set(5, 5, 5);
 
-    renderer = new THREE.WebGLRenderer({
-        canvas,
-        antialias: true,
-        alpha: false
-    });
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('canvas') });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.autoClear = false;
+    syncRendererSize();
 
-    controls = new OrbitControls(camera, canvas);
-    controls.enableDamping = true;
-    controls.target.set(0, 0.5, 0);
+    // Orbit Controls
+    orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.08;
+    orbitControls.target.set(0, 0.5, 0);
 
+    // Lights
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
+    // Grid
     scene.add(new THREE.GridHelper(20, 20));
 
-    setActiveObject(createCube());
+    // Initial cube
+    cube = createCube();
+    scene.add(cube);
 
-    // ---- Gizmo ----
-    gizmoScene = new THREE.Scene();
+    // Transform Controls (Gizmo)
+    transformControls = new TransformControls(camera, renderer.domElement);
+    transformControls.attach(cube);
+    transformControls.addEventListener('dragging-changed', function(event){
+        orbitControls.enabled = !event.value;
+    });
+    scene.add(transformControls);
 
-    gizmoCamera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 10);
-    gizmoCamera.position.set(3, 3, 3);
-    gizmoCamera.lookAt(0, 0, 0);
+    // UI hooks
+    bindButton('exportGLTF', exportScene);
+    bindButton('resetScene', resetScene);
+    bindButton('newCube', () => switchObject('cube'));
+    bindButton('newSphere', () => switchObject('sphere'));
 
-    gizmoCube = new THREE.Mesh(
-        new THREE.BoxGeometry(1.2, 1.2, 1.2),
-        [
-            new THREE.MeshBasicMaterial({ color: 0xff5555 }),
-            new THREE.MeshBasicMaterial({ color: 0xaa0000 }),
-            new THREE.MeshBasicMaterial({ color: 0x55ff55 }),
-            new THREE.MeshBasicMaterial({ color: 0x00aa00 }),
-            new THREE.MeshBasicMaterial({ color: 0x5555ff }),
-            new THREE.MeshBasicMaterial({ color: 0x0000aa })
-        ]
-    );
-    gizmoScene.add(gizmoCube);
-
-    canvas.addEventListener('pointerdown', onPointerDown);
-
-    document.getElementById('newCube').onclick = () => setActiveObject(createCube());
-    document.getElementById('newSphere').onclick = () => setActiveObject(createSphere());
-    document.getElementById('resetScene').onclick = resetView;
-
-    syncRendererSize();
-    window.addEventListener('resize', syncRendererSize);
+    window.addEventListener('resize', onWindowResize);
 }
 
 function createCube() {
-    const m = new THREE.Mesh(
+    const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({ color: 0x44aa88 })
     );
-    m.position.y = 0.5;
-    return m;
+    mesh.position.y = 0.5;
+    return mesh;
 }
 
 function createSphere() {
-    const m = new THREE.Mesh(
+    const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 32, 32),
         new THREE.MeshStandardMaterial({ color: 0xaa4444 })
     );
-    m.position.y = 0.5;
-    return m;
+    mesh.position.y = 0.5;
+    return mesh;
 }
 
-function setActiveObject(obj) {
-    if (activeObject) scene.remove(activeObject);
-    activeObject = obj;
-    scene.add(activeObject);
+function switchObject(type) {
+    if (cube) scene.remove(cube);
+    if (type === 'cube') {
+        cube = createCube();
+    } else {
+        cube = createSphere();
+    }
+    scene.add(cube);
+    transformControls.attach(cube);
 }
 
-function resetView() {
-    camera.position.set(5, 5, 5);
-    camera.lookAt(controls.target);
-    controls.update();
+function bindButton(id, handler) {
+    const el = document.getElementById(id);
+    if (!el) {
+        console.warn(`UI element not found #${id}`);
+        return;
+    }
+    el.addEventListener('click', handler);
+}
+
+function exportScene() {
+    const exporter = new GLTFExporter();
+    exporter.parse(scene, gltf => {
+        const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'scene.gltf';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+function resetScene() {
+    if (cube) cube.rotation.set(0, 0, 0);
+    if (transformControls.object) transformControls.attach(cube);
+    orbitControls.reset();
+}
+
+function onWindowResize() {
+    syncRendererSize();
 }
 
 function syncRendererSize() {
-    const canvas = renderer.domElement;
-    const rect = canvas.getBoundingClientRect();
+    const container = document.getElementById('viewportContainer');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
 
-    const dpr = window.devicePixelRatio;
-    const width = Math.floor(rect.width * dpr);
-    const height = Math.floor(rect.height * dpr);
-
-    if (canvas.width !== width || canvas.height !== height) {
-        renderer.setSize(rect.width, rect.height, false);
-        camera.aspect = rect.width / rect.height;
-        camera.updateProjectionMatrix();
-    }
-}
-
-function onPointerDown(e) {
-    const rect = renderer.domElement.getBoundingClientRect();
-    const dpr = window.devicePixelRatio;
-
-    const x = (e.clientX - rect.left) * dpr;
-    const y = (rect.height - (e.clientY - rect.top)) * dpr;
-
-    const size = GIZMO_SIZE * dpr;
-
-    const buffer = new THREE.Vector2();
-    renderer.getDrawingBufferSize(buffer);
-
-    const gx = buffer.x - size - GIZMO_MARGIN * dpr;
-    const gy = size + GIZMO_MARGIN * dpr;
-
-    if (x < gx || y > gy) return;
-
-    resetView();
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
 }
 
 function animate() {
     requestAnimationFrame(animate);
-
-    syncRendererSize();
-
-    controls.update();
-    renderer.clear();
-
-    const buffer = new THREE.Vector2();
-    renderer.getDrawingBufferSize(buffer);
-
-    renderer.setViewport(0, 0, buffer.x, buffer.y);
+    orbitControls.update();
     renderer.render(scene, camera);
-
-    gizmoCube.quaternion.copy(camera.quaternion).invert();
-    renderer.clearDepth();
-
-    const dpr = window.devicePixelRatio;
-    const size = GIZMO_SIZE * dpr;
-
-    renderer.setViewport(
-        buffer.x - size - GIZMO_MARGIN * dpr,
-        GIZMO_MARGIN * dpr,
-        size,
-        size
-    );
-
-    renderer.render(gizmoScene, gizmoCamera);
 }
