@@ -1,22 +1,22 @@
-// main.js — MC Voxel Builder (stable base, scene-safe)
+// main.js — MC Voxel Builder (stable base + View Gizmo)
 
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { TransformControls } from './three/TransformControls.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 
-let scene, camera, renderer;
-let orbitControls, transformControls;
-let activeObject = null;
+let scene, camera, renderer, controls;
+let activeObject;
 let started = false;
 
-/* -------------------------
-   APP ENTRY (SAFE)
-------------------------- */
+/* View Gizmo */
+let gizmoScene, gizmoCamera, gizmoCube;
+const gizmoSize = 100;
+
+/* ---------- BOOTSTRAP ---------- */
+
 function startApp() {
     if (started) return;
     started = true;
-
     init();
     animate();
 }
@@ -27,156 +27,146 @@ if (document.readyState === 'loading') {
     startApp();
 }
 
-/* -------------------------
-   INIT
-------------------------- */
-function init() {
-    const canvas = document.getElementById('canvas');
+/* ---------- INIT ---------- */
 
-    /* --- SCENE --- */
+function init() {
+
+    /* Main Scene */
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
-    /* --- CAMERA --- */
     camera = new THREE.PerspectiveCamera(
         60,
-        canvas.clientWidth / canvas.clientHeight,
+        window.innerWidth / window.innerHeight,
         0.1,
         1000
     );
     camera.position.set(5, 5, 5);
 
-    /* --- RENDERER --- */
-    renderer = new THREE.WebGLRenderer({
-        canvas,
-        antialias: true
-    });
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.autoClear = false;
+    document.body.appendChild(renderer.domElement);
 
-    /* --- ORBIT CONTROLS --- */
-    orbitControls = new OrbitControls(camera, renderer.domElement);
-    orbitControls.enableDamping = true;
-    orbitControls.dampingFactor = 0.08;
-    orbitControls.target.set(0, 0.5, 0);
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 0.5, 0);
 
-    /* --- TRANSFORM CONTROLS --- */
-    transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.addEventListener('dragging-changed', (e) => {
-        orbitControls.enabled = !e.value;
-    });
-    scene.add(transformControls);
-
-    /* --- LIGHTS --- */
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
-
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
-    /* --- GRID --- */
     scene.add(new THREE.GridHelper(20, 20));
 
-    /* --- INITIAL OBJECT --- */
-    createCube();
+    setActiveObject(createCube());
 
-    /* --- UI --- */
-    bindButton('newCube', createCube);
-    bindButton('newSphere', createSphere);
-    bindButton('exportBtn', exportScene);
+    /* View Gizmo Scene */
+    gizmoScene = new THREE.Scene();
 
-    /* --- RESIZE --- */
-    window.addEventListener('resize', onResize);
+    gizmoCamera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 10);
+    gizmoCamera.position.set(3, 3, 3);
+    gizmoCamera.lookAt(0, 0, 0);
+
+    const materials = [
+        new THREE.MeshBasicMaterial({ color: 0xff5555 }), // +X
+        new THREE.MeshBasicMaterial({ color: 0xaa0000 }), // -X
+        new THREE.MeshBasicMaterial({ color: 0x55ff55 }), // +Y
+        new THREE.MeshBasicMaterial({ color: 0x00aa00 }), // -Y
+        new THREE.MeshBasicMaterial({ color: 0x5555ff }), // +Z
+        new THREE.MeshBasicMaterial({ color: 0x0000aa })  // -Z
+    ];
+
+    gizmoCube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials);
+    gizmoScene.add(gizmoCube);
+
+    renderer.domElement.addEventListener('pointerdown', onGizmoClick);
+
+    window.addEventListener('resize', onWindowResize);
 }
 
-/* -------------------------
-   SAFE OBJECT HANDLING
-------------------------- */
-function setActiveObject(obj) {
-    if (activeObject) {
-        scene.remove(activeObject);
-        transformControls.detach();
-    }
+/* ---------- OBJECT MANAGEMENT ---------- */
 
-    activeObject = obj;
-    activeObject.position.y = 0.5;
-
-    scene.add(activeObject);              // MUST be first
-    transformControls.attach(activeObject); // THEN attach
-}
-
-/* -------------------------
-   OBJECT CREATORS
-------------------------- */
 function createCube() {
-    const cube = new THREE.Mesh(
+    const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({ color: 0x44aa88 })
     );
-    setActiveObject(cube);
-    setStatus('Cube created');
+    mesh.position.y = 0.5;
+    return mesh;
 }
 
 function createSphere() {
-    const sphere = new THREE.Mesh(
+    const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 32, 32),
         new THREE.MeshStandardMaterial({ color: 0xaa4444 })
     );
-    setActiveObject(sphere);
-    setStatus('Sphere created');
+    mesh.position.y = 0.5;
+    return mesh;
 }
 
-/* -------------------------
-   EXPORT
-------------------------- */
-function exportScene() {
-    const exporter = new GLTFExporter();
-    exporter.parse(scene, (gltf) => {
-        const blob = new Blob(
-            [JSON.stringify(gltf, null, 2)],
-            { type: 'application/json' }
-        );
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'scene.gltf';
-        a.click();
-        URL.revokeObjectURL(url);
-    });
+function setActiveObject(obj) {
+    if (activeObject) scene.remove(activeObject);
+    activeObject = obj;
+    scene.add(activeObject);
 }
 
-/* -------------------------
-   UI HELPERS
-------------------------- */
-function bindButton(id, fn) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.onclick = fn;
+/* ---------- VIEW GIZMO INTERACTION ---------- */
+
+function onGizmoClick(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = rect.bottom - event.clientY;
+
+    if (x < rect.width - gizmoSize || y > gizmoSize) return;
+
+    const dir = new THREE.Vector3(
+        Math.sign(camera.position.x),
+        Math.sign(camera.position.y),
+        Math.sign(camera.position.z)
+    );
+
+    camera.position.copy(dir.multiplyScalar(5));
+    camera.lookAt(controls.target);
 }
 
-function setStatus(text) {
-    const el = document.getElementById('status');
-    if (el) el.textContent = text;
-}
+/* ---------- RENDER LOOP ---------- */
 
-/* -------------------------
-   RESIZE
-------------------------- */
-function onResize() {
-    const canvas = renderer.domElement;
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height, false);
-}
-
-/* -------------------------
-   LOOP
-------------------------- */
 function animate() {
     requestAnimationFrame(animate);
-    orbitControls.update();
+
+    controls.update();
+
+    renderer.clear();
+    renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
+
+    gizmoCube.quaternion.copy(camera.quaternion).invert();
+
+    renderer.clearDepth();
+    renderer.setScissorTest(true);
+    renderer.setScissor(
+        window.innerWidth - gizmoSize - 10,
+        window.innerHeight - gizmoSize - 10,
+        gizmoSize,
+        gizmoSize
+    );
+    renderer.setViewport(
+        window.innerWidth - gizmoSize - 10,
+        window.innerHeight - gizmoSize - 10,
+        gizmoSize,
+        gizmoSize
+    );
+    renderer.render(gizmoScene, gizmoCamera);
+    renderer.setScissorTest(false);
+}
+
+/* ---------- RESIZE ---------- */
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
