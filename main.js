@@ -1,5 +1,6 @@
-// main.js – MC Voxel Builder
+// main.js – MC Voxel Builder with ViewCube
 let scene, camera, renderer, controls;
+let gizmoScene, gizmoCamera, gizmoRenderer;
 let currentObject = null;
 let started = false;
 
@@ -7,13 +8,13 @@ async function startApp() {
     if (started) return;
     started = true;
 
-    // Dynamic imports
     const THREE = await import('./three/three.module.js');
     const { OrbitControls } = await import('./three/OrbitControls.js');
     const { GLTFLoader } = await import('./three/GLTFLoader.js');
     const { GLTFExporter } = await import('./three/GLTFExporter.js');
 
     init(THREE, OrbitControls, GLTFLoader);
+    initGizmo(THREE);
     animate(THREE);
 }
 
@@ -25,10 +26,7 @@ if (document.readyState === 'loading') {
 
 function init(THREE, OrbitControls, GLTFLoader) {
     const container = document.getElementById('canvasContainer');
-    if (!container) {
-        console.error('Canvas container not found');
-        return;
-    }
+    if (!container) return console.error('Canvas container not found');
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
@@ -57,10 +55,8 @@ function init(THREE, OrbitControls, GLTFLoader) {
 
     scene.add(new THREE.GridHelper(20, 20));
 
-    // Initialize with cube only
     addCube(THREE);
 
-    // UI bindings
     bindButton('newCube', () => replaceObject(THREE, 'cube'));
     bindButton('newSphere', () => replaceObject(THREE, 'sphere'));
     bindButton('exportBtn', () => exportScene(THREE, GLTFExporter));
@@ -68,12 +64,10 @@ function init(THREE, OrbitControls, GLTFLoader) {
     window.addEventListener('resize', () => onWindowResize(THREE, container));
 }
 
+// --- OBJECT MANAGEMENT ---
 function bindButton(id, handler) {
     const el = document.getElementById(id);
-    if (!el) {
-        console.warn(`UI element not found #${id}`);
-        return;
-    }
+    if (!el) return console.warn(`UI element not found #${id}`);
     el.addEventListener('click', handler);
 }
 
@@ -116,14 +110,46 @@ function exportScene(THREE, GLTFExporter) {
     });
 }
 
+// --- RESIZE ---
 function onWindowResize(THREE, container) {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
+
+    if (gizmoRenderer) {
+        gizmoRenderer.setSize(150, 150); // fixed gizmo size
+    }
 }
 
+// --- VIEW CUBE / GIZMO ---
+function initGizmo(THREE) {
+    gizmoScene = new THREE.Scene();
+    gizmoCamera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 10);
+    gizmoCamera.position.set(5, 5, 5);
+    gizmoCamera.lookAt(0, 0, 0);
+
+    const cubeGeo = new THREE.BoxGeometry(1, 1, 1);
+    const cubeMat = new THREE.MeshNormalMaterial();
+    const gizmoCube = new THREE.Mesh(cubeGeo, cubeMat);
+    gizmoScene.add(gizmoCube);
+
+    gizmoRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    gizmoRenderer.setSize(150, 150);
+    gizmoRenderer.domElement.style.position = 'absolute';
+    gizmoRenderer.domElement.style.top = '10px';
+    gizmoRenderer.domElement.style.right = '10px';
+    document.body.appendChild(gizmoRenderer.domElement);
+}
+
+// --- ANIMATION LOOP ---
 function animate(THREE) {
     requestAnimationFrame(() => animate(THREE));
     controls.update();
     renderer.render(scene, camera);
+
+    if (gizmoRenderer && gizmoScene && gizmoCamera) {
+        // sync gizmo rotation with main camera
+        gizmoScene.rotation.copy(scene.rotation);
+        gizmoRenderer.render(gizmoScene, gizmoCamera);
+    }
 }
