@@ -1,43 +1,37 @@
-// main.js – MC Voxel Builder (DOM-safe, cache-safe)
+// main.js – MC Voxel Builder (Sculpting Enabled)
 
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
-import { TransformControls } from './three/TransformControls.js';
+import GUI from './lil-gui.esm.min.js';
 
-let scene, camera, renderer, orbitControls, transformControls;
-let activeObject; // cube or sphere
+let scene, camera, renderer, orbitControls;
+let activeMesh = null;
+let raycaster, mouse;
+let gui, brushSettings;
 let started = false;
 
-// Container for responsive sizing
-let container;
-
-// --- Application Entry Point ---
+/**
+ * Entry point
+ */
 function startApp() {
     if (started) return;
     started = true;
-
     init();
     animate();
 }
 
-// DOM-ready handling
+/**
+ * DOM-ready handling
+ */
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
 } else {
     startApp();
 }
 
-// --- INIT ---
 function init() {
-    // Container div for canvas sizing
-    container = document.getElementById('canvas-container');
-    if (!container) {
-        console.warn('Canvas container not found, defaulting to body');
-        container = document.body;
-    }
-
     // --- SCENE ---
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
@@ -45,7 +39,7 @@ function init() {
     // --- CAMERA ---
     camera = new THREE.PerspectiveCamera(
         60,
-        container.clientWidth / container.clientHeight,
+        window.innerWidth / window.innerHeight,
         0.1,
         1000
     );
@@ -53,9 +47,9 @@ function init() {
 
     // --- RENDERER ---
     renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
+    document.body.appendChild(renderer.domElement);
 
     // --- ORBIT CONTROLS ---
     orbitControls = new OrbitControls(camera, renderer.domElement);
@@ -65,9 +59,9 @@ function init() {
 
     // --- LIGHTS ---
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(5, 10, 7);
-    scene.add(dirLight);
+    const dir = new THREE.DirectionalLight(0xffffff, 1);
+    dir.position.set(5, 10, 7);
+    scene.add(dir);
 
     // --- GRID ---
     scene.add(new THREE.GridHelper(20, 20));
@@ -75,13 +69,20 @@ function init() {
     // --- INITIAL OBJECT ---
     addObject('cube');
 
-    // --- TRANSFORM CONTROLS ---
-    transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.addEventListener('dragging-changed', (event) => {
-        orbitControls.enabled = !event.value;
-    });
-    scene.add(transformControls);
-    transformControls.attach(activeObject);
+    // --- RAYCASTER & MOUSE ---
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+
+    // --- GUI ---
+    brushSettings = {
+        brushSize: 0.5,
+        brushIntensity: 0.2,
+        brushMode: 'add', // add, remove, inflate, deflate
+    };
+    gui = new GUI();
+    gui.add(brushSettings, 'brushSize', 0.1, 2).name('Brush Size');
+    gui.add(brushSettings, 'brushIntensity', 0.01, 1).name('Brush Intensity');
+    gui.add(brushSettings, 'brushMode', ['add', 'remove', 'inflate', 'deflate', 'smooth']).name('Brush Mode');
 
     // --- UI HOOKS ---
     bindButton('exportGLTF', exportScene);
@@ -89,11 +90,15 @@ function init() {
     bindButton('newCube', () => addObject('cube'));
     bindButton('newSphere', () => addObject('sphere'));
 
+    // --- MOUSE / TOUCH EVENTS ---
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+
     // --- RESIZE ---
     window.addEventListener('resize', onWindowResize);
 }
 
-// --- BUTTON BINDING ---
+// Safe button binder
 function bindButton(id, handler) {
     const el = document.getElementById(id);
     if (!el) {
@@ -103,47 +108,32 @@ function bindButton(id, handler) {
     el.addEventListener('click', handler);
 }
 
-// --- ADD OBJECT ---
+// Add or switch the active object
 function addObject(type) {
-    if (activeObject) {
-        scene.remove(activeObject);
+    if (activeMesh) {
+        scene.remove(activeMesh);
+        activeMesh.geometry.dispose();
+        activeMesh.material.dispose();
     }
-
     if (type === 'cube') {
-        activeObject = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial({ color: 0x44aa88 })
+        activeMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1, 16, 16, 16),
+            new THREE.MeshStandardMaterial({ color: 0x44aa88, flatShading: true })
         );
     } else if (type === 'sphere') {
-        activeObject = new THREE.Mesh(
+        activeMesh = new THREE.Mesh(
             new THREE.SphereGeometry(0.5, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xaa4444 })
+            new THREE.MeshStandardMaterial({ color: 0xaa4444, flatShading: true })
         );
     }
-
-    activeObject.position.y = 0.5;
-    scene.add(activeObject);
-    if (transformControls) transformControls.attach(activeObject);
+    activeMesh.position.y = 0.5;
+    scene.add(activeMesh);
 }
 
-// --- RESET SCENE ---
-function resetScene() {
-    if (activeObject) activeObject.rotation.set(0, 0, 0);
-    if (transformControls && activeObject) transformControls.attach(activeObject);
-    orbitControls.reset();
-}
-
-// --- EXPORT SCENE ---
+// Export scene to GLTF
 function exportScene() {
     const exporter = new GLTFExporter();
-
-    // Only export mesh objects to avoid cyclic references
-    const exportScene = new THREE.Scene();
-    scene.traverse((obj) => {
-        if (obj.isMesh) exportScene.add(obj.clone());
-    });
-
-    exporter.parse(exportScene, (gltf) => {
+    exporter.parse(scene, (gltf) => {
         const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -154,16 +144,81 @@ function exportScene() {
     });
 }
 
-// --- WINDOW RESIZE ---
-function onWindowResize() {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
+// Reset object rotation and camera
+function resetScene() {
+    if (!activeMesh) return;
+    activeMesh.rotation.set(0, 0, 0);
+    orbitControls.reset();
 }
 
-// --- ANIMATION LOOP ---
+// Window resize
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Pointer events
+let isDragging = false;
+
+function onPointerDown(event) {
+    isDragging = true;
+    applyBrush(event);
+}
+
+function onPointerMove(event) {
+    if (!isDragging) return;
+    applyBrush(event);
+}
+
+// Apply brush effect
+function applyBrush(event) {
+    if (!activeMesh) return;
+
+    // normalize pointer
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(activeMesh);
+    if (!intersects.length) return;
+
+    const point = intersects[0].point;
+    const geometry = activeMesh.geometry;
+    geometry.computeBoundingSphere();
+    const position = geometry.attributes.position;
+    for (let i = 0; i < position.count; i++) {
+        const vx = position.getX(i);
+        const vy = position.getY(i);
+        const vz = position.getZ(i);
+        const v = new THREE.Vector3(vx, vy, vz);
+        const worldV = v.clone().applyMatrix4(activeMesh.matrixWorld);
+        const dist = worldV.distanceTo(point);
+
+        if (dist <= brushSettings.brushSize) {
+            // Simple add/remove along normal
+            const delta = brushSettings.brushIntensity;
+            if (brushSettings.brushMode === 'add') {
+                position.setY(i, vy + delta);
+            } else if (brushSettings.brushMode === 'remove') {
+                position.setY(i, vy - delta);
+            } else if (brushSettings.brushMode === 'inflate') {
+                const dir = new THREE.Vector3(vx, vy, vz).normalize().multiplyScalar(delta);
+                position.setXYZ(i, vx + dir.x, vy + dir.y, vz + dir.z);
+            } else if (brushSettings.brushMode === 'deflate') {
+                const dir = new THREE.Vector3(vx, vy, vz).normalize().multiplyScalar(-delta);
+                position.setXYZ(i, vx + dir.x, vy + dir.y, vz + dir.z);
+            } else if (brushSettings.brushMode === 'smooth') {
+                position.setY(i, vy * 0.9 + intersects[0].point.y * 0.1);
+            }
+        }
+    }
+    position.needsUpdate = true;
+    geometry.computeVertexNormals();
+}
+
+// Animation loop
 function animate() {
     requestAnimationFrame(animate);
     orbitControls.update();
