@@ -1,16 +1,16 @@
-// main.js — MC Voxel Builder (stable base + View Gizmo)
+// main.js — MC Voxel Builder (stable + functional View Gizmo)
 
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { GLTFExporter } from './three/GLTFExporter.js';
 
 let scene, camera, renderer, controls;
 let activeObject;
 let started = false;
 
-/* View Gizmo */
+/* ---------- VIEW GIZMO ---------- */
 let gizmoScene, gizmoCamera, gizmoCube;
-const gizmoSize = 100;
+const GIZMO_SIZE = 96;
+const GIZMO_MARGIN = 12;
 
 /* ---------- BOOTSTRAP ---------- */
 
@@ -63,14 +63,15 @@ function init() {
 
     setActiveObject(createCube());
 
-    /* View Gizmo Scene */
+    /* ---------- VIEW GIZMO SCENE ---------- */
+
     gizmoScene = new THREE.Scene();
 
     gizmoCamera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 10);
     gizmoCamera.position.set(3, 3, 3);
     gizmoCamera.lookAt(0, 0, 0);
 
-    const materials = [
+    const faceMaterials = [
         new THREE.MeshBasicMaterial({ color: 0xff5555 }), // +X
         new THREE.MeshBasicMaterial({ color: 0xaa0000 }), // -X
         new THREE.MeshBasicMaterial({ color: 0x55ff55 }), // +Y
@@ -79,10 +80,13 @@ function init() {
         new THREE.MeshBasicMaterial({ color: 0x0000aa })  // -Z
     ];
 
-    gizmoCube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), materials);
+    gizmoCube = new THREE.Mesh(
+        new THREE.BoxGeometry(1.2, 1.2, 1.2),
+        faceMaterials
+    );
     gizmoScene.add(gizmoCube);
 
-    renderer.domElement.addEventListener('pointerdown', onGizmoClick);
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
 
     window.addEventListener('resize', onWindowResize);
 }
@@ -98,38 +102,42 @@ function createCube() {
     return mesh;
 }
 
-function createSphere() {
-    const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 32, 32),
-        new THREE.MeshStandardMaterial({ color: 0xaa4444 })
-    );
-    mesh.position.y = 0.5;
-    return mesh;
-}
-
 function setActiveObject(obj) {
     if (activeObject) scene.remove(activeObject);
     activeObject = obj;
     scene.add(activeObject);
 }
 
-/* ---------- VIEW GIZMO INTERACTION ---------- */
+/* ---------- GIZMO INTERACTION ---------- */
 
-function onGizmoClick(event) {
+function onPointerDown(event) {
+    const dpr = window.devicePixelRatio || 1;
     const rect = renderer.domElement.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = rect.bottom - event.clientY;
 
-    if (x < rect.width - gizmoSize || y > gizmoSize) return;
+    const x = (event.clientX - rect.left) * dpr;
+    const y = (rect.height - (event.clientY - rect.top)) * dpr;
 
-    const dir = new THREE.Vector3(
-        Math.sign(camera.position.x),
-        Math.sign(camera.position.y),
-        Math.sign(camera.position.z)
+    const gx = window.innerWidth * dpr - GIZMO_SIZE * dpr - GIZMO_MARGIN * dpr;
+    const gy = window.innerHeight * dpr - GIZMO_SIZE * dpr - GIZMO_MARGIN * dpr;
+
+    if (
+        x < gx || x > gx + GIZMO_SIZE * dpr ||
+        y < gy || y > gy + GIZMO_SIZE * dpr
+    ) return;
+
+    // Snap camera to nearest axis
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+
+    const snap = new THREE.Vector3(
+        Math.sign(dir.x),
+        Math.sign(dir.y),
+        Math.sign(dir.z)
     );
 
-    camera.position.copy(dir.multiplyScalar(5));
+    camera.position.copy(snap.multiplyScalar(5));
     camera.lookAt(controls.target);
+    controls.update();
 }
 
 /* ---------- RENDER LOOP ---------- */
@@ -143,22 +151,19 @@ function animate() {
     renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
 
+    // Sync gizmo orientation
     gizmoCube.quaternion.copy(camera.quaternion).invert();
 
     renderer.clearDepth();
+
+    const dpr = window.devicePixelRatio || 1;
+    const size = GIZMO_SIZE * dpr;
+    const x = window.innerWidth * dpr - size - GIZMO_MARGIN * dpr;
+    const y = window.innerHeight * dpr - size - GIZMO_MARGIN * dpr;
+
     renderer.setScissorTest(true);
-    renderer.setScissor(
-        window.innerWidth - gizmoSize - 10,
-        window.innerHeight - gizmoSize - 10,
-        gizmoSize,
-        gizmoSize
-    );
-    renderer.setViewport(
-        window.innerWidth - gizmoSize - 10,
-        window.innerHeight - gizmoSize - 10,
-        gizmoSize,
-        gizmoSize
-    );
+    renderer.setScissor(x, y, size, size);
+    renderer.setViewport(x, y, size, size);
     renderer.render(gizmoScene, gizmoCamera);
     renderer.setScissorTest(false);
 }
