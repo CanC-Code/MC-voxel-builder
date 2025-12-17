@@ -1,22 +1,29 @@
-body {
-  font-family: sans-serif;
+html, body {
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: sans-serif;
   background: #f0f0f0;
 }
 
-h1 {
-  margin: 10px 0;
+/* UI layer */
+#ui {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
+/* Toolbar */
 #toolbar {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 10px;
 }
 
 button {
@@ -30,14 +37,20 @@ button.active {
   color: white;
 }
 
-canvas {
-  width: 90vw;
-  height: 60vh;
-  border: 1px solid #ccc;
-  background: #fff;
+#status {
+  font-size: 14px;
 }
 
-#status {
-  margin: 8px;
-  font-size: 14px;
+/* Three.js canvas container */
+#three-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+/* Canvas must fill viewport */
+#three-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
