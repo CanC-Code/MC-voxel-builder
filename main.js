@@ -1,10 +1,12 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { GLTFExporter, GLTFLoader } from './three/GLTFLoader.js'; // GLTFLoader used for load
+import { GLTFExporter } from './three/GLTFExporter.js';
+import { GLTFLoader } from './three/GLTFLoader.js';
+
 let scene, camera, renderer, orbitControls;
 let mesh;
 let sculptMode=false, brushMode='drag', showMesh=true;
-let brush={size:0.5,strength:0.1,color:0xffaa00};
+let brush={size:0.5,strength:0.1};
 let raycaster=new THREE.Raycaster();
 let mouse=new THREE.Vector2();
 
@@ -51,20 +53,20 @@ function init(){
 }
 
 function setupMenu(){
-    // Collapse
-    const collapseBtn = document.getElementById('collapseMenu');
-    const menuContent = document.getElementById('menuContent');
+    const collapseBtn=document.getElementById('collapseMenu');
+    const menuContent=document.getElementById('menuContent');
     collapseBtn.addEventListener('click',()=>{menuContent.style.display=menuContent.style.display==='none'?'block':'none';});
 
-    // Tabs
-    const tabs = document.querySelectorAll('.tabButton');
-    tabs.forEach(btn=>btn.addEventListener('click',()=>{
-        document.querySelectorAll('.tabButton').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        const tabId = btn.dataset.tab+'Tab';
-        document.querySelectorAll('.tabContent').forEach(tc=>tc.style.display='none');
-        document.getElementById(tabId).style.display='flex';
-    }));
+    const tabs=document.querySelectorAll('.tabButton');
+    tabs.forEach(btn=>{
+        btn.addEventListener('click',()=>{
+            document.querySelectorAll('.tabButton').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            const tabId=btn.dataset.tab+'Tab';
+            document.querySelectorAll('.tabContent').forEach(tc=>tc.style.display='none');
+            document.getElementById(tabId).style.display='flex';
+        });
+    });
     tabs[0].click();
 
     document.getElementById('newCube').addEventListener('click',()=>addMesh('cube'));
@@ -74,18 +76,15 @@ function setupMenu(){
         if(mesh) mesh.material.wireframe=!showMesh;
     });
 
-    // Sculpt buttons
     document.querySelectorAll('#sculptTab button').forEach(btn=>{
         btn.addEventListener('click',()=>{brushMode=btn.dataset.mode; sculptMode=true;});
     });
     document.getElementById('brushSize').addEventListener('input',e=>brush.size=parseFloat(e.target.value));
     document.getElementById('brushStrength').addEventListener('input',e=>brush.strength=parseFloat(e.target.value));
 
-    // Export/Load
     document.getElementById('exportGLTF').addEventListener('click',exportScene);
     document.getElementById('resetScene').addEventListener('click',()=>{if(mesh) mesh.rotation.set(0,0,0);});
-    // Load GLTF placeholder
-    document.getElementById('loadGLTF').addEventListener('click',()=>alert('Load feature TBD'));
+    document.getElementById('loadGLTF').addEventListener('click',loadScene);
 }
 
 function addMesh(type){
@@ -93,7 +92,6 @@ function addMesh(type){
     let geom;
     if(type==='cube') geom=new THREE.BoxGeometry(1,1,1,10,10,10);
     else geom=new THREE.SphereGeometry(0.5,32,32);
-
     mesh=new THREE.Mesh(geom,new THREE.MeshStandardMaterial({color:0x44aa88,vertexColors:true,wireframe:false}));
     mesh.position.y=0.5;
     scene.add(mesh);
@@ -105,10 +103,7 @@ function onPointerDown(event){
     mouse.x=((event.clientX-rect.left)/rect.width)*2-1;
     mouse.y=-((event.clientY-rect.top)/rect.height)*2+1;
     raycaster.setFromCamera(mouse,camera);
-
-    if(sculptMode){
-        sculptMesh();
-    }
+    if(sculptMode) sculptMesh();
 }
 
 function sculptMesh(){
@@ -139,6 +134,10 @@ function exportScene(){
         a.click();
         URL.revokeObjectURL(url);
     });
+}
+
+function loadScene(){
+    alert('Load GLTF feature not implemented yet');
 }
 
 function onWindowResize(){
