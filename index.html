@@ -8,18 +8,22 @@
 </head>
 <body>
 
-<!-- Collapsible Menu -->
-<div id="menu">
-    <button id="menuToggle">☰ Menu</button>
-    <div id="menuContent" class="hidden">
-        <button id="newCube">New Cube</button>
-        <button id="newSphere">New Sphere</button>
-        <button id="toggleMeshView">Toggle Mesh View</button>
-        <button id="resetScene">Reset</button>
-        <button id="exportGLTF">Export GLTF</button>
-        <button id="importGLTF">Load GLTF</button>
-
-        <div id="sculptTools">
+<!-- Top-right Tabbed Panel -->
+<div id="uiPanel">
+    <div id="tabs">
+        <button class="tabButton active" data-tab="objects">Objects</button>
+        <button class="tabButton" data-tab="sculpt">Sculpt</button>
+        <button class="tabButton" data-tab="export">Export/Import</button>
+        <button class="tabButton" data-tab="voxel">Voxelize</button>
+        <label><input type="checkbox" id="lockCamera"> Lock Camera</label>
+    </div>
+    <div id="tabContents">
+        <div class="tabContent" id="objects">
+            <button id="newCube">New Cube</button>
+            <button id="newSphere">New Sphere</button>
+            <button id="resetScene">Reset</button>
+        </div>
+        <div class="tabContent hidden" id="sculpt">
             <label>Brush Size: <input type="range" id="brushSize" min="0.1" max="2" step="0.05" value="0.5"></label>
             <label>Strength: <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.2"></label>
             <select id="brushMode">
@@ -32,12 +36,15 @@
             <label><input type="checkbox" id="mirrorY"> Mirror Y</label>
             <label><input type="checkbox" id="mirrorZ"> Mirror Z</label>
         </div>
+        <div class="tabContent hidden" id="export">
+            <button id="exportGLTF">Export GLTF</button>
+            <button id="importGLTF">Load GLTF</button>
+            <button id="toggleMeshView">Toggle Mesh View</button>
+        </div>
+        <div class="tabContent hidden" id="voxel">
+            <p>Voxelization tools (coming soon)</p>
+        </div>
     </div>
-</div>
-
-<!-- Camera Lock Toggle separate -->
-<div id="cameraLockContainer">
-    <label><input type="checkbox" id="lockCamera"> Lock Camera Rotation</label>
 </div>
 
 <script type="module" src="main.js"></script>
