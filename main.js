@@ -1,21 +1,22 @@
-// main.js – MC Voxel Builder (GitHub Pages safe)
+// main.js — MC Voxel Builder (stable base, scene-safe)
 
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { TransformControls } from './three/TransformControls.js';
-import { CSS2DRenderer } from './three/CSS2DRenderer.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 
-let scene, camera, renderer, labelRenderer;
+let scene, camera, renderer;
 let orbitControls, transformControls;
-let activeObject;
+let activeObject = null;
 let started = false;
 
-/* -------------------- BOOTSTRAP -------------------- */
-
+/* -------------------------
+   APP ENTRY (SAFE)
+------------------------- */
 function startApp() {
     if (started) return;
     started = true;
+
     init();
     animate();
 }
@@ -26,105 +27,111 @@ if (document.readyState === 'loading') {
     startApp();
 }
 
-/* -------------------- INIT -------------------- */
-
+/* -------------------------
+   INIT
+------------------------- */
 function init() {
+    const canvas = document.getElementById('canvas');
+
+    /* --- SCENE --- */
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
+    /* --- CAMERA --- */
     camera = new THREE.PerspectiveCamera(
         60,
-        window.innerWidth / window.innerHeight,
+        canvas.clientWidth / canvas.clientHeight,
         0.1,
         1000
     );
     camera.position.set(5, 5, 5);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    /* --- RENDERER --- */
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true
+    });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 
-    labelRenderer = new CSS2DRenderer();
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.domElement.style.position = 'absolute';
-    labelRenderer.domElement.style.top = '0';
-    labelRenderer.domElement.style.pointerEvents = 'none';
-    document.body.appendChild(labelRenderer.domElement);
-
+    /* --- ORBIT CONTROLS --- */
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableDamping = true;
     orbitControls.dampingFactor = 0.08;
+    orbitControls.target.set(0, 0.5, 0);
 
+    /* --- TRANSFORM CONTROLS --- */
+    transformControls = new TransformControls(camera, renderer.domElement);
+    transformControls.addEventListener('dragging-changed', (e) => {
+        orbitControls.enabled = !e.value;
+    });
+    scene.add(transformControls);
+
+    /* --- LIGHTS --- */
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
 
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
+    /* --- GRID --- */
     scene.add(new THREE.GridHelper(20, 20));
 
+    /* --- INITIAL OBJECT --- */
     createCube();
 
-    transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.attach(activeObject);
-    transformControls.addEventListener('dragging-changed', e => {
-        orbitControls.enabled = !e.value;
-    });
-    scene.add(transformControls);
+    /* --- UI --- */
+    bindButton('newCube', createCube);
+    bindButton('newSphere', createSphere);
+    bindButton('exportBtn', exportScene);
 
-    bindUI();
-
+    /* --- RESIZE --- */
     window.addEventListener('resize', onResize);
 }
 
-/* -------------------- OBJECTS -------------------- */
+/* -------------------------
+   SAFE OBJECT HANDLING
+------------------------- */
+function setActiveObject(obj) {
+    if (activeObject) {
+        scene.remove(activeObject);
+        transformControls.detach();
+    }
 
+    activeObject = obj;
+    activeObject.position.y = 0.5;
+
+    scene.add(activeObject);              // MUST be first
+    transformControls.attach(activeObject); // THEN attach
+}
+
+/* -------------------------
+   OBJECT CREATORS
+------------------------- */
 function createCube() {
-    if (activeObject) scene.remove(activeObject);
-
-    activeObject = new THREE.Mesh(
+    const cube = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({ color: 0x44aa88 })
     );
-    activeObject.position.y = 0.5;
-    scene.add(activeObject);
+    setActiveObject(cube);
+    setStatus('Cube created');
 }
 
 function createSphere() {
-    if (activeObject) scene.remove(activeObject);
-
-    activeObject = new THREE.Mesh(
+    const sphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.5, 32, 32),
         new THREE.MeshStandardMaterial({ color: 0xaa4444 })
     );
-    activeObject.position.y = 0.5;
-    scene.add(activeObject);
+    setActiveObject(sphere);
+    setStatus('Sphere created');
 }
 
-/* -------------------- UI -------------------- */
-
-function bindUI() {
-    safeBind('newCube', createCube);
-    safeBind('newSphere', createSphere);
-    safeBind('resetScene', () => {
-        activeObject.rotation.set(0, 0, 0);
-        orbitControls.reset();
-        transformControls.attach(activeObject);
-    });
-    safeBind('exportGLTF', exportGLTF);
-}
-
-function safeBind(id, fn) {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('click', fn);
-}
-
-/* -------------------- EXPORT -------------------- */
-
-function exportGLTF() {
+/* -------------------------
+   EXPORT
+------------------------- */
+function exportScene() {
     const exporter = new GLTFExporter();
-    exporter.parse(scene, gltf => {
+    exporter.parse(scene, (gltf) => {
         const blob = new Blob(
             [JSON.stringify(gltf, null, 2)],
             { type: 'application/json' }
@@ -138,20 +145,38 @@ function exportGLTF() {
     });
 }
 
-/* -------------------- RESIZE -------------------- */
-
-function onResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    labelRenderer.setSize(window.innerWidth, window.innerHeight);
+/* -------------------------
+   UI HELPERS
+------------------------- */
+function bindButton(id, fn) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.onclick = fn;
 }
 
-/* -------------------- LOOP -------------------- */
+function setStatus(text) {
+    const el = document.getElementById('status');
+    if (el) el.textContent = text;
+}
 
+/* -------------------------
+   RESIZE
+------------------------- */
+function onResize() {
+    const canvas = renderer.domElement;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
+}
+
+/* -------------------------
+   LOOP
+------------------------- */
 function animate() {
     requestAnimationFrame(animate);
     orbitControls.update();
     renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
 }
