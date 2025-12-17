@@ -1,14 +1,12 @@
-// main.js – MC Voxel Builder
-
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 import { TransformControls } from './three/TransformControls.js';
 
 let scene, camera, renderer, orbitControls, transformControls;
 let cube;
 let started = false;
+let mode = 'translate'; // Default gizmo mode
 
 function startApp() {
     if (started) return;
@@ -66,7 +64,8 @@ function init() {
     // --- TRANSFORM CONTROLS ---
     transformControls = new TransformControls(camera, renderer.domElement);
     transformControls.attach(cube);
-    transformControls.addEventListener('dragging-changed', function (event) {
+    transformControls.setMode(mode);
+    transformControls.addEventListener('dragging-changed', (event) => {
         orbitControls.enabled = !event.value;
     });
     scene.add(transformControls);
@@ -76,6 +75,9 @@ function init() {
     bindButton('resetScene', resetScene);
     bindButton('newCube', () => switchObject('cube'));
     bindButton('newSphere', () => switchObject('sphere'));
+    bindButton('translateBtn', () => setMode('translate'));
+    bindButton('rotateBtn', () => setMode('rotate'));
+    bindButton('scaleBtn', () => setMode('scale'));
 
     window.addEventListener('resize', onWindowResize);
 }
@@ -111,6 +113,11 @@ function addObject(type) {
 
 function switchObject(type) {
     addObject(type);
+}
+
+function setMode(newMode) {
+    mode = newMode;
+    if (transformControls) transformControls.setMode(mode);
 }
 
 function exportScene() {
