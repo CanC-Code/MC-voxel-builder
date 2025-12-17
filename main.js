@@ -1,18 +1,17 @@
-// main.js — MC Voxel Builder (stable + functional View Gizmo)
+// main.js — MC Voxel Builder (stable gizmo + mobile-safe)
 
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 
 let scene, camera, renderer, controls;
 let activeObject;
-let started = false;
 
-/* ---------- VIEW GIZMO ---------- */
 let gizmoScene, gizmoCamera, gizmoCube;
-const GIZMO_SIZE = 96;
-const GIZMO_MARGIN = 12;
 
-/* ---------- BOOTSTRAP ---------- */
+const GIZMO_SIZE = 90;
+const GIZMO_MARGIN = 10;
+
+let started = false;
 
 function startApp() {
     if (started) return;
@@ -21,37 +20,26 @@ function startApp() {
     animate();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startApp);
-} else {
-    startApp();
-}
-
-/* ---------- INIT ---------- */
+document.readyState === 'loading'
+    ? document.addEventListener('DOMContentLoaded', startApp)
+    : startApp();
 
 function init() {
 
-    /* Main Scene */
+    const canvas = document.getElementById('canvas');
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
-    camera = new THREE.PerspectiveCamera(
-        60,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-    );
+    camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
     camera.position.set(5, 5, 5);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.autoClear = false;
-    document.body.appendChild(renderer.domElement);
 
-    controls = new OrbitControls(camera, renderer.domElement);
+    controls = new OrbitControls(camera, canvas);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
     controls.target.set(0, 0.5, 0);
 
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
@@ -63,7 +51,7 @@ function init() {
 
     setActiveObject(createCube());
 
-    /* ---------- VIEW GIZMO SCENE ---------- */
+    /* ---------- GIZMO ---------- */
 
     gizmoScene = new THREE.Scene();
 
@@ -71,35 +59,51 @@ function init() {
     gizmoCamera.position.set(3, 3, 3);
     gizmoCamera.lookAt(0, 0, 0);
 
-    const faceMaterials = [
-        new THREE.MeshBasicMaterial({ color: 0xff5555 }), // +X
-        new THREE.MeshBasicMaterial({ color: 0xaa0000 }), // -X
-        new THREE.MeshBasicMaterial({ color: 0x55ff55 }), // +Y
-        new THREE.MeshBasicMaterial({ color: 0x00aa00 }), // -Y
-        new THREE.MeshBasicMaterial({ color: 0x5555ff }), // +Z
-        new THREE.MeshBasicMaterial({ color: 0x0000aa })  // -Z
-    ];
-
     gizmoCube = new THREE.Mesh(
         new THREE.BoxGeometry(1.2, 1.2, 1.2),
-        faceMaterials
+        [
+            new THREE.MeshBasicMaterial({ color: 0xff5555 }),
+            new THREE.MeshBasicMaterial({ color: 0xaa0000 }),
+            new THREE.MeshBasicMaterial({ color: 0x55ff55 }),
+            new THREE.MeshBasicMaterial({ color: 0x00aa00 }),
+            new THREE.MeshBasicMaterial({ color: 0x5555ff }),
+            new THREE.MeshBasicMaterial({ color: 0x0000aa })
+        ]
     );
+
     gizmoScene.add(gizmoCube);
 
-    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointerdown', onPointerDown);
 
-    window.addEventListener('resize', onWindowResize);
+    bindButton('newCube', () => setActiveObject(createCube()));
+    bindButton('newSphere', () => setActiveObject(createSphere()));
+    bindButton('resetScene', resetView);
+
+    onResize();
+    window.addEventListener('resize', onResize);
 }
 
-/* ---------- OBJECT MANAGEMENT ---------- */
+function bindButton(id, fn) {
+    const el = document.getElementById(id);
+    if (el) el.onclick = fn;
+}
 
 function createCube() {
-    const mesh = new THREE.Mesh(
+    const m = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({ color: 0x44aa88 })
     );
-    mesh.position.y = 0.5;
-    return mesh;
+    m.position.y = 0.5;
+    return m;
+}
+
+function createSphere() {
+    const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xaa4444 })
+    );
+    m.position.y = 0.5;
+    return m;
 }
 
 function setActiveObject(obj) {
@@ -108,70 +112,62 @@ function setActiveObject(obj) {
     scene.add(activeObject);
 }
 
-/* ---------- GIZMO INTERACTION ---------- */
-
-function onPointerDown(event) {
-    const dpr = window.devicePixelRatio || 1;
-    const rect = renderer.domElement.getBoundingClientRect();
-
-    const x = (event.clientX - rect.left) * dpr;
-    const y = (rect.height - (event.clientY - rect.top)) * dpr;
-
-    const gx = window.innerWidth * dpr - GIZMO_SIZE * dpr - GIZMO_MARGIN * dpr;
-    const gy = window.innerHeight * dpr - GIZMO_SIZE * dpr - GIZMO_MARGIN * dpr;
-
-    if (
-        x < gx || x > gx + GIZMO_SIZE * dpr ||
-        y < gy || y > gy + GIZMO_SIZE * dpr
-    ) return;
-
-    // Snap camera to nearest axis
-    const dir = new THREE.Vector3();
-    camera.getWorldDirection(dir);
-
-    const snap = new THREE.Vector3(
-        Math.sign(dir.x),
-        Math.sign(dir.y),
-        Math.sign(dir.z)
-    );
-
-    camera.position.copy(snap.multiplyScalar(5));
+function resetView() {
+    camera.position.set(5, 5, 5);
+    camera.up.set(0, 1, 0);
     camera.lookAt(controls.target);
     controls.update();
 }
 
-/* ---------- RENDER LOOP ---------- */
+function onPointerDown(e) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio;
+
+    const x = (e.clientX - rect.left) * dpr;
+    const y = (rect.bottom - e.clientY) * dpr;
+
+    const size = GIZMO_SIZE * dpr;
+    const gx = rect.width * dpr - size - GIZMO_MARGIN * dpr;
+    const gy = size + GIZMO_MARGIN * dpr;
+
+    if (x < gx || y > gy) return;
+
+    camera.position.set(5, 5, 5);
+    camera.lookAt(0, 0, 0);
+    controls.update();
+}
 
 function animate() {
     requestAnimationFrame(animate);
 
     controls.update();
-
     renderer.clear();
-    renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+
+    renderer.setViewport(0, 0, renderer.domElement.width, renderer.domElement.height);
     renderer.render(scene, camera);
 
-    // Sync gizmo orientation
     gizmoCube.quaternion.copy(camera.quaternion).invert();
-
     renderer.clearDepth();
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = window.devicePixelRatio;
     const size = GIZMO_SIZE * dpr;
-    const x = window.innerWidth * dpr - size - GIZMO_MARGIN * dpr;
-    const y = window.innerHeight * dpr - size - GIZMO_MARGIN * dpr;
 
-    renderer.setScissorTest(true);
-    renderer.setScissor(x, y, size, size);
-    renderer.setViewport(x, y, size, size);
+    renderer.setViewport(
+        renderer.domElement.width - size - GIZMO_MARGIN * dpr,
+        GIZMO_MARGIN * dpr,
+        size,
+        size
+    );
+
     renderer.render(gizmoScene, gizmoCamera);
-    renderer.setScissorTest(false);
 }
 
-/* ---------- RESIZE ---------- */
+function onResize() {
+    const canvas = renderer.domElement;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
 }
