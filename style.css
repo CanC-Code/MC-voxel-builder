@@ -1,4 +1,3 @@
-/* Global body styling */
 body {
   font-family: sans-serif;
   margin: 0;
@@ -9,12 +8,10 @@ body {
   background: #f0f0f0;
 }
 
-/* Page title */
 h1 {
   margin: 10px 0;
 }
 
-/* Toolbar styling */
 #toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -23,7 +20,6 @@ h1 {
   justify-content: center;
 }
 
-/* Buttons styling */
 button, input[type="file"] {
   padding: 6px 12px;
   font-size: 14px;
@@ -35,27 +31,28 @@ button.active {
   color: white;
 }
 
-/* Canvas container ensures proper placement */
 #canvasContainer {
   width: 90vw;
+  max-width: 1200px;
   height: 60vh;
   border: 1px solid #ccc;
   background: #fff;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
   margin-bottom: 10px;
 }
 
-/* Canvas fills its container */
 #canvas {
   width: 100%;
   height: 100%;
-  touch-action: none; /* prevent default mobile gestures */
+  display: block;
+  touch-action: none;
 }
 
-/* Status text */
 #status {
-  margin: 8px;
+  margin: 8px 0;
   font-size: 14px;
+  text-align: center;
 }
