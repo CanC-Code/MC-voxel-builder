@@ -1,37 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MC Voxel Builder</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MC Voxel Builder</title>
+
+<link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-  <!-- UI overlay -->
-  <div id="ui">
-    <h1>MC Voxel Builder</h1>
+<!-- UI OVERLAY -->
+<div id="ui">
+  <h1>MC Voxel Builder</h1>
 
-    <div id="toolbar">
-      <button id="newCube">New Cube</button>
-      <button id="newSphere">New Sphere</button>
-      <input type="file" id="modelInput" accept=".glb,.gltf" />
-      <button id="convertBtn">Convert to Voxels</button>
-      <button id="exportGLTF">Export GLB</button>
-      <button id="rotateBtn">Rotate</button>
-      <button id="scaleBtn">Scale</button>
-      <button id="inflateBtn">Inflate</button>
-      <button id="deflateBtn">Deflate</button>
-      <button id="resetScene">Reset</button>
-    </div>
-
-    <div id="status">Ready</div>
+  <div id="toolbar">
+    <button id="newCube">New Cube</button>
+    <button id="newSphere">New Sphere</button>
+    <button id="resetScene">Reset</button>
+    <button id="exportGLTF">Export GLB</button>
   </div>
 
-  <!-- Three.js lives here -->
-  <div id="three-container"></div>
+  <div id="status">Choose a base shape</div>
+</div>
 
-  <script type="module" src="main.js"></script>
+<!-- THREE.JS CONTAINER (NO UI INSIDE) -->
+<div id="three-container"></div>
+
+<script type="module" src="main.js"></script>
 </body>
 </html>
