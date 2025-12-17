@@ -10,23 +10,71 @@ body {
     top: 10px;
     left: 10px;
     z-index: 10;
-    background: rgba(0,0,0,0.7);
-    padding: 10px;
+    width: 250px;
+    background: rgba(0,0,0,0.8);
     border-radius: 5px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+    color: #fff;
+    font-size: 14px;
 }
 
-#menu button {
-    background: #444;
+#collapseMenu {
+    width: 100%;
+    background: #333;
+    border: none;
+    color: #fff;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 5px 5px 0 0;
+}
+
+#menuContent {
+    display: block;
+    padding: 5px;
+}
+
+.tab {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 5px;
+}
+
+.tab button {
+    flex: 1;
+    margin: 0 2px;
+    padding: 5px;
+    background: #555;
     color: #fff;
     border: none;
-    padding: 5px 10px;
     cursor: pointer;
     border-radius: 3px;
 }
 
-#menu button:hover {
+.tab button.active {
+    background: #88aa88;
+}
+
+.tabContent {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tabContent button {
+    background: #444;
+    border: none;
+    color: #fff;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.tabContent button:hover {
     background: #666;
+}
+
+.tabContent label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
 }
