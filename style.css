@@ -1,34 +1,46 @@
-body {
-    margin: 0;
-    overflow: hidden;
-    font-family: sans-serif;
-    background: #202025;
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #1a1a1a;
+  color: #eee;
+  font-family: sans-serif;
 }
 
-#ui-panel {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    z-index: 10;
+#canvas {
+  width: 100vw;
+  height: 100vh;
+  display: block;
 }
 
-#ui-panel button {
-    padding: 6px 12px;
-    background: #333;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    border-radius: 4px;
+#toolbar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(30, 30, 30, 0.9);
+  padding: 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
 }
 
-#ui-panel button:hover {
-    background: #555;
+#toolbar button {
+  background: #333;
+  color: #eee;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
 }
 
-#status {
-    margin-top: 6px;
-    color: #fff;
+#toolbar button.active {
+  background: #5a8dee;
+}
+
+#toolbar label {
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
 }
