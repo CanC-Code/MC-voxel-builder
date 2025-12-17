@@ -4,10 +4,12 @@ import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 
 let scene, camera, renderer, controls;
-let currentMesh = null; // only one active mesh at a time
+let cube, sphere;
 let started = false;
 
-// --- ENTRY POINT ---
+/**
+ * Entry point – guaranteed single execution
+ */
 function startApp() {
     if (started) return;
     started = true;
@@ -16,53 +18,38 @@ function startApp() {
     animate();
 }
 
-// --- DOM READY ---
+/**
+ * DOM-ready handling (covers all browsers)
+ */
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
 } else {
     startApp();
 }
 
-// --- DEVICE DETECTION ---
-function isMobile() {
-    return /Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
-}
-
-// --- DYNAMIC CANVAS SIZE ---
-function getContainerSize() {
-    const container = document.getElementById('canvasContainer');
-
-    if (container) {
-        if (isMobile()) {
-            return {
-                width: container.clientWidth || window.innerWidth,
-                height: container.clientHeight || window.innerHeight * 0.6
-            };
-        } else {
-            return {
-                width: window.innerWidth * 0.9,
-                height: window.innerHeight * 0.7
-            };
-        }
-    } else {
-        return { width: window.innerWidth, height: window.innerHeight * 0.6 };
-    }
-}
-
 function init() {
+
     // --- SCENE ---
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
     // --- CAMERA ---
-    const size = getContainerSize();
-    camera = new THREE.PerspectiveCamera(60, size.width / size.height, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(
+        60,
+        1, // temporary, will resize
+        0.1,
+        1000
+    );
     camera.position.set(5, 5, 5);
 
     // --- RENDERER ---
-    renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('canvas') });
-    renderer.setSize(size.width, size.height);
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
+
+    // Append to container instead of body
+    const container = document.getElementById('canvasContainer');
+    container.appendChild(renderer.domElement);
+    resizeRenderer();
 
     // --- CONTROLS ---
     controls = new OrbitControls(camera, renderer.domElement);
@@ -72,6 +59,7 @@ function init() {
 
     // --- LIGHTS ---
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
@@ -79,17 +67,32 @@ function init() {
     // --- GRID ---
     scene.add(new THREE.GridHelper(20, 20));
 
-    // --- UI HOOKS ---
-    bindButton('newCube', () => addMesh('cube'));
-    bindButton('newSphere', () => addMesh('sphere'));
+    // --- TEST OBJECTS ---
+    cube = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0x44aa88 })
+    );
+    cube.position.y = 0.5;
+    scene.add(cube);
+
+    sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xaa4444 })
+    );
+    sphere.position.set(2, 0.5, 0);
+    scene.add(sphere);
+
+    // --- UI HOOKS (ABSOLUTELY SAFE) ---
     bindButton('exportBtn', exportScene);
     bindButton('resetScene', resetScene);
 
     // --- RESIZE ---
-    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('resize', resizeRenderer);
 }
 
-// --- BUTTON BINDING ---
+/**
+ * Safe button binder – NEVER throws
+ */
 function bindButton(id, handler) {
     const el = document.getElementById(id);
     if (!el) {
@@ -99,35 +102,13 @@ function bindButton(id, handler) {
     el.addEventListener('click', handler);
 }
 
-// --- MESH HANDLING ---
-function addMesh(type) {
-    if (currentMesh) scene.remove(currentMesh);
-
-    if (type === 'cube') {
-        currentMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial({ color: 0x44aa88 })
-        );
-    } else if (type === 'sphere') {
-        currentMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(0.5, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xaa4444 })
-        );
-    }
-
-    if (currentMesh) {
-        currentMesh.position.y = 0.5;
-        scene.add(currentMesh);
-    }
-
-    document.getElementById('status').textContent = `${type} added`;
-}
-
-// --- EXPORT SCENE ---
 function exportScene() {
     const exporter = new GLTFExporter();
     exporter.parse(scene, (gltf) => {
-        const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
+        const blob = new Blob(
+            [JSON.stringify(gltf, null, 2)],
+            { type: 'application/json' }
+        );
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -137,26 +118,30 @@ function exportScene() {
     });
 }
 
-// --- RESET SCENE ---
 function resetScene() {
-    if (currentMesh) {
-        currentMesh.rotation.set(0, 0, 0);
-    }
+    cube.rotation.set(0, 0, 0);
+    sphere.rotation.set(0, 0, 0);
     controls.reset();
-    document.getElementById('status').textContent = 'Ready';
 }
 
-// --- RESIZE HANDLER ---
-function onWindowResize() {
-    const size = getContainerSize();
-    camera.aspect = size.width / size.height;
+function resizeRenderer() {
+    const container = document.getElementById('canvasContainer');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(size.width, size.height);
+
+    renderer.setSize(width, height);
 }
 
-// --- ANIMATION LOOP ---
 function animate() {
     requestAnimationFrame(animate);
+
+    // --- autorotation removed ---
+    // cube.rotation.y += 0.01;
+    // sphere.rotation.x += 0.01;
+
     controls.update();
     renderer.render(scene, camera);
 }
