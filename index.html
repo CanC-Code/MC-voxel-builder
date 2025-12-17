@@ -8,27 +8,15 @@
 </head>
 <body>
 <div id="menu">
-    <button id="tabSculpt" class="tab-btn active">Sculpt</button>
-    <button id="tabVoxel" class="tab-btn">Voxelize</button>
-    <button id="tabExport" class="tab-btn">Export/Load</button>
-    
-    <div id="panelSculpt" class="tab-panel">
-        <div id="brushControls"></div>
-        <button id="newCube">Cube</button>
-        <button id="newSphere">Sphere</button>
-        <button id="toggleOrbit">Toggle Orbit</button>
-    </div>
-    
-    <div id="panelVoxel" class="tab-panel" style="display:none;">
-        <p>Voxelization preview coming...</p>
-    </div>
-    
-    <div id="panelExport" class="tab-panel" style="display:none;">
-        <button id="exportGLTF">Export GLTF</button>
-        <button id="loadGLTF">Load GLTF</button>
-        <button id="exportVoxel">Export Voxel</button>
-    </div>
+    <button id="toggleMode">Orbit / Sculpt</button>
+    <div id="toolControls"></div>
+    <button id="newCube">New Cube</button>
+    <button id="newSphere">New Sphere</button>
+    <button id="exportGLTF">Export GLTF</button>
+    <button id="resetScene">Reset</button>
 </div>
-<script type="module" src="./main.js"></script>
+<script type="module" src="three/three.module.js"></script>
+<script type="module" src="three/lil-gui.esm.min.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
