@@ -21,7 +21,11 @@ function init() {
     camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
     camera.position.set(5, 5, 5);
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false
+    });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.autoClear = false;
 
@@ -38,7 +42,7 @@ function init() {
 
     setActiveObject(createCube());
 
-    // ---------- Gizmo ----------
+    // ---- Gizmo ----
     gizmoScene = new THREE.Scene();
 
     gizmoCamera = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.1, 10);
@@ -56,7 +60,6 @@ function init() {
             new THREE.MeshBasicMaterial({ color: 0x0000aa })
         ]
     );
-
     gizmoScene.add(gizmoCube);
 
     canvas.addEventListener('pointerdown', onPointerDown);
@@ -65,8 +68,8 @@ function init() {
     document.getElementById('newSphere').onclick = () => setActiveObject(createSphere());
     document.getElementById('resetScene').onclick = resetView;
 
-    onResize();
-    window.addEventListener('resize', onResize);
+    syncRendererSize();
+    window.addEventListener('resize', syncRendererSize);
 }
 
 function createCube() {
@@ -99,12 +102,27 @@ function resetView() {
     controls.update();
 }
 
+function syncRendererSize() {
+    const canvas = renderer.domElement;
+    const rect = canvas.getBoundingClientRect();
+
+    const dpr = window.devicePixelRatio;
+    const width = Math.floor(rect.width * dpr);
+    const height = Math.floor(rect.height * dpr);
+
+    if (canvas.width !== width || canvas.height !== height) {
+        renderer.setSize(rect.width, rect.height, false);
+        camera.aspect = rect.width / rect.height;
+        camera.updateProjectionMatrix();
+    }
+}
+
 function onPointerDown(e) {
     const rect = renderer.domElement.getBoundingClientRect();
     const dpr = window.devicePixelRatio;
 
     const x = (e.clientX - rect.left) * dpr;
-    const y = (rect.bottom - e.clientY) * dpr;
+    const y = (rect.height - (e.clientY - rect.top)) * dpr;
 
     const size = GIZMO_SIZE * dpr;
 
@@ -121,6 +139,8 @@ function onPointerDown(e) {
 
 function animate() {
     requestAnimationFrame(animate);
+
+    syncRendererSize();
 
     controls.update();
     renderer.clear();
@@ -145,12 +165,4 @@ function animate() {
     );
 
     renderer.render(gizmoScene, gizmoCamera);
-}
-
-function onResize() {
-    const canvas = renderer.domElement;
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
-
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
 }
