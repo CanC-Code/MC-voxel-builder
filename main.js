@@ -1,171 +1,180 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
-import { GLTFLoader } from './three/GLTFLoader.js';
 
 let scene, camera, renderer, orbitControls;
 let mesh;
-let sculptMode=false, brushMode='drag', showMesh=true, mirror=false, lockRotation=false;
-let brush={size:0.5,strength:0.1};
-let raycaster=new THREE.Raycaster();
-let mouse=new THREE.Vector2();
+let started = false;
+let showMesh = true;
+let cameraLocked = false;
+let brush = { size: 0.2, strength: 0.05 };
+let brushMode = 'drag';
+let mirror = false;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
-function startApp(){
+function startApp() {
+    if (started) return;
+    started = true;
+
     init();
     animate();
 }
 
-if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded',startApp);
-}else{
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+} else {
     startApp();
 }
 
-function init(){
-    // Scene
-    scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x444455);
+function init() {
+    // --- Scene ---
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x555555);
 
-    // Camera
-    camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,1000);
-    camera.position.set(3,3,5);
+    // --- Camera ---
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(5,5,5);
 
-    // Renderer
-    renderer=new THREE.WebGLRenderer({antialias:true});
-    renderer.setSize(window.innerWidth,window.innerHeight);
+    // --- Renderer ---
+    renderer = new THREE.WebGLRenderer({antialias:true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    // Orbit Controls
-    orbitControls=new OrbitControls(camera,renderer.domElement);
-    orbitControls.enableDamping=true;
-    orbitControls.dampingFactor=0.08;
+    // --- Orbit Controls ---
+    orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.08;
     orbitControls.target.set(0,0.5,0);
 
-    // Lights
-    scene.add(new THREE.HemisphereLight(0xffffff,0x444444,1.2));
-    const dir=new THREE.DirectionalLight(0xffffff,1);
+    // --- Lights ---
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5,10,7);
     scene.add(dir);
 
-    scene.add(new THREE.GridHelper(10,10));
+    // --- Grid ---
+    scene.add(new THREE.GridHelper(20,20));
 
-    // Initial mesh
+    // --- Initial Mesh ---
     addMesh('cube');
 
-    // Events
-    window.addEventListener('resize',onWindowResize);
-    renderer.domElement.addEventListener('pointerdown',onPointerDown);
+    // --- UI Hooks ---
+    bindButton('newCube', ()=>addMesh('cube'));
+    bindButton('newSphere', ()=>addMesh('sphere'));
+    bindButton('toggleMeshView', toggleMeshView);
+    bindButton('lockCamera', toggleCameraLock);
+    bindButton('exportGLTF', exportScene);
 
-    setupMenu();
+    document.getElementById('brushSize').addEventListener('input', e => brush.size=parseFloat(e.target.value));
+    document.getElementById('brushStrength').addEventListener('input', e => brush.strength=parseFloat(e.target.value));
+    document.getElementById('brushMode').addEventListener('change', e => brushMode=e.target.value);
+    document.getElementById('mirror').addEventListener('change', e => mirror=e.target.checked);
+
+    // --- Events ---
+    window.addEventListener('resize', onWindowResize);
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
 }
 
-function setupMenu(){
-    const collapseBtn=document.getElementById('collapseMenu');
-    const menuContent=document.getElementById('menuContent');
-    collapseBtn.addEventListener('click',()=>{menuContent.style.display=menuContent.style.display==='none'?'block':'none';});
-
-    const tabs=document.querySelectorAll('.tabButton');
-    tabs.forEach(btn=>{
-        btn.addEventListener('click',()=>{
-            document.querySelectorAll('.tabButton').forEach(b=>b.classList.remove('active'));
-            btn.classList.add('active');
-            const tabId=btn.dataset.tab+'Tab';
-            document.querySelectorAll('.tabContent').forEach(tc=>tc.style.display='none');
-            document.getElementById(tabId).style.display='flex';
-        });
-    });
-
-    document.getElementById('newCube').addEventListener('click',()=>addMesh('cube'));
-    document.getElementById('newSphere').addEventListener('click',()=>addMesh('sphere'));
-    document.getElementById('toggleMeshView').addEventListener('click',()=>{
-        showMesh=!showMesh;
-        if(mesh) mesh.material.wireframe=!showMesh;
-    });
-
-    document.getElementById('mirrorToggle').addEventListener('change',e=>mirror=e.target.checked);
-    document.getElementById('lockRotationToggle').addEventListener('change',e=>lockRotation=e.target.checked);
-
-    document.querySelectorAll('#sculptTab button').forEach(btn=>{
-        btn.addEventListener('click',()=>{brushMode=btn.dataset.mode; sculptMode=true;});
-    });
-    document.getElementById('brushSize').addEventListener('input',e=>brush.size=parseFloat(e.target.value));
-    document.getElementById('brushStrength').addEventListener('input',e=>brush.strength=parseFloat(e.target.value));
-
-    document.getElementById('exportGLTF').addEventListener('click',exportScene);
-    document.getElementById('resetScene').addEventListener('click',()=>{if(mesh) mesh.rotation.set(0,0,0);});
-    document.getElementById('loadGLTF').addEventListener('click',loadScene);
-
-    // Show initial tab
-    tabs[0].click();
+function bindButton(id, handler) {
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('click', handler);
 }
 
 function addMesh(type){
     if(mesh) scene.remove(mesh);
+
     let geom;
-    if(type==='cube') geom=new THREE.BoxGeometry(1,1,1,10,10,10);
-    else geom=new THREE.SphereGeometry(0.5,32,32);
-    mesh=new THREE.Mesh(geom,new THREE.MeshStandardMaterial({color:0x44aa88,vertexColors:true,wireframe:false}));
-    mesh.position.y=0.5;
+    if(type==='cube') geom = new THREE.BoxGeometry(1,1,1,20,20,20);
+    else geom = new THREE.SphereGeometry(0.5,32,32);
+
+    mesh = new THREE.Mesh(
+        geom,
+        new THREE.MeshStandardMaterial({
+            color: 0x44aa88,
+            wireframe: !showMesh,
+            flatShading:false
+        })
+    );
+    mesh.position.y = 0.5;
     scene.add(mesh);
 }
 
-function onPointerDown(event){
-    if(!mesh || !sculptMode) return;
-    const rect=renderer.domElement.getBoundingClientRect();
-    mouse.x=((event.clientX-rect.left)/rect.width)*2-1;
-    mouse.y=-((event.clientY-rect.top)/rect.height)*2+1;
-    raycaster.setFromCamera(mouse,camera);
-    sculptMesh();
+function toggleMeshView(){
+    showMesh = !showMesh;
+    if(mesh) mesh.material.wireframe = !showMesh;
 }
 
-function sculptMesh(){
-    if(!mesh.geometry.isBufferGeometry) return;
-    const pos=mesh.geometry.attributes.position;
-    for(let i=0;i<pos.count;i++){
-        const vertex=new THREE.Vector3().fromBufferAttribute(pos,i);
-        const dist=vertex.distanceTo(raycaster.ray.origin);
-        if(dist<brush.size){
-            const normal=new THREE.Vector3().fromBufferAttribute(mesh.geometry.attributes.normal,i);
-            if(brushMode==='inflate') vertex.addScaledVector(normal,brush.strength);
-            else if(brushMode==='deflate') vertex.addScaledVector(normal,-brush.strength);
-            else if(brushMode==='smooth') vertex.multiplyScalar(1-brush.strength);
-            else if(brushMode==='drag') vertex.addScaledVector(normal,0); // placeholder for future precise drag
-            pos.setXYZ(i,vertex.x,vertex.y,vertex.z);
-            if(mirror){
-                const mirroredX=-vertex.x;
-                pos.setXYZ(i,mirroredX,vertex.y,vertex.z);
-            }
-        }
-    }
-    pos.needsUpdate=true;
+function toggleCameraLock(){
+    cameraLocked = !cameraLocked;
+    orbitControls.enabled = !cameraLocked;
 }
 
 function exportScene(){
-    const exporter=new GLTFExporter();
-    exporter.parse(scene,gltf=>{
-        const blob=new Blob([JSON.stringify(gltf,null,2)],{type:'application/json'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url;
-        a.download='scene.gltf';
+    const exporter = new GLTFExporter();
+    exporter.parse(scene, gltf=>{
+        const blob = new Blob([JSON.stringify(gltf,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'scene.gltf';
         a.click();
         URL.revokeObjectURL(url);
     });
 }
 
-function loadScene(){
-    alert('Load GLTF feature not implemented yet');
+function onWindowResize(){
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function onWindowResize(){
-    camera.aspect=window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
+let isPointerDown = false;
+function onPointerDown(e){ isPointerDown=true; sculptMesh(e); }
+function onPointerMove(e){ if(isPointerDown) sculptMesh(e); }
+document.addEventListener('pointerup',()=>isPointerDown=false);
+
+function sculptMesh(e){
+    if(!mesh) return;
+    mouse.x = (e.clientX / window.innerWidth)*2-1;
+    mouse.y = -(e.clientY / window.innerHeight)*2+1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(mesh);
+    if(intersects.length===0) return;
+    const posAttr = mesh.geometry.attributes.position;
+    const normAttr = mesh.geometry.attributes.normal;
+    for(let i=0;i<posAttr.count;i++){
+        const vertex = new THREE.Vector3().fromBufferAttribute(posAttr,i);
+        const dist = vertex.distanceTo(intersects[0].point);
+        if(dist<brush.size){
+            const influence = 1 - dist/brush.size;
+            const normal = new THREE.Vector3().fromBufferAttribute(normAttr,i);
+            if(brushMode==='inflate') vertex.addScaledVector(normal, brush.strength*influence);
+            else if(brushMode==='deflate') vertex.addScaledVector(normal, -brush.strength*influence);
+            else if(brushMode==='smooth'){
+                const avg = new THREE.Vector3();
+                for(let j=0;j<posAttr.count;j++){
+                    const v2 = new THREE.Vector3().fromBufferAttribute(posAttr,j);
+                    if(vertex.distanceTo(v2)<brush.size*0.5) avg.add(v2);
+                }
+                avg.divideScalar(posAttr.count);
+                vertex.lerp(avg, brush.strength*influence);
+            }
+            posAttr.setXYZ(i,vertex.x,vertex.y,vertex.z);
+            if(mirror){
+                posAttr.setXYZ(i, -vertex.x, vertex.y, vertex.z);
+            }
+        }
+    }
+    posAttr.needsUpdate = true;
+    mesh.geometry.computeVertexNormals();
 }
 
 function animate(){
     requestAnimationFrame(animate);
-    if(!lockRotation) orbitControls.update();
+    orbitControls.update();
     renderer.render(scene,camera);
 }
