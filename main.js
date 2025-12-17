@@ -1,31 +1,38 @@
-import * as THREE from './three/three.module.js';
-import { OrbitControls } from './three/OrbitControls.js';
-import { GLTFLoader } from './three/GLTFLoader.js';
-import { GLTFExporter } from './three/GLTFExporter.js';
-
+// main.js – MC Voxel Builder
 let scene, camera, renderer, controls;
-let activeObject = null;
-const container = document.getElementById('canvasContainer');
+let currentObject = null;
+let started = false;
 
-/** Entry point */
-function startApp() {
-    init();
-    animate();
+async function startApp() {
+    if (started) return;
+    started = true;
+
+    // Dynamic imports
+    const THREE = await import('./three/three.module.js');
+    const { OrbitControls } = await import('./three/OrbitControls.js');
+    const { GLTFLoader } = await import('./three/GLTFLoader.js');
+    const { GLTFExporter } = await import('./three/GLTFExporter.js');
+
+    init(THREE, OrbitControls, GLTFLoader);
+    animate(THREE);
 }
 
-/** DOM-ready handling */
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
 } else {
     startApp();
 }
 
-function init() {
-    // --- SCENE ---
+function init(THREE, OrbitControls, GLTFLoader) {
+    const container = document.getElementById('canvasContainer');
+    if (!container) {
+        console.error('Canvas container not found');
+        return;
+    }
+
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202025);
 
-    // --- CAMERA ---
     camera = new THREE.PerspectiveCamera(
         60,
         container.clientWidth / container.clientHeight,
@@ -34,62 +41,69 @@ function init() {
     );
     camera.position.set(5, 5, 5);
 
-    // --- RENDERER ---
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('canvas') });
-    renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(container.clientWidth, container.clientHeight);
 
-    // --- CONTROLS ---
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.target.set(0, 0.5, 0);
 
-    // --- LIGHTS ---
     scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
     const dir = new THREE.DirectionalLight(0xffffff, 1);
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
-    // --- GRID ---
     scene.add(new THREE.GridHelper(20, 20));
 
-    // --- UI HOOKS ---
-    document.getElementById('newCube').onclick = () => addObject('cube');
-    document.getElementById('newSphere').onclick = () => addObject('sphere');
-    document.getElementById('exportBtn').onclick = exportScene;
-    document.getElementById('resetScene').onclick = resetScene;
+    // Initialize with cube only
+    addCube(THREE);
 
-    // --- RESIZE ---
-    window.addEventListener('resize', onWindowResize);
+    // UI bindings
+    bindButton('newCube', () => replaceObject(THREE, 'cube'));
+    bindButton('newSphere', () => replaceObject(THREE, 'sphere'));
+    bindButton('exportBtn', () => exportScene(THREE, GLTFExporter));
 
-    // --- INITIAL OBJECT ---
-    addObject('cube');
+    window.addEventListener('resize', () => onWindowResize(THREE, container));
 }
 
-function addObject(type) {
-    // Remove previous
-    if (activeObject) scene.remove(activeObject);
-
-    if (type === 'cube') {
-        activeObject = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial({ color: 0x44aa88 })
-        );
-    } else if (type === 'sphere') {
-        activeObject = new THREE.Mesh(
-            new THREE.SphereGeometry(0.5, 32, 32),
-            new THREE.MeshStandardMaterial({ color: 0xaa4444 })
-        );
+function bindButton(id, handler) {
+    const el = document.getElementById(id);
+    if (!el) {
+        console.warn(`UI element not found #${id}`);
+        return;
     }
-
-    if (activeObject) {
-        activeObject.position.set(0, 0.5, 0);
-        scene.add(activeObject);
-    }
+    el.addEventListener('click', handler);
 }
 
-function exportScene() {
+function addCube(THREE) {
+    const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0x44aa88 })
+    );
+    cube.position.y = 0.5;
+    scene.add(cube);
+    currentObject = cube;
+}
+
+function addSphere(THREE) {
+    const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xaa4444 })
+    );
+    sphere.position.y = 0.5;
+    scene.add(sphere);
+    currentObject = sphere;
+}
+
+function replaceObject(THREE, type) {
+    if (currentObject) scene.remove(currentObject);
+    if (type === 'cube') addCube(THREE);
+    else if (type === 'sphere') addSphere(THREE);
+}
+
+function exportScene(THREE, GLTFExporter) {
     const exporter = new GLTFExporter();
     exporter.parse(scene, (gltf) => {
         const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
@@ -102,19 +116,14 @@ function exportScene() {
     });
 }
 
-function resetScene() {
-    if (activeObject) activeObject.rotation.set(0, 0, 0);
-    controls.reset();
-}
-
-function onWindowResize() {
+function onWindowResize(THREE, container) {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(container.clientWidth, container.clientHeight);
 }
 
-function animate() {
-    requestAnimationFrame(animate);
+function animate(THREE) {
+    requestAnimationFrame(() => animate(THREE));
     controls.update();
     renderer.render(scene, camera);
 }
