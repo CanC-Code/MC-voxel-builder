@@ -4,7 +4,7 @@ import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
-import GUI from './lil-gui.esm.min.js';
+import GUI from './three/lil-gui.esm.min.js';
 
 let scene, camera, renderer, orbitControls;
 let activeMesh = null;
