@@ -6,7 +6,6 @@
 <title>MC Voxel Builder</title>
 <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
 <h1>MC Voxel Builder</h1>
@@ -14,15 +13,19 @@
 <div id="toolbar">
   <button id="newCube">New Cube</button>
   <button id="newSphere">New Sphere</button>
-  <button id="resetScene">Reset View</button>
+  <input type="file" id="modelInput" accept=".glb,.gltf">
+  <button id="convertBtn">Convert to Voxels</button>
+  <button id="exportGLTF">Export GLB</button>
+  <button id="resetScene">Reset</button>
 </div>
 
-<div id="canvas-container">
+<div id="viewportContainer">
   <canvas id="canvas"></canvas>
 </div>
 
 <div id="status">Ready</div>
 
 <script type="module" src="main.js"></script>
+
 </body>
 </html>
