@@ -11,22 +11,23 @@
 <h1>MC Voxel Builder</h1>
 
 <div id="toolbar">
-  <button id="newCube">New Cube</button>
-  <button id="newSphere">New Sphere</button>
-  <input type="file" id="modelInput" accept=".glb,.gltf">
-  <button id="convertBtn">Convert to Voxels</button>
-  <button id="exportBtn">Export GLB</button>
-  <button id="resetScene">Reset Scene</button>
+    <button id="newCube">New Cube</button>
+    <button id="newSphere">New Sphere</button>
+    <input type="file" id="modelInput" accept=".glb,.gltf">
+    <button id="convertBtn">Convert to Voxels</button>
+    <button id="exportBtn">Export GLB</button>
+    <button id="rotateBtn">Rotate</button>
+    <button id="scaleBtn">Scale</button>
+    <button id="inflateBtn">Inflate</button>
+    <button id="deflateBtn">Deflate</button>
 </div>
 
 <div id="canvasContainer">
-  <canvas id="mainCanvas"></canvas>
-  <canvas id="viewCubeCanvas"></canvas>
+    <canvas id="canvas"></canvas>
 </div>
 
 <div id="status">Ready</div>
 
 <script type="module" src="main.js"></script>
-
 </body>
 </html>
