@@ -4,21 +4,12 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  align-items: center;
   background: #f0f0f0;
 }
 
 h1 {
-  margin: 10px;
-  text-align: center;
-}
-
-main#mainContainer {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;  /* fill remaining space */
-  width: 100%;
-  align-items: center;
+  margin: 10px 0;
 }
 
 #toolbar {
@@ -34,10 +25,16 @@ button {
   cursor: pointer;
 }
 
+button.active {
+  background: #4a90e2;
+  color: white;
+}
+
 #canvasContainer {
-  flex-grow: 1;           /* canvas fills remaining vertical space */
   width: 90vw;
-  max-width: 1200px;
+  height: 60vh;
+  border: 1px solid #ccc;
+  background: #fff;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -46,14 +43,10 @@ button {
 canvas {
   width: 100%;
   height: 100%;
-  border: 1px solid #ccc;
-  background: #fff;
-  touch-action: none;
-  display: block;
+  touch-action: none; /* prevent mobile gestures */
 }
 
 #status {
   margin: 8px;
   font-size: 14px;
-  text-align: center;
 }
