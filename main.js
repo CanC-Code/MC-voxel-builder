@@ -3,16 +3,19 @@ import { OrbitControls } from './three/OrbitControls.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 
 let scene, camera, renderer, orbitControls;
-let mesh;
+let mesh, originalMesh;
 let started = false;
-let showMesh = true;
-let cameraLocked = false;
-let brush = { size: 0.2, strength: 0.05 };
-let brushMode = 'drag';
-let mirror = false;
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
 
+let brushSize = 0.5;
+let brushStrength = 0.2;
+let brushMode = 'inflate';
+let mirrorX = false, mirrorY = false, mirrorZ = false;
+let lockCamera = false;
+
+// Brush helper
+let brushHelper;
+
+// --- ENTRY POINT ---
 function startApp() {
     if (started) return;
     started = true;
@@ -21,102 +24,116 @@ function startApp() {
     animate();
 }
 
+// DOM ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', startApp);
 } else {
     startApp();
 }
 
+// --- INITIALIZATION ---
 function init() {
-    // --- Scene ---
+    // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x555555);
+    scene.background = new THREE.Color(0x444455);
 
-    // --- Camera ---
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
-    camera.position.set(5,5,5);
+    // Camera
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(3, 3, 5);
 
-    // --- Renderer ---
-    renderer = new THREE.WebGLRenderer({antialias:true});
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    // --- Orbit Controls ---
+    // OrbitControls
     orbitControls = new OrbitControls(camera, renderer.domElement);
     orbitControls.enableDamping = true;
     orbitControls.dampingFactor = 0.08;
-    orbitControls.target.set(0,0.5,0);
 
-    // --- Lights ---
+    // Lights
     const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     scene.add(hemi);
     const dir = new THREE.DirectionalLight(0xffffff, 1);
-    dir.position.set(5,10,7);
+    dir.position.set(5, 10, 7);
     scene.add(dir);
 
-    // --- Grid ---
-    scene.add(new THREE.GridHelper(20,20));
+    // Grid
+    scene.add(new THREE.GridHelper(10, 10));
 
-    // --- Initial Mesh ---
-    addMesh('cube');
+    // Initial cube
+    addObject('cube');
 
-    // --- UI Hooks ---
-    bindButton('newCube', ()=>addMesh('cube'));
-    bindButton('newSphere', ()=>addMesh('sphere'));
-    bindButton('toggleMeshView', toggleMeshView);
-    bindButton('lockCamera', toggleCameraLock);
-    bindButton('exportGLTF', exportScene);
+    // Brush helper
+    const geo = new THREE.RingGeometry(1, 1.02, 32);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+    brushHelper = new THREE.Mesh(geo, mat);
+    brushHelper.rotation.x = -Math.PI/2;
+    brushHelper.visible = false;
+    scene.add(brushHelper);
 
-    document.getElementById('brushSize').addEventListener('input', e => brush.size=parseFloat(e.target.value));
-    document.getElementById('brushStrength').addEventListener('input', e => brush.strength=parseFloat(e.target.value));
-    document.getElementById('brushMode').addEventListener('change', e => brushMode=e.target.value);
-    document.getElementById('mirror').addEventListener('change', e => mirror=e.target.checked);
-
-    // --- Events ---
+    // Event listeners
     window.addEventListener('resize', onWindowResize);
     renderer.domElement.addEventListener('pointermove', onPointerMove);
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
+
+    // UI bindings
+    bindButton('newCube', () => addObject('cube'));
+    bindButton('newSphere', () => addObject('sphere'));
+    bindButton('toggleMeshView', toggleMeshView);
+    bindButton('resetScene', resetScene);
+    bindButton('exportGLTF', exportScene);
+
+    document.getElementById('brushSize').addEventListener('input', e => brushSize = parseFloat(e.target.value));
+    document.getElementById('brushStrength').addEventListener('input', e => brushStrength = parseFloat(e.target.value));
+    document.getElementById('brushMode').addEventListener('change', e => brushMode = e.target.value);
+    document.getElementById('mirrorX').addEventListener('change', e => mirrorX = e.target.checked);
+    document.getElementById('mirrorY').addEventListener('change', e => mirrorY = e.target.checked);
+    document.getElementById('mirrorZ').addEventListener('change', e => mirrorZ = e.target.checked);
+    document.getElementById('lockCamera').addEventListener('change', e => lockCamera = e.target.checked);
 }
 
+// --- UI / HELPER FUNCTIONS ---
 function bindButton(id, handler) {
     const el = document.getElementById(id);
-    if(el) el.addEventListener('click', handler);
+    if (!el) return;
+    el.addEventListener('click', handler);
 }
 
-function addMesh(type){
-    if(mesh) scene.remove(mesh);
+// --- OBJECT MANAGEMENT ---
+function addObject(type) {
+    if (mesh) scene.remove(mesh);
 
-    let geom;
-    if(type==='cube') geom = new THREE.BoxGeometry(1,1,1,20,20,20);
-    else geom = new THREE.SphereGeometry(0.5,32,32);
+    let geometry;
+    if (type === 'cube') geometry = new THREE.BoxGeometry(1,1,1,16,16,16);
+    else if (type === 'sphere') geometry = new THREE.SphereGeometry(0.75, 32, 32);
 
-    mesh = new THREE.Mesh(
-        geom,
-        new THREE.MeshStandardMaterial({
-            color: 0x44aa88,
-            wireframe: !showMesh,
-            flatShading:false
-        })
-    );
-    mesh.position.y = 0.5;
+    const material = new THREE.MeshStandardMaterial({ color: 0x44aa88, flatShading: false, roughness: 0.5, metalness: 0.1 });
+    mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
+
+    originalMesh = mesh.clone();
 }
 
-function toggleMeshView(){
-    showMesh = !showMesh;
-    if(mesh) mesh.material.wireframe = !showMesh;
+// --- MESH VIEW ---
+function toggleMeshView() {
+    if (!mesh) return;
+    mesh.material.wireframe = !mesh.material.wireframe;
 }
 
-function toggleCameraLock(){
-    cameraLocked = !cameraLocked;
-    orbitControls.enabled = !cameraLocked;
+// --- SCENE ---
+function resetScene() {
+    if (!mesh) return;
+    scene.remove(mesh);
+    addObject('cube');
 }
 
-function exportScene(){
+// --- EXPORT ---
+function exportScene() {
     const exporter = new GLTFExporter();
-    exporter.parse(scene, gltf=>{
-        const blob = new Blob([JSON.stringify(gltf,null,2)], {type:'application/json'});
+    exporter.parse(scene, (gltf) => {
+        const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -126,55 +143,83 @@ function exportScene(){
     });
 }
 
-function onWindowResize(){
-    camera.aspect = window.innerWidth/window.innerHeight;
+// --- SCULPTING LOGIC ---
+let pointer = new THREE.Vector2();
+let raycaster = new THREE.Raycaster();
+let isPointerDown = false;
+
+function onPointerMove(event) {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    if (mesh) {
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObject(mesh);
+        if (intersects.length > 0) {
+            brushHelper.position.copy(intersects[0].point);
+            brushHelper.scale.setScalar(brushSize);
+            brushHelper.visible = true;
+
+            if (isPointerDown) applyBrush(intersects[0].point);
+        } else {
+            brushHelper.visible = false;
+        }
+    }
+}
+
+function onPointerDown(event) {
+    isPointerDown = true;
+    onPointerMove(event);
+    window.addEventListener('pointerup', () => isPointerDown = false, { once: true });
+}
+
+function applyBrush(point) {
+    if (!mesh) return;
+    const pos = mesh.geometry.attributes.position;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        const dist = v.distanceTo(point);
+        if (dist < brushSize) {
+            const falloff = 1 - (dist / brushSize);
+            if (brushMode === 'inflate') v.addScaledVector(v.clone().sub(point).normalize(), brushStrength * falloff);
+            else if (brushMode === 'deflate') v.addScaledVector(v.clone().sub(point).normalize(), -brushStrength * falloff);
+            else if (brushMode === 'smooth') {
+                const neighbors = [];
+                for (let j = 0; j < pos.count; j++) {
+                    const v2 = new THREE.Vector3().fromBufferAttribute(pos, j);
+                    if (v2.distanceTo(v) < brushSize) neighbors.push(v2);
+                }
+                const avg = new THREE.Vector3();
+                neighbors.forEach(n => avg.add(n));
+                avg.divideScalar(neighbors.length || 1);
+                v.lerp(avg, brushStrength * falloff);
+            } else if (brushMode === 'flatten') {
+                const planeY = point.y;
+                v.y += (planeY - v.y) * brushStrength * falloff;
+            }
+
+            // Mirrors
+            if (mirrorX) v.x = -v.x;
+            if (mirrorY) v.y = -v.y;
+            if (mirrorZ) v.z = -v.z;
+
+            pos.setXYZ(i, v.x, v.y, v.z);
+        }
+    }
+    pos.needsUpdate = true;
+}
+
+// --- RESIZE ---
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-let isPointerDown = false;
-function onPointerDown(e){ isPointerDown=true; sculptMesh(e); }
-function onPointerMove(e){ if(isPointerDown) sculptMesh(e); }
-document.addEventListener('pointerup',()=>isPointerDown=false);
-
-function sculptMesh(e){
-    if(!mesh) return;
-    mouse.x = (e.clientX / window.innerWidth)*2-1;
-    mouse.y = -(e.clientY / window.innerHeight)*2+1;
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(mesh);
-    if(intersects.length===0) return;
-    const posAttr = mesh.geometry.attributes.position;
-    const normAttr = mesh.geometry.attributes.normal;
-    for(let i=0;i<posAttr.count;i++){
-        const vertex = new THREE.Vector3().fromBufferAttribute(posAttr,i);
-        const dist = vertex.distanceTo(intersects[0].point);
-        if(dist<brush.size){
-            const influence = 1 - dist/brush.size;
-            const normal = new THREE.Vector3().fromBufferAttribute(normAttr,i);
-            if(brushMode==='inflate') vertex.addScaledVector(normal, brush.strength*influence);
-            else if(brushMode==='deflate') vertex.addScaledVector(normal, -brush.strength*influence);
-            else if(brushMode==='smooth'){
-                const avg = new THREE.Vector3();
-                for(let j=0;j<posAttr.count;j++){
-                    const v2 = new THREE.Vector3().fromBufferAttribute(posAttr,j);
-                    if(vertex.distanceTo(v2)<brush.size*0.5) avg.add(v2);
-                }
-                avg.divideScalar(posAttr.count);
-                vertex.lerp(avg, brush.strength*influence);
-            }
-            posAttr.setXYZ(i,vertex.x,vertex.y,vertex.z);
-            if(mirror){
-                posAttr.setXYZ(i, -vertex.x, vertex.y, vertex.z);
-            }
-        }
-    }
-    posAttr.needsUpdate = true;
-    mesh.geometry.computeVertexNormals();
-}
-
-function animate(){
+// --- ANIMATE ---
+function animate() {
     requestAnimationFrame(animate);
-    orbitControls.update();
-    renderer.render(scene,camera);
+    if (!lockCamera) orbitControls.update();
+    renderer.render(scene, camera);
 }
