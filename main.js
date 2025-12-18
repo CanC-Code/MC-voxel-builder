@@ -4,6 +4,7 @@ import { TransformControls } from "./three/TransformControls.js";
 import { GLTFLoader } from "./three/GLTFLoader.js";
 import { GLTFExporter } from "./three/GLTFExporter.js";
 
+/* ---------- Renderer / Scene ---------- */
 const canvas = document.getElementById("viewport");
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -27,6 +28,7 @@ controls.enableDamping = true;
 const transform = new TransformControls(camera, renderer.domElement);
 scene.add(transform);
 
+/* ---------- State ---------- */
 let activeMesh = null;
 let wireframe = false;
 let cameraLocked = false;
@@ -47,55 +49,54 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* ---------- Active mesh handling ---------- */
+/* ---------- Active Mesh Handling ---------- */
 function clearActiveMesh() {
   if (!activeMesh) return;
 
   transform.detach();
-
   scene.remove(activeMesh);
 
-  if (activeMesh.geometry) activeMesh.geometry.dispose();
-  if (activeMesh.material) {
-    if (Array.isArray(activeMesh.material)) {
-      activeMesh.material.forEach(m => m.dispose());
-    } else {
-      activeMesh.material.dispose();
-    }
-  }
+  activeMesh.geometry.dispose();
+  activeMesh.material.dispose();
 
   activeMesh = null;
 }
 
+function prepareGeometryForSculpt(mesh) {
+  if (mesh.geometry.index) {
+    mesh.geometry = mesh.geometry.toNonIndexed();
+  }
+  mesh.geometry.computeVertexNormals();
+}
+
 function setActive(mesh) {
   clearActiveMesh();
+  prepareGeometryForSculpt(mesh);
   activeMesh = mesh;
   scene.add(mesh);
   transform.attach(mesh);
 }
 
-/* ---------- Mesh creation ---------- */
+/* ---------- Mesh Creation ---------- */
 function createCube() {
   const geo = new THREE.BoxGeometry(2, 2, 2, 10, 10, 10);
   const mat = new THREE.MeshStandardMaterial({
     color: 0x88ccff,
-    wireframe: wireframe
+    wireframe
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  setActive(mesh);
+  setActive(new THREE.Mesh(geo, mat));
 }
 
 function createSphere() {
   const geo = new THREE.SphereGeometry(1.5, 32, 32);
   const mat = new THREE.MeshStandardMaterial({
     color: 0x88ff88,
-    wireframe: wireframe
+    wireframe
   });
-  const mesh = new THREE.Mesh(geo, mat);
-  setActive(mesh);
+  setActive(new THREE.Mesh(geo, mat));
 }
 
-/* ---------- Default object ---------- */
+/* ---------- Default ---------- */
 createCube();
 
 /* ---------- UI ---------- */
@@ -120,39 +121,138 @@ document.getElementById("newSphere").onclick = createSphere;
 document.getElementById("exportGLTF").onclick = () => {
   if (!activeMesh) return;
   const exporter = new GLTFExporter();
-  exporter.parse(
-    activeMesh,
-    (gltf) => {
-      const blob = new Blob([JSON.stringify(gltf)], {
-        type: "application/json"
-      });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "model.gltf";
-      a.click();
-    },
-    { binary: false }
-  );
+  exporter.parse(activeMesh, gltf => {
+    const blob = new Blob([JSON.stringify(gltf)], {
+      type: "application/json"
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "model.gltf";
+    a.click();
+  });
 };
 
 /* ---------- Import ---------- */
-document.getElementById("importGLTF").onchange = (e) => {
+document.getElementById("importGLTF").onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = () => {
     const loader = new GLTFLoader();
-    loader.parse(reader.result, "", (gltf) => {
-      const root = gltf.scene;
-      const mesh = root.getObjectByProperty("type", "Mesh");
+    loader.parse(reader.result, "", gltf => {
+      const mesh = gltf.scene.getObjectByProperty("type", "Mesh");
       if (mesh) setActive(mesh);
     });
   };
   reader.readAsArrayBuffer(file);
 };
 
-/* ---------- Render loop ---------- */
+/* ---------- Sculpt: Inflate ---------- */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+let sculpting = false;
+let savedControlsEnabled = true;
+
+const brushRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.95, 1, 32),
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+  })
+);
+brushRing.visible = false;
+scene.add(brushRing);
+
+function updateMouse(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
+
+function sculptInflate(hit) {
+  const geo = activeMesh.geometry;
+  const pos = geo.attributes.position;
+  const normal = geo.attributes.normal;
+
+  const radius = parseFloat(
+    document.getElementById("brushSize").value
+  );
+  const strength = 0.15;
+
+  for (let i = 0; i < pos.count; i++) {
+    const vx = pos.getX(i);
+    const vy = pos.getY(i);
+    const vz = pos.getZ(i);
+
+    const worldPos = new THREE.Vector3(vx, vy, vz)
+      .applyMatrix4(activeMesh.matrixWorld);
+
+    const dist = worldPos.distanceTo(hit.point);
+    if (dist > radius) continue;
+
+    const falloff = 1 - dist / radius;
+
+    pos.setXYZ(
+      i,
+      vx + normal.getX(i) * strength * falloff,
+      vy + normal.getY(i) * strength * falloff,
+      vz + normal.getZ(i) * strength * falloff
+    );
+  }
+
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+}
+
+/* ---------- Pointer Events ---------- */
+renderer.domElement.addEventListener("pointerdown", e => {
+  if (!activeMesh) return;
+
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(activeMesh)[0];
+  if (!hit) return;
+
+  sculpting = true;
+  savedControlsEnabled = controls.enabled;
+  controls.enabled = false;
+});
+
+renderer.domElement.addEventListener("pointermove", e => {
+  updateMouse(e);
+  raycaster.setFromCamera(mouse, camera);
+
+  const hit = activeMesh
+    ? raycaster.intersectObject(activeMesh)[0]
+    : null;
+
+  if (hit) {
+    const r = parseFloat(
+      document.getElementById("brushSize").value
+    );
+    brushRing.visible = true;
+    brushRing.scale.set(r, r, r);
+    brushRing.position.copy(hit.point);
+    brushRing.lookAt(
+      hit.point.clone().add(hit.face.normal)
+    );
+
+    if (sculpting) sculptInflate(hit);
+  } else {
+    brushRing.visible = false;
+  }
+});
+
+window.addEventListener("pointerup", () => {
+  if (!sculpting) return;
+  sculpting = false;
+  controls.enabled = savedControlsEnabled;
+});
+
+/* ---------- Render Loop ---------- */
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
