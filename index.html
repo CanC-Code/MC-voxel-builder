@@ -4,52 +4,42 @@
   <meta charset="UTF-8" />
   <title>MC Voxel Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <!-- TOP BAR -->
-  <div id="topbar">
-    <div class="group">
-      <button id="newCube">Cube</button>
-      <button id="newSphere">Sphere</button>
-      <button id="loadModel">Load</button>
-      <button id="saveModel">Export</button>
+  <div id="ui">
+    <div class="toolbar left">
+      <button id="newModel">New</button>
+      <button id="saveModel">Save</button>
+      <input id="loadModel" type="file" accept=".json" />
     </div>
 
-    <div class="group">
-      <button id="toggleCamera">Camera Lock</button>
-      <button id="toggleUI">Tools</button>
-    </div>
-  </div>
-
-  <!-- TOOL PANEL -->
-  <div id="toolPanel">
-    <h3>Sculpt</h3>
-
-    <div class="row">
-      <button data-tool="inflate">Inflate</button>
-      <button data-tool="deflate">Deflate</button>
-      <button data-tool="smooth">Smooth</button>
-      <button data-tool="flatten">Flatten</button>
+    <div class="toolbar center">
+      <button data-primitive="cube">Cube</button>
+      <button data-primitive="sphere">Sphere</button>
     </div>
 
-    <div class="row">
-      <label>Radius</label>
-      <input id="radius" type="range" min="0.05" max="0.6" step="0.01" value="0.2" />
+    <div class="toolbar right">
+      <button id="cameraLock">Camera Lock</button>
+      <button id="gizmoToggle">Gizmo</button>
+
+      <select id="controlMode">
+        <option value="orbit">Orbit</option>
+        <option value="pan">Pan</option>
+      </select>
     </div>
 
-    <div class="row">
-      <label>Strength</label>
-      <input id="strength" type="range" min="0.05" max="1.0" step="0.05" value="0.4" />
+    <div class="brushbar">
+      <button data-brush="add">Add</button>
+      <button data-brush="remove">Remove</button>
+      <button data-brush="smooth">Smooth</button>
+      <button data-brush="flatten">Flatten</button>
     </div>
   </div>
 
-  <!-- FILE INPUT -->
-  <input type="file" id="fileInput" accept=".gltf,.glb" hidden />
-
-  <!-- CANVAS -->
-  <div id="viewport"></div>
+  <canvas id="viewport"></canvas>
 
   <script type="module" src="main.js"></script>
 </body>
