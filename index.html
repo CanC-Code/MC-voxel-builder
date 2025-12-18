@@ -2,52 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>MC Clay Editor</title>
+  <title>MC Voxel Builder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Top bar -->
-  <div id="topbar">
-    <button id="toggleCamera">🔒 Camera</button>
-    <button id="toggleGizmo">🧭 Gizmo</button>
 
-    <div id="tabs">
-      <button data-tab="sculpt">Sculpt</button>
-      <button data-tab="paint">Paint</button>
-      <button data-tab="objects">Objects</button>
-      <button data-tab="export">Export</button>
-    </div>
-  </div>
+<div id="topbar">
+  <button id="toggleCamera">🔒 Camera</button>
+  <button id="addCube">➕ Cube</button>
+  <button id="exportGLTF">⬇ Export</button>
+  <input id="importGLTF" type="file" accept=".gltf,.glb" />
+</div>
 
-  <!-- Panel -->
-  <div id="panel">
-    <div class="tab active" id="tab-sculpt">
-      <label>Brush</label>
-      <button data-brush="inflate">Inflate</button>
-      <button data-brush="deflate">Deflate</button>
-      <button data-brush="smooth">Smooth</button>
-      <button data-brush="flatten">Flatten</button>
+<canvas id="viewport"></canvas>
 
-      <label>Radius</label>
-      <input type="range" id="radius" min="0.1" max="2" step="0.1" value="0.6" />
-
-      <label>Strength</label>
-      <input type="range" id="strength" min="0.01" max="1" step="0.01" value="0.2" />
-    </div>
-
-    <div class="tab" id="tab-objects">
-      <button id="addCube">Add Cube</button>
-      <button id="addSphere">Add Sphere</button>
-    </div>
-
-    <div class="tab" id="tab-export">
-      <button id="exportGLTF">Export GLTF</button>
-    </div>
-  </div>
-
-  <canvas id="viewport"></canvas>
-
-  <script type="module" src="main.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
