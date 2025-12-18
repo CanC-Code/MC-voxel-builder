@@ -1,47 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>MC Voxel Builder</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MC Voxel Builder</title>
+<link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
-  <div id="ui">
-    <div class="toolbar left">
-      <button id="newModel">New</button>
-      <button id="saveModel">Save</button>
-      <input id="loadModel" type="file" accept=".json" />
-    </div>
+<div id="topbar">
+  <button id="toggleMenu">☰</button>
+  <button id="lockCamera">🔒 Camera</button>
+  <button id="toggleWire">▦ Wire</button>
+</div>
 
-    <div class="toolbar center">
-      <button data-primitive="cube">Cube</button>
-      <button data-primitive="sphere">Sphere</button>
-    </div>
+<div id="menu" class="collapsed">
+  <h3>Model</h3>
+  <button id="newCube">New Cube</button>
+  <button id="newSphere">New Sphere</button>
 
-    <div class="toolbar right">
-      <button id="cameraLock">Camera Lock</button>
-      <button id="gizmoToggle">Gizmo</button>
+  <h3>File</h3>
+  <button id="exportGLTF">Export GLTF</button>
+  <input type="file" id="importGLTF" accept=".gltf,.glb" />
 
-      <select id="controlMode">
-        <option value="orbit">Orbit</option>
-        <option value="pan">Pan</option>
-      </select>
-    </div>
+  <h3>Sculpt (placeholder)</h3>
+  <label>Brush Size</label>
+  <input type="range" id="brushSize" min="0.1" max="5" step="0.1" value="1" />
+</div>
 
-    <div class="brushbar">
-      <button data-brush="add">Add</button>
-      <button data-brush="remove">Remove</button>
-      <button data-brush="smooth">Smooth</button>
-      <button data-brush="flatten">Flatten</button>
-    </div>
-  </div>
+<canvas id="viewport"></canvas>
 
-  <!-- IMPORTANT: real canvas element -->
-  <canvas id="viewport"></canvas>
-
-  <!-- Module load AFTER DOM -->
-  <script type="module" src="main.js"></script>
+<script type="module" src="./main.js"></script>
 </body>
 </html>
