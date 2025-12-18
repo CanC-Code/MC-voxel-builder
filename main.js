@@ -44,18 +44,12 @@ window.addEventListener("resize", () => {
 });
 
 /* ---------- Geometry Utilities ---------- */
-
-/**
- * Subdivide geometry uniformly (midpoint) for sculpt readiness.
- */
-function subdivideGeometry(geometry, iterations = 1) {
-  let geo = geometry;
-
+function subdivideGeometry(geometry, iterations = 2) {
+  // Convert to non-indexed
+  let geo = geometry.index ? geometry.toNonIndexed() : geometry;
   for (let it = 0; it < iterations; it++) {
-    if (geo.index) geo = geo.toNonIndexed();
     const pos = geo.attributes.position;
     const newVerts = [];
-
     for (let i = 0; i < pos.count; i += 3) {
       const a = new THREE.Vector3().fromBufferAttribute(pos, i);
       const b = new THREE.Vector3().fromBufferAttribute(pos, i + 1);
@@ -65,13 +59,8 @@ function subdivideGeometry(geometry, iterations = 1) {
       const bc = b.clone().add(c).multiplyScalar(0.5);
       const ca = c.clone().add(a).multiplyScalar(0.5);
 
-      // 4 new triangles
-      newVerts.push(
-        a, ab, ca,
-        ab, b, bc,
-        ca, bc, c,
-        ab, bc, ca
-      );
+      // 4 triangles
+      newVerts.push(a, ab, ca, ab, b, bc, ca, bc, c, ab, bc, ca);
     }
 
     const flat = new Float32Array(newVerts.length * 3);
@@ -85,45 +74,14 @@ function subdivideGeometry(geometry, iterations = 1) {
     geo.setAttribute("position", new THREE.BufferAttribute(flat, 3));
     geo.computeVertexNormals();
   }
-
   return geo;
 }
 
-/**
- * Prepare geometry: non-indexed, subdivided, normals computed.
- */
-function prepareGeometryForSculpt(mesh) {
-  let geo = mesh.geometry;
-  if (geo.index) geo = geo.toNonIndexed();
-  geo = subdivideGeometry(geo, 2);
+function prepareGeometry(mesh) {
+  let geo = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
+  geo = subdivideGeometry(geo, 2); // adjust subdivision for smoothness
   geo.computeVertexNormals();
   mesh.geometry = geo;
-}
-
-/**
- * Build adjacency info for dynamic remeshing.
- * Returns {edges: Map, neighbors: Map}
- */
-function buildMeshConnectivity(mesh) {
-  const pos = mesh.geometry.attributes.position;
-  const edges = new Map();
-  const neighbors = new Map();
-
-  for (let i = 0; i < pos.count; i += 3) {
-    const tri = [i, i + 1, i + 2];
-    for (let j = 0; j < 3; j++) {
-      const a = tri[j];
-      const b = tri[(j + 1) % 3];
-      const key = a < b ? `${a}_${b}` : `${b}_${a}`;
-      edges.set(key, [a, b]);
-      if (!neighbors.has(a)) neighbors.set(a, new Set());
-      if (!neighbors.has(b)) neighbors.set(b, new Set());
-      neighbors.get(a).add(b);
-      neighbors.get(b).add(a);
-    }
-  }
-
-  return { edges, neighbors };
 }
 
 /* ---------- Active Mesh Handling ---------- */
@@ -138,12 +96,10 @@ function clearActiveMesh() {
 
 function setActive(mesh) {
   clearActiveMesh();
-  prepareGeometryForSculpt(mesh);
+  prepareGeometry(mesh);
   activeMesh = mesh;
   scene.add(mesh);
   transform.attach(mesh);
-  // Build connectivity for edge-constrained sculpt
-  activeMesh.userData.connectivity = buildMeshConnectivity(mesh);
 }
 
 /* ---------- Mesh Creation ---------- */
@@ -205,7 +161,7 @@ document.getElementById("importGLTF").onchange = e => {
   reader.readAsArrayBuffer(file);
 };
 
-/* ---------- Sculpt Utilities ---------- */
+/* ---------- Sculpt ---------- */
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let sculpting = false;
@@ -223,75 +179,41 @@ function updateMouse(event) {
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 }
 
-/**
- * Apply edge-constrained inflate with local remeshing.
- */
 function sculptInflate(hit) {
   const geo = activeMesh.geometry;
   const pos = geo.attributes.position;
   const normal = geo.attributes.normal;
   const radius = parseFloat(document.getElementById("brushSize").value);
   const strength = 0.12;
-  const connectivity = activeMesh.userData.connectivity;
-  const maxEdgeLength = 0.5; // threshold for splitting
 
-  // Vertex displacement with neighbor averaging
-  const displacement = [];
   for (let i = 0; i < pos.count; i++) {
     const vx = pos.getX(i);
     const vy = pos.getY(i);
     const vz = pos.getZ(i);
     const worldPos = new THREE.Vector3(vx, vy, vz).applyMatrix4(activeMesh.matrixWorld);
     const dist = worldPos.distanceTo(hit.point);
-    if (dist > radius) {
-      displacement.push(new THREE.Vector3(0, 0, 0));
-      continue;
-    }
+    if (dist > radius) continue;
     const falloff = 1 - dist / radius;
-    const dn = new THREE.Vector3(normal.getX(i), normal.getY(i), normal.getZ(i)).multiplyScalar(strength * falloff);
+    let dn = new THREE.Vector3(normal.getX(i), normal.getY(i), normal.getZ(i)).multiplyScalar(strength * falloff);
 
-    // Weighted neighbor average
-    const neighbors = Array.from(connectivity.neighbors.get(i));
-    let neighborSum = new THREE.Vector3(0, 0, 0);
-    neighbors.forEach(n => {
-      neighborSum.add(new THREE.Vector3(pos.getX(n), pos.getY(n), pos.getZ(n)));
-    });
-    if (neighbors.length > 0) neighborSum.multiplyScalar(1 / neighbors.length);
-    dn.add(neighborSum.sub(new THREE.Vector3(vx, vy, vz)).multiplyScalar(0.25)); // soft constraint
-
-    displacement.push(dn);
-  }
-
-  // Apply displacement
-  for (let i = 0; i < pos.count; i++) {
-    pos.setXYZ(
-      i,
-      pos.getX(i) + displacement[i].x,
-      pos.getY(i) + displacement[i].y,
-      pos.getZ(i) + displacement[i].z
-    );
-  }
-
-  // Local remeshing: split long edges
-  connectivity.edges.forEach(edge => {
-    const [a, b] = edge;
-    const pa = new THREE.Vector3(pos.getX(a), pos.getY(a), pos.getZ(a));
-    const pb = new THREE.Vector3(pos.getX(b), pos.getY(b), pos.getZ(b));
-    const len = pa.distanceTo(pb);
-    if (len > maxEdgeLength) {
-      // Split edge by adding midpoint
-      const mid = pa.clone().add(pb).multiplyScalar(0.5);
-      const idx = pos.count;
-      const newPosArray = new Float32Array(pos.count * 3 + 3);
-      pos.array.forEach((v, i) => newPosArray[i] = v);
-      newPosArray[idx * 3] = mid.x;
-      newPosArray[idx * 3 + 1] = mid.y;
-      newPosArray[idx * 3 + 2] = mid.z;
-      geo.setAttribute("position", new THREE.BufferAttribute(newPosArray, 3));
-      geo.computeVertexNormals();
-      // NOTE: connectivity rebuild deferred to next frame for performance
+    // Laplacian smoothing: move slightly toward neighbors
+    // Find neighbors via faces
+    const neighbors = [];
+    for (let j = 0; j < pos.count; j += 3) {
+      if (j <= i && i <= j + 2) {
+        for (let k = j; k < j + 3; k++) {
+          if (k !== i) neighbors.push(k);
+        }
+        break;
+      }
     }
-  });
+    const avg = new THREE.Vector3(0, 0, 0);
+    neighbors.forEach(n => avg.add(new THREE.Vector3(pos.getX(n), pos.getY(n), pos.getZ(n))));
+    if (neighbors.length > 0) avg.multiplyScalar(1 / neighbors.length);
+    dn.add(avg.sub(new THREE.Vector3(vx, vy, vz)).multiplyScalar(0.25));
+
+    pos.setXYZ(i, vx + dn.x, vy + dn.y, vz + dn.z);
+  }
 
   pos.needsUpdate = true;
   geo.computeVertexNormals();
@@ -307,6 +229,7 @@ renderer.domElement.addEventListener("pointerdown", e => {
   sculpting = true;
   savedControlsEnabled = controls.enabled;
   controls.enabled = false;
+  transform.enabled = false; // fully disable TransformControls during sculpt
 });
 
 renderer.domElement.addEventListener("pointermove", e => {
@@ -331,6 +254,7 @@ window.addEventListener("pointerup", () => {
   if (!sculpting) return;
   sculpting = false;
   controls.enabled = savedControlsEnabled;
+  transform.enabled = true;
 });
 
 /* ---------- Render Loop ---------- */
