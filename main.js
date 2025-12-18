@@ -49,6 +49,66 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+/* ---------- Geometry Preparation ---------- */
+
+/**
+ * Simple midpoint subdivision for BufferGeometry.
+ * Uniformly increases triangle density without changing shape.
+ */
+function subdivideGeometry(geometry, iterations = 1) {
+  let geo = geometry;
+
+  for (let it = 0; it < iterations; it++) {
+    if (geo.index) geo = geo.toNonIndexed();
+
+    const pos = geo.attributes.position;
+    const newVerts = [];
+
+    for (let i = 0; i < pos.count; i += 3) {
+      const a = new THREE.Vector3().fromBufferAttribute(pos, i);
+      const b = new THREE.Vector3().fromBufferAttribute(pos, i + 1);
+      const c = new THREE.Vector3().fromBufferAttribute(pos, i + 2);
+
+      const ab = a.clone().add(b).multiplyScalar(0.5);
+      const bc = b.clone().add(c).multiplyScalar(0.5);
+      const ca = c.clone().add(a).multiplyScalar(0.5);
+
+      // 4 new triangles
+      newVerts.push(
+        a, ab, ca,
+        ab, b, bc,
+        ca, bc, c,
+        ab, bc, ca
+      );
+    }
+
+    const flat = new Float32Array(newVerts.length * 3);
+    newVerts.forEach((v, i) => {
+      flat[i * 3 + 0] = v.x;
+      flat[i * 3 + 1] = v.y;
+      flat[i * 3 + 2] = v.z;
+    });
+
+    geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(flat, 3));
+    geo.computeVertexNormals();
+  }
+
+  return geo;
+}
+
+function prepareGeometryForSculpt(mesh) {
+  let geo = mesh.geometry;
+
+  if (geo.index) geo = geo.toNonIndexed();
+
+  // Uniform base density — tweakable later
+  geo = subdivideGeometry(geo, 2);
+
+  geo.computeVertexNormals();
+  mesh.geometry = geo;
+}
+
 /* ---------- Active Mesh Handling ---------- */
 function clearActiveMesh() {
   if (!activeMesh) return;
@@ -62,13 +122,6 @@ function clearActiveMesh() {
   activeMesh = null;
 }
 
-function prepareGeometryForSculpt(mesh) {
-  if (mesh.geometry.index) {
-    mesh.geometry = mesh.geometry.toNonIndexed();
-  }
-  mesh.geometry.computeVertexNormals();
-}
-
 function setActive(mesh) {
   clearActiveMesh();
   prepareGeometryForSculpt(mesh);
@@ -79,7 +132,7 @@ function setActive(mesh) {
 
 /* ---------- Mesh Creation ---------- */
 function createCube() {
-  const geo = new THREE.BoxGeometry(2, 2, 2, 10, 10, 10);
+  const geo = new THREE.BoxGeometry(2, 2, 2, 6, 6, 6);
   const mat = new THREE.MeshStandardMaterial({
     color: 0x88ccff,
     wireframe
@@ -88,7 +141,7 @@ function createCube() {
 }
 
 function createSphere() {
-  const geo = new THREE.SphereGeometry(1.5, 32, 32);
+  const geo = new THREE.SphereGeometry(1.5, 24, 24);
   const mat = new THREE.MeshStandardMaterial({
     color: 0x88ff88,
     wireframe
@@ -180,7 +233,7 @@ function sculptInflate(hit) {
   const radius = parseFloat(
     document.getElementById("brushSize").value
   );
-  const strength = 0.15;
+  const strength = 0.12;
 
   for (let i = 0; i < pos.count; i++) {
     const vx = pos.getX(i);
