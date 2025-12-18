@@ -31,51 +31,74 @@ let activeMesh = null;
 let wireframe = false;
 let cameraLocked = false;
 
-/* Lighting */
+/* ---------- Lighting ---------- */
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dir = new THREE.DirectionalLight(0xffffff, 0.8);
 dir.position.set(5, 10, 7);
 scene.add(dir);
 
-/* Helpers */
+/* ---------- Helpers ---------- */
 scene.add(new THREE.GridHelper(20, 20));
 
-/* Resize */
+/* ---------- Resize ---------- */
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* Mesh creation */
-function setActive(mesh) {
-  if (activeMesh) {
-    transform.detach();
+/* ---------- Active mesh handling ---------- */
+function clearActiveMesh() {
+  if (!activeMesh) return;
+
+  transform.detach();
+
+  scene.remove(activeMesh);
+
+  if (activeMesh.geometry) activeMesh.geometry.dispose();
+  if (activeMesh.material) {
+    if (Array.isArray(activeMesh.material)) {
+      activeMesh.material.forEach(m => m.dispose());
+    } else {
+      activeMesh.material.dispose();
+    }
   }
+
+  activeMesh = null;
+}
+
+function setActive(mesh) {
+  clearActiveMesh();
   activeMesh = mesh;
+  scene.add(mesh);
   transform.attach(mesh);
 }
 
+/* ---------- Mesh creation ---------- */
 function createCube() {
   const geo = new THREE.BoxGeometry(2, 2, 2, 10, 10, 10);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x88ccff });
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x88ccff,
+    wireframe: wireframe
+  });
   const mesh = new THREE.Mesh(geo, mat);
-  scene.add(mesh);
   setActive(mesh);
 }
 
 function createSphere() {
   const geo = new THREE.SphereGeometry(1.5, 32, 32);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x88ff88 });
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x88ff88,
+    wireframe: wireframe
+  });
   const mesh = new THREE.Mesh(geo, mat);
-  scene.add(mesh);
   setActive(mesh);
 }
 
-/* Default object */
+/* ---------- Default object ---------- */
 createCube();
 
-/* UI */
+/* ---------- UI ---------- */
 document.getElementById("toggleMenu").onclick = () => {
   document.getElementById("menu").classList.toggle("collapsed");
 };
@@ -93,14 +116,16 @@ document.getElementById("toggleWire").onclick = () => {
 document.getElementById("newCube").onclick = createCube;
 document.getElementById("newSphere").onclick = createSphere;
 
-/* Export */
+/* ---------- Export ---------- */
 document.getElementById("exportGLTF").onclick = () => {
   if (!activeMesh) return;
   const exporter = new GLTFExporter();
   exporter.parse(
     activeMesh,
     (gltf) => {
-      const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+      const blob = new Blob([JSON.stringify(gltf)], {
+        type: "application/json"
+      });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = "model.gltf";
@@ -110,22 +135,24 @@ document.getElementById("exportGLTF").onclick = () => {
   );
 };
 
-/* Import */
+/* ---------- Import ---------- */
 document.getElementById("importGLTF").onchange = (e) => {
   const file = e.target.files[0];
   if (!file) return;
+
   const reader = new FileReader();
   reader.onload = () => {
     const loader = new GLTFLoader();
     loader.parse(reader.result, "", (gltf) => {
-      scene.add(gltf.scene);
-      setActive(gltf.scene.children[0]);
+      const root = gltf.scene;
+      const mesh = root.getObjectByProperty("type", "Mesh");
+      if (mesh) setActive(mesh);
     });
   };
   reader.readAsArrayBuffer(file);
 };
 
-/* Loop */
+/* ---------- Render loop ---------- */
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
