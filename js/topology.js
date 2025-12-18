@@ -1,12 +1,11 @@
-import * as THREE from "../three/three.module.js";
+export function ensureTopology(geometry) {
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
 
-/*
-  Placeholder for adaptive subdivision.
-  Currently safe-no-op — structure is here
-  so we can extend without touching main.js.
-*/
+  if (!geometry.attributes.normal) {
+    geometry.computeVertexNormals();
+  }
 
-export function subdivideIfNeeded(mesh, center, radius) {
-  // Intentionally empty for now
-  // Will be filled with edge splitting logic
+  geometry.attributes.position.setUsage(35048); // DynamicDrawUsage
 }
