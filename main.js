@@ -148,7 +148,6 @@ function applyBrush(intersect) {
                     vertex.lerp(pos, brushSettings.strength * falloff);
                     break;
                 case 'smooth':
-                    // simple Laplacian smoothing
                     vertex.lerp(vertex.clone(), 1 - brushSettings.strength * falloff);
                     break;
             }
