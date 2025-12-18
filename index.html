@@ -7,12 +7,17 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="header">
-    <span id="title">MC Voxel Builder</span>
+<div id="top-bar">
+    <button id="cameraLock">Toggle Camera Lock</button>
 </div>
+
+<div id="gui-container"></div>
+
+<canvas id="viewport"></canvas>
 
 <script type="module" src="three/three.module.js"></script>
 <script type="module" src="three/OrbitControls.js"></script>
+<script type="module" src="three/TransformControls.js"></script>
 <script type="module" src="three/GLTFLoader.js"></script>
 <script type="module" src="three/GLTFExporter.js"></script>
 <script type="module" src="three/lil-gui.esm.min.js"></script>
