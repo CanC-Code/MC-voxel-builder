@@ -3,20 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <title>MC Voxel Builder</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="group">
+      <button id="newCube">Cube</button>
+      <button id="newSphere">Sphere</button>
+      <button id="loadModel">Load</button>
+      <button id="saveModel">Export</button>
+    </div>
 
-<div id="topbar">
-  <button id="toggleCamera">🔒 Camera</button>
-  <button id="addCube">➕ Cube</button>
-  <button id="exportGLTF">⬇ Export</button>
-  <input id="importGLTF" type="file" accept=".gltf,.glb" />
-</div>
+    <div class="group">
+      <button id="toggleCamera">Camera Lock</button>
+      <button id="toggleUI">Tools</button>
+    </div>
+  </div>
 
-<canvas id="viewport"></canvas>
+  <!-- TOOL PANEL -->
+  <div id="toolPanel">
+    <h3>Sculpt</h3>
 
-<script type="module" src="main.js"></script>
+    <div class="row">
+      <button data-tool="inflate">Inflate</button>
+      <button data-tool="deflate">Deflate</button>
+      <button data-tool="smooth">Smooth</button>
+      <button data-tool="flatten">Flatten</button>
+    </div>
+
+    <div class="row">
+      <label>Radius</label>
+      <input id="radius" type="range" min="0.05" max="0.6" step="0.01" value="0.2" />
+    </div>
+
+    <div class="row">
+      <label>Strength</label>
+      <input id="strength" type="range" min="0.05" max="1.0" step="0.05" value="0.4" />
+    </div>
+  </div>
+
+  <!-- FILE INPUT -->
+  <input type="file" id="fileInput" accept=".gltf,.glb" hidden />
+
+  <!-- CANVAS -->
+  <div id="viewport"></div>
+
+  <script type="module" src="main.js"></script>
 </body>
 </html>
