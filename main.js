@@ -4,6 +4,10 @@ import { TransformControls } from "./three/TransformControls.js";
 import { GLTFLoader } from "./three/GLTFLoader.js";
 import { GLTFExporter } from "./three/GLTFExporter.js";
 
+/* ===============================
+   Core Setup
+================================ */
+
 const canvas = document.getElementById("viewport");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -26,23 +30,30 @@ let wireframe = false;
 let cameraLocked = false;
 let sculpting = false;
 
-/* ---------- Lighting ---------- */
+/* ===============================
+   Lighting & Helpers
+================================ */
+
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dir = new THREE.DirectionalLight(0xffffff, 0.8);
 dir.position.set(5, 10, 7);
 scene.add(dir);
-
-/* ---------- Helpers ---------- */
 scene.add(new THREE.GridHelper(20, 20));
 
-/* ---------- Resize ---------- */
+/* ===============================
+   Resize
+================================ */
+
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* ---------- Active mesh ---------- */
+/* ===============================
+   Active Mesh Handling
+================================ */
+
 function clearActiveMesh() {
   if (!activeMesh) return;
   transform.detach();
@@ -59,24 +70,30 @@ function setActive(mesh) {
   transform.attach(mesh);
 }
 
-/* ---------- Mesh creation ---------- */
+/* ===============================
+   Mesh Creation
+================================ */
+
 function createCube() {
   setActive(new THREE.Mesh(
-    new THREE.BoxGeometry(2, 2, 2, 20, 20, 20),
+    new THREE.BoxGeometry(2, 2, 2, 24, 24, 24),
     new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe })
   ));
 }
 
 function createSphere() {
   setActive(new THREE.Mesh(
-    new THREE.SphereGeometry(1.5, 48, 48),
+    new THREE.SphereGeometry(1.5, 64, 64),
     new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe })
   ));
 }
 
 createCube();
 
-/* ---------- UI ---------- */
+/* ===============================
+   UI
+================================ */
+
 document.getElementById("toggleMenu").onclick = () =>
   document.getElementById("menu").classList.toggle("collapsed");
 
@@ -96,7 +113,10 @@ document.getElementById("toggleWire").onclick = () => {
 document.getElementById("newCube").onclick = createCube;
 document.getElementById("newSphere").onclick = createSphere;
 
-/* ---------- Cursor brush ---------- */
+/* ===============================
+   Cursor Brush (2D)
+================================ */
+
 const cursorBrush = document.getElementById("cursorBrush");
 
 renderer.domElement.addEventListener("pointermove", e => {
@@ -109,95 +129,146 @@ renderer.domElement.addEventListener("pointerleave", () => {
   cursorBrush.style.display = "none";
 });
 
-/* ---------- Sculpting ---------- */
+/* ===============================
+   Sculpting Core (REDESIGNED)
+================================ */
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 renderer.domElement.addEventListener("pointerdown", e => {
   if (!cameraLocked || !activeMesh) return;
   sculpting = true;
-  applySculpt(e);
+  transform.detach();
+  applyInflate(e);
 });
 
-renderer.domElement.addEventListener("pointerup", () => sculpting = false);
-renderer.domElement.addEventListener("pointermove", e => sculpting && applySculpt(e));
+renderer.domElement.addEventListener("pointerup", () => {
+  sculpting = false;
+  if (activeMesh) transform.attach(activeMesh);
+});
 
-function applySculpt(e) {
+renderer.domElement.addEventListener("pointermove", e => {
+  if (sculpting) applyInflate(e);
+});
+
+function applyInflate(e) {
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
   raycaster.setFromCamera(mouse, camera);
   const hit = raycaster.intersectObject(activeMesh)[0];
-  if (hit) sculptInflate(hit);
+  if (!hit) return;
+
+  sculptInflateRegion(hit);
 }
 
-function sculptInflate(hit) {
+/* ===============================
+   Blender-style Inflate (Region-based)
+================================ */
+
+function sculptInflateRegion(hit) {
   const geo = activeMesh.geometry;
   const pos = geo.attributes.position;
   const normal = geo.attributes.normal;
 
   const radius = parseFloat(document.getElementById("brushSize").value);
-  const strength = 0.12;
+  const strength = 0.08;
 
   const inv = new THREE.Matrix4().copy(activeMesh.matrixWorld).invert();
   const center = hit.point.clone().applyMatrix4(inv);
+
+  // Phase 1: collect region
+  const region = [];
+  const avgNormal = new THREE.Vector3();
 
   const v = new THREE.Vector3();
   const n = new THREE.Vector3();
 
   for (let i = 0; i < pos.count; i++) {
     v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
-    const d = v.distanceTo(center);
-    if (d > radius) continue;
+    if (v.distanceTo(center) > radius) continue;
 
-    const falloff = Math.exp(-(d * d) / (radius * radius));
-    n.set(normal.getX(i), normal.getY(i), normal.getZ(i)).normalize();
-    v.addScaledVector(n, strength * falloff);
+    region.push(i);
+    n.set(normal.getX(i), normal.getY(i), normal.getZ(i));
+    avgNormal.add(n);
+  }
+
+  if (region.length === 0) return;
+
+  avgNormal.normalize();
+
+  // Phase 2: coherent displacement
+  for (const i of region) {
+    v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+    const dist = v.distanceTo(center);
+    const falloff = Math.exp(-(dist * dist) / (radius * radius));
+    v.addScaledVector(avgNormal, strength * falloff);
     pos.setXYZ(i, v.x, v.y, v.z);
   }
 
-  relaxSurface(geo, center, radius * 1.3);
+  // Phase 3: Laplacian smoothing (true surface relaxation)
+  laplacianSmooth(geo, region, 0.45);
+
   pos.needsUpdate = true;
   geo.computeVertexNormals();
 }
 
-function relaxSurface(geo, center, radius) {
+/* ===============================
+   Laplacian Smoothing
+================================ */
+
+function laplacianSmooth(geo, region, factor) {
   if (!geo.index) return;
 
   const pos = geo.attributes.position;
-  const neighbors = {};
+  const index = geo.index.array;
 
-  for (let i = 0; i < geo.index.count; i += 3) {
-    const a = geo.index.array[i];
-    const b = geo.index.array[i + 1];
-    const c = geo.index.array[i + 2];
-    neighbors[a] ??= new Set();
-    neighbors[b] ??= new Set();
-    neighbors[c] ??= new Set();
-    neighbors[a].add(b).add(c);
-    neighbors[b].add(a).add(c);
-    neighbors[c].add(a).add(b);
+  const neighbors = {};
+  for (const i of region) neighbors[i] = new Set();
+
+  for (let i = 0; i < index.length; i += 3) {
+    const a = index[i], b = index[i + 1], c = index[i + 2];
+    if (neighbors[a]) neighbors[a].add(b).add(c);
+    if (neighbors[b]) neighbors[b].add(a).add(c);
+    if (neighbors[c]) neighbors[c].add(a).add(b);
   }
 
+  const original = {};
   const v = new THREE.Vector3();
   const avg = new THREE.Vector3();
 
-  for (const i in neighbors) {
-    v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
-    if (v.distanceTo(center) > radius) continue;
+  for (const i of region) {
+    original[i] = new THREE.Vector3(
+      pos.getX(i),
+      pos.getY(i),
+      pos.getZ(i)
+    );
+  }
+
+  for (const i of region) {
+    const neigh = neighbors[i];
+    if (!neigh || neigh.size === 0) continue;
 
     avg.set(0, 0, 0);
-    neighbors[i].forEach(n =>
-      avg.add(new THREE.Vector3(pos.getX(n), pos.getY(n), pos.getZ(n)))
+    neigh.forEach(n =>
+      avg.add(new THREE.Vector3(
+        pos.getX(n),
+        pos.getY(n),
+        pos.getZ(n)
+      ))
     );
 
-    avg.multiplyScalar(1 / neighbors[i].size);
-    v.lerp(avg, 0.35);
+    avg.multiplyScalar(1 / neigh.size);
+    v.copy(original[i]).lerp(avg, factor);
     pos.setXYZ(i, v.x, v.y, v.z);
   }
 }
 
-/* ---------- Export ---------- */
+/* ===============================
+   Export / Import
+================================ */
+
 document.getElementById("exportGLTF").onclick = () => {
   if (!activeMesh) return;
   new GLTFExporter().parse(activeMesh, gltf => {
@@ -209,21 +280,25 @@ document.getElementById("exportGLTF").onclick = () => {
   });
 };
 
-/* ---------- Import ---------- */
 document.getElementById("importGLTF").onchange = e => {
   const reader = new FileReader();
-  reader.onload = () =>
+  reader.onload = () => {
     new GLTFLoader().parse(reader.result, "", gltf => {
       const mesh = gltf.scene.getObjectByProperty("type", "Mesh");
       if (mesh) setActive(mesh);
     });
+  };
   reader.readAsArrayBuffer(e.target.files[0]);
 };
 
-/* ---------- Render loop ---------- */
+/* ===============================
+   Render Loop
+================================ */
+
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
   renderer.render(scene, camera);
 }
+
 animate();
