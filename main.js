@@ -1,186 +1,215 @@
 import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
-import { TransformControls } from './three/TransformControls.js';
-import { GLTFLoader } from './three/GLTFLoader.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
 import GUI from './three/lil-gui.esm.min.js';
 
-let scene, camera, renderer, orbitControls, transformControls;
-let mesh, gui, viewCube;
-let cameraLocked = false; // Camera lock state
-let cameraLockBtn;
+/* =======================
+   GLOBALS
+======================= */
+let scene, camera, renderer, controls;
+let sculptMesh;
+let raycaster = new THREE.Raycaster();
+let mouse = new THREE.Vector2();
+let isSculpting = false;
+let cameraLocked = false;
 
+/* Sculpt params */
+const sculpt = {
+    mode: 'inflate',
+    radius: 0.4,
+    strength: 0.15
+};
+
+/* =======================
+   INIT
+======================= */
 init();
 animate();
 
 function init() {
-    // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x222222);
+    scene.background = new THREE.Color(0x2b2b2b);
 
-    // Camera
-    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(5, 5, 5);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 100);
+    camera.position.set(2.5, 2.2, 2.5);
 
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('viewport'), antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, canvas: document.getElementById('viewport') });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(devicePixelRatio);
 
-    // Orbit Controls
-    orbitControls = new OrbitControls(camera, renderer.domElement);
-    orbitControls.enableDamping = true;
-    orbitControls.dampingFactor = 0.08;
-    orbitControls.target.set(0, 0.5, 0);
+    controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
 
-    // Lights
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    scene.add(hemi);
-    const dir = new THREE.DirectionalLight(0xffffff, 1);
-    dir.position.set(5, 10, 7);
-    scene.add(dir);
+    /* Lights */
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.2));
+    const d = new THREE.DirectionalLight(0xffffff, 0.8);
+    d.position.set(5, 10, 5);
+    scene.add(d);
 
-    // Grid
-    scene.add(new THREE.GridHelper(20, 20));
+    /* Base mesh */
+    sculptMesh = createClay();
+    scene.add(sculptMesh);
 
-    // Initial Cube
-    mesh = createCube();
-    scene.add(mesh);
-
-    // Transform Controls
-    transformControls = new TransformControls(camera, renderer.domElement);
-    transformControls.attach(mesh);
-    transformControls.addEventListener('dragging-changed', function(event){
-        orbitControls.enabled = !event.value && !cameraLocked; // Respect camera lock
-    });
-    scene.add(transformControls);
-
-    // GUI
-    gui = new GUI({ container: document.getElementById('gui-container') });
+    /* GUI */
     setupGUI();
 
-    // View Cube
-    viewCube = createViewCube();
-    document.body.appendChild(viewCube.dom);
+    /* Events */
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+    renderer.domElement.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', () => isSculpting = false);
+    window.addEventListener('resize', onResize);
 
-    // Camera Lock Button
-    cameraLockBtn = document.getElementById('cameraLock');
-    cameraLockBtn.addEventListener('click', toggleCameraLock);
-
-    window.addEventListener('resize', onWindowResize);
+    setupViewCube();
 }
 
-// Toggle camera lock state
-function toggleCameraLock() {
-    cameraLocked = !cameraLocked;
-    orbitControls.enabled = !cameraLocked;
+/* =======================
+   CLAY MESH
+======================= */
+function createClay() {
+    const geo = new THREE.IcosahedronGeometry(1, 4);
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({
+        color: 0x8ac5ff,
+        roughness: 0.4,
+        metalness: 0.05
+    });
+    return new THREE.Mesh(geo, mat);
+}
 
-    if(cameraLocked){
-        cameraLockBtn.style.backgroundColor = 'red';
-        cameraLockBtn.textContent = 'Camera Locked';
-    } else {
-        cameraLockBtn.style.backgroundColor = '';
-        cameraLockBtn.textContent = 'Toggle Camera Lock';
+/* =======================
+   SCULPTING
+======================= */
+function onPointerDown(e) {
+    if (cameraLocked) {
+        isSculpting = true;
+        controls.enabled = false;
     }
 }
 
+function onPointerMove(e) {
+    if (!isSculpting) return;
+
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const hit = raycaster.intersectObject(sculptMesh)[0];
+    if (!hit) return;
+
+    applyBrush(hit);
+}
+
+function applyBrush(hit) {
+    const geo = sculptMesh.geometry;
+    const pos = geo.attributes.position;
+    const norm = geo.attributes.normal;
+
+    const center = hit.point;
+
+    for (let i = 0; i < pos.count; i++) {
+        const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+        const dist = v.distanceTo(center);
+        if (dist > sculpt.radius) continue;
+
+        const falloff = 1 - dist / sculpt.radius;
+        const n = new THREE.Vector3().fromBufferAttribute(norm, i);
+
+        if (sculpt.mode === 'inflate')
+            v.addScaledVector(n, sculpt.strength * falloff);
+
+        if (sculpt.mode === 'deflate')
+            v.addScaledVector(n, -sculpt.strength * falloff);
+
+        if (sculpt.mode === 'smooth')
+            v.lerp(center, sculpt.strength * falloff * 0.1);
+
+        if (sculpt.mode === 'flatten')
+            v.projectOnPlane(hit.face.normal).add(center);
+
+        pos.setXYZ(i, v.x, v.y, v.z);
+    }
+
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+}
+
+/* =======================
+   GUI
+======================= */
 function setupGUI() {
-    const tabs = gui.addFolder('Sculpt Tools');
-    const sculptParams = {
-        brushSize: 0.2,
-        intensity: 0.1,
-        inflate: () => applyBrush('inflate'),
-        deflate: () => applyBrush('deflate'),
-        smooth: () => applyBrush('smooth'),
-        flatten: () => applyBrush('flatten'),
-    };
-    tabs.add(sculptParams, 'brushSize', 0.05, 1);
-    tabs.add(sculptParams, 'intensity', 0.01, 1);
-    tabs.add(sculptParams, 'inflate');
-    tabs.add(sculptParams, 'deflate');
-    tabs.add(sculptParams, 'smooth');
-    tabs.add(sculptParams, 'flatten');
+    const gui = new GUI({ width: 260 });
 
-    const objectTab = gui.addFolder('Objects');
-    objectTab.add({ addCube: addCube }, 'addCube');
-    objectTab.add({ addSphere: addSphere }, 'addSphere');
-    objectTab.add({ toggleGizmo: toggleGizmo }, 'toggleGizmo');
+    const sculptTab = gui.addFolder('Sculpt');
+    sculptTab.add(sculpt, 'mode', ['inflate', 'deflate', 'smooth', 'flatten']);
+    sculptTab.add(sculpt, 'radius', 0.05, 1);
+    sculptTab.add(sculpt, 'strength', 0.01, 0.5);
 
-    const exportTab = gui.addFolder('Export/Load');
-    exportTab.add({ exportGLTF: exportGLTF }, 'exportGLTF');
+    const viewTab = gui.addFolder('View');
+    viewTab.add({ lockCamera: toggleCamera }, 'lockCamera');
+    viewTab.add({ exportGLTF }, 'exportGLTF');
 }
 
-function createCube() {
-    const geom = new THREE.BoxGeometry(1,1,1);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x44aa88, flatShading: false });
-    return new THREE.Mesh(geom, mat);
+function toggleCamera() {
+    cameraLocked = !cameraLocked;
+    controls.enabled = !cameraLocked;
 }
 
-function createSphere() {
-    const geom = new THREE.SphereGeometry(0.5, 32, 32);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xaa4444 });
-    return new THREE.Mesh(geom, mat);
+/* =======================
+   VIEW CUBE (REAL)
+======================= */
+let viewScene, viewCamera, viewRenderer, viewCube;
+
+function setupViewCube() {
+    viewScene = new THREE.Scene();
+    viewCamera = new THREE.OrthographicCamera(-1,1,1,-1,0.1,10);
+    viewCamera.position.set(2,2,2);
+    viewCamera.lookAt(0,0,0);
+
+    viewCube = new THREE.Mesh(
+        new THREE.BoxGeometry(1,1,1),
+        new THREE.MeshNormalMaterial()
+    );
+    viewScene.add(viewCube);
 }
 
-function addCube() {
-    if(mesh) scene.remove(mesh);
-    mesh = createCube();
-    scene.add(mesh);
-    transformControls.attach(mesh);
+function renderViewCube() {
+    const size = 90;
+    renderer.clearDepth();
+    renderer.setScissorTest(true);
+    renderer.setScissor(window.innerWidth - size - 10, 10, size, size);
+    renderer.setViewport(window.innerWidth - size - 10, 10, size, size);
+
+    viewCube.quaternion.copy(camera.quaternion).invert();
+    renderer.render(viewScene, viewCamera);
+    renderer.setScissorTest(false);
 }
 
-function addSphere() {
-    if(mesh) scene.remove(mesh);
-    mesh = createSphere();
-    scene.add(mesh);
-    transformControls.attach(mesh);
-}
-
-function toggleGizmo() {
-    transformControls.visible = !transformControls.visible;
-}
-
-function applyBrush(type) {
-    if(!mesh) return;
-    console.log(`Applying brush ${type}`);
-    // TODO: per-vertex sculpting logic
-}
-
+/* =======================
+   EXPORT
+======================= */
 function exportGLTF() {
     const exporter = new GLTFExporter();
-    exporter.parse(scene, (gltf) => {
-        const blob = new Blob([JSON.stringify(gltf, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+    exporter.parse(sculptMesh, gltf => {
+        const blob = new Blob([JSON.stringify(gltf)], { type: 'application/json' });
         const a = document.createElement('a');
-        a.href = url;
+        a.href = URL.createObjectURL(blob);
         a.download = 'model.gltf';
         a.click();
-        URL.revokeObjectURL(url);
     });
 }
 
-function createViewCube() {
-    const dom = document.createElement('div');
-    dom.style.position = 'absolute';
-    dom.style.top = '50px';
-    dom.style.right = '10px';
-    dom.style.width = '80px';
-    dom.style.height = '80px';
-    dom.style.background = 'rgba(40,40,40,0.7)';
-    dom.style.zIndex = '20';
-    dom.style.borderRadius = '8px';
-    dom.innerText = 'View Cube';
-    return { dom };
+/* =======================
+   RENDER
+======================= */
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+    renderViewCube();
 }
 
-function onWindowResize() {
+function onResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    orbitControls.update();
-    renderer.render(scene, camera);
 }
