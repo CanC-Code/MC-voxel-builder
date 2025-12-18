@@ -2,149 +2,138 @@ import * as THREE from './three/three.module.js';
 import { OrbitControls } from './three/OrbitControls.js';
 import { TransformControls } from './three/TransformControls.js';
 import { GLTFExporter } from './three/GLTFExporter.js';
+import { GLTFLoader } from './three/GLTFLoader.js';
+import { SubdivisionModifier } from './three/SubdivisionModifier.js';
 
-let scene,camera,renderer,controls,transform;
+const canvas = document.getElementById('c');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x3a3a3a);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(2, 2, 2);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+
+const transform = new TransformControls(camera, canvas);
+scene.add(transform);
+
+const light1 = new THREE.DirectionalLight(0xffffff, 1);
+light1.position.set(3, 5, 3);
+scene.add(light1);
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+
 let mesh;
-let raycaster = new THREE.Raycaster();
-let mouse = new THREE.Vector2();
+createBaseMesh();
 
-let cameraLocked=false;
-let sculpting=false;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let sculpting = false;
 
-const brush = {
-  mode:'inflate',
-  radius:0.4,
-  strength:0.15
+const brush = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 32, 32),
+  new THREE.MeshBasicMaterial({ wireframe: true, color: 0xffffff })
+);
+scene.add(brush);
+
+let tool = 'inflate';
+let radius = 0.2;
+let strength = 0.3;
+let cameraLocked = false;
+let gizmoEnabled = false;
+
+function createBaseMesh() {
+  const geo = new THREE.BoxGeometry(1, 1, 1, 20, 20, 20);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x9ad3ff, roughness: 0.6 });
+  mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+}
+
+function sculpt(point, normal) {
+  const pos = mesh.geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const v = new THREE.Vector3().fromBufferAttribute(pos, i);
+    const d = v.distanceTo(point);
+    if (d < radius) {
+      const falloff = 1 - d / radius;
+      let delta = normal.clone().multiplyScalar(strength * falloff * 0.1);
+      if (tool === 'deflate') delta.negate();
+      if (tool === 'smooth') {
+        v.lerp(point, 0.02 * falloff);
+      } else if (tool === 'flatten') {
+        v.add(normal.clone().multiplyScalar(-normal.dot(v.clone().sub(point)) * falloff));
+      } else {
+        v.add(delta);
+      }
+      pos.setXYZ(i, v.x, v.y, v.z);
+    }
+  }
+  pos.needsUpdate = true;
+  mesh.geometry.computeVertexNormals();
+}
+
+canvas.addEventListener('pointerdown', () => sculpting = true);
+canvas.addEventListener('pointerup', () => sculpting = false);
+canvas.addEventListener('pointermove', e => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(mesh);
+  if (!hit.length) return;
+
+  brush.position.copy(hit[0].point);
+  brush.scale.setScalar(radius * 2);
+
+  if (sculpting) sculpt(hit[0].point, hit[0].face.normal);
+});
+
+document.getElementById('toolSelect').onchange = e => tool = e.target.value;
+document.getElementById('radius').oninput = e => radius = +e.target.value;
+document.getElementById('strength').oninput = e => strength = +e.target.value;
+
+document.getElementById('cameraLockBtn').onclick = () => {
+  cameraLocked = !cameraLocked;
+  controls.enabled = !cameraLocked;
 };
 
-init();
-animate();
+document.getElementById('gizmoBtn').onclick = () => {
+  gizmoEnabled = !gizmoEnabled;
+  gizmoEnabled ? transform.attach(mesh) : transform.detach();
+};
 
-function init(){
-  scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x2b2b2b);
-
-  camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.01,100);
-  camera.position.set(2.5,2.2,2.5);
-
-  renderer=new THREE.WebGLRenderer({canvas:viewport,antialias:true});
-  renderer.setSize(innerWidth,innerHeight);
-  renderer.setPixelRatio(devicePixelRatio);
-
-  controls=new OrbitControls(camera,renderer.domElement);
-  controls.enableDamping=true;
-
-  scene.add(new THREE.HemisphereLight(0xffffff,0x444444,1.2));
-  const d=new THREE.DirectionalLight(0xffffff,0.8);
-  d.position.set(5,10,5);
-  scene.add(d);
-
-  createCube();
-
-  transform=new TransformControls(camera,renderer.domElement);
-  transform.addEventListener('dragging-changed',e=>{
-    controls.enabled=!e.value;
+document.getElementById('exportBtn').onclick = () => {
+  const exporter = new GLTFExporter();
+  exporter.parse(mesh, gltf => {
+    const blob = new Blob([JSON.stringify(gltf)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'model.gltf';
+    a.click();
   });
-  scene.add(transform);
+};
 
-  bindUI();
-}
-
-function createCube(){
-  if(mesh) scene.remove(mesh);
-  const g=new THREE.BoxGeometry(1,1,1,10,10,10);
-  const m=new THREE.MeshStandardMaterial({color:0x8ac5ff});
-  mesh=new THREE.Mesh(g,m);
-  scene.add(mesh);
-  transform.attach(mesh);
-}
-
-function sculpt(hit){
-  const g=mesh.geometry;
-  const p=g.attributes.position;
-  const n=g.attributes.normal;
-
-  for(let i=0;i<p.count;i++){
-    const v=new THREE.Vector3().fromBufferAttribute(p,i);
-    const d=v.distanceTo(hit.point);
-    if(d>brush.radius) continue;
-
-    const fall=1-d/brush.radius;
-    const norm=new THREE.Vector3().fromBufferAttribute(n,i);
-
-    if(brush.mode==='inflate')
-      v.addScaledVector(norm,brush.strength*fall);
-    if(brush.mode==='deflate')
-      v.addScaledVector(norm,-brush.strength*fall);
-    if(brush.mode==='smooth')
-      v.lerp(hit.point,brush.strength*fall*0.1);
-
-    p.setXYZ(i,v.x,v.y,v.z);
-  }
-  p.needsUpdate=true;
-  g.computeVertexNormals();
-}
-
-renderer.domElement.addEventListener('pointerdown',e=>{
-  if(!cameraLocked) return;
-  sculpting=true;
-});
-
-renderer.domElement.addEventListener('pointermove',e=>{
-  if(!sculpting) return;
-  mouse.x=(e.clientX/innerWidth)*2-1;
-  mouse.y=-(e.clientY/innerHeight)*2+1;
-  raycaster.setFromCamera(mouse,camera);
-  const hit=raycaster.intersectObject(mesh)[0];
-  if(hit) sculpt(hit);
-});
-
-window.addEventListener('pointerup',()=>sculpting=false);
-
-function bindUI(){
-  document.getElementById('cameraLock').onclick=()=>{
-    cameraLocked=!cameraLocked;
-    controls.enabled=!cameraLocked;
-  };
-
-  document.getElementById('gizmoToggle').onclick=()=>{
-    transform.enabled=!transform.enabled;
-  };
-
-  document.querySelectorAll('[data-tab]').forEach(b=>{
-    b.onclick=()=>{
-      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-      document.getElementById(b.dataset.tab).classList.add('active');
-    };
+document.getElementById('loadInput').onchange = e => {
+  const loader = new GLTFLoader();
+  loader.load(URL.createObjectURL(e.target.files[0]), gltf => {
+    scene.remove(mesh);
+    mesh = gltf.scene.children[0];
+    scene.add(mesh);
   });
+};
 
-  document.querySelectorAll('[data-brush]').forEach(b=>{
-    b.onclick=()=>brush.mode=b.dataset.brush;
-  });
-
-  radius.oninput=e=>brush.radius=+e.target.value;
-  strength.oninput=e=>brush.strength=+e.target.value;
-
-  exportGLTF.onclick=()=>{
-    const ex=new GLTFExporter();
-    ex.parse(mesh,g=>{
-      const blob=new Blob([JSON.stringify(g)],{type:'application/json'});
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download='model.gltf';
-      a.click();
-    });
-  };
-}
-
-function animate(){
+function animate() {
   requestAnimationFrame(animate);
   controls.update();
-  renderer.render(scene,camera);
+  renderer.render(scene, camera);
 }
+animate();
 
-addEventListener('resize',()=>{
-  camera.aspect=innerWidth/innerHeight;
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+  renderer.setSize(innerWidth, innerHeight);
 });
