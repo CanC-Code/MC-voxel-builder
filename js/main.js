@@ -1,68 +1,102 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import * as THREE from '../three/three.module.js';
+import { OrbitControls } from '../three/OrbitControls.js';
 
-// --- Renderer ---
+import { SculptBrush } from './sculptBrush.js';
+import { ensureTopology } from './topology.js';
+
 const canvas = document.getElementById('viewport');
+
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 
-// --- Scene ---
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x222222);
+scene.background = new THREE.Color(0x202020);
 
-// --- Camera ---
 const camera = new THREE.PerspectiveCamera(
   60,
   window.innerWidth / window.innerHeight,
   0.1,
   1000
 );
-camera.position.set(2, 2, 4);
+camera.position.set(3, 3, 6);
 
-// --- Controls (FIXED) ---
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
-controls.dampingFactor = 0.08;
-controls.enablePan = true;
-controls.enableRotate = true;
-controls.enableZoom = true;
-controls.screenSpacePanning = false;
-controls.minDistance = 0.5;
-controls.maxDistance = 50;
-controls.target.set(0, 0.75, 0);
-controls.update();
+controls.dampingFactor = 0.05;
 
-// --- Lighting ---
-const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-hemi.position.set(0, 20, 0);
-scene.add(hemi);
+let cameraLocked = false;
+
+export function setCameraLocked(state) {
+  cameraLocked = state;
+  controls.enabled = !state;
+
+  const btn = document.getElementById('lockCamera');
+  btn.textContent = state ? 'Camera Locked' : 'Camera Free';
+  btn.classList.toggle('active', state);
+}
+
+/* ---------- Lighting ---------- */
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 
 const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-dir.position.set(5, 10, 7.5);
+dir.position.set(5, 10, 5);
 scene.add(dir);
 
-// --- Test Geometry ---
-const grid = new THREE.GridHelper(10, 10);
-scene.add(grid);
+/* ---------- Mesh ---------- */
 
-const geo = new THREE.BoxGeometry();
-const mat = new THREE.MeshStandardMaterial({ color: 0x4da6ff });
-const cube = new THREE.Mesh(geo, mat);
-cube.position.y = 0.5;
-scene.add(cube);
+let activeMesh = null;
 
-// --- Resize Handling ---
+function createCube() {
+  if (activeMesh) scene.remove(activeMesh);
+
+  const geo = new THREE.BoxGeometry(1, 1, 1, 10, 10, 10);
+  ensureTopology(geo);
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xaaaaaa,
+    flatShading: false
+  });
+
+  activeMesh = new THREE.Mesh(geo, mat);
+  scene.add(activeMesh);
+}
+
+createCube();
+
+/* ---------- Sculpt Brush ---------- */
+
+const sculpt = new SculptBrush({
+  scene,
+  camera,
+  canvas,
+  getMesh: () => activeMesh,
+  onStart: () => setCameraLocked(true),
+  onEnd: () => setCameraLocked(false)
+});
+
+/* ---------- UI ---------- */
+
+document.getElementById('lockCamera').onclick = () => {
+  setCameraLocked(!cameraLocked);
+};
+
+document.getElementById('newCube').onclick = createCube;
+
+/* ---------- Resize ---------- */
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// --- Render Loop ---
+/* ---------- Render Loop ---------- */
+
 function animate() {
   requestAnimationFrame(animate);
-  controls.update(); // REQUIRED
+  controls.update();
   renderer.render(scene, camera);
 }
 
