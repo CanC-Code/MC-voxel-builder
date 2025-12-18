@@ -23,13 +23,14 @@ export class SculptBrush {
     this.canvas.addEventListener('pointerdown', e => this._start(e));
     window.addEventListener('pointerup', () => this._end());
     window.addEventListener('pointercancel', () => this._end());
-    window.addEventListener('mouseleave', () => this._end());
+    window.addEventListener('blur', () => this._end());
     this.canvas.addEventListener('pointermove', e => this._move(e));
   }
 
   _start(e) {
+    if (!this.getMesh()) return;
     this.active = true;
-    this.onStart();
+    this.onStart?.();
     this._updateMouse(e);
     this._sculpt();
   }
@@ -37,7 +38,7 @@ export class SculptBrush {
   _end() {
     if (!this.active) return;
     this.active = false;
-    this.onEnd();
+    this.onEnd?.();
   }
 
   _move(e) {
