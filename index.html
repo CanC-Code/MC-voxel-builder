@@ -7,54 +7,15 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<!-- Top bar -->
-<div id="top-bar">
-    <button id="toggleCameraLock">Camera Lock</button>
+<div id="header">
+    <span id="title">MC Voxel Builder</span>
 </div>
 
-<!-- Tabbed menu -->
-<div id="menu">
-    <div class="tab-buttons">
-        <button class="tab-button active" data-tab="brushes">Brushes</button>
-        <button class="tab-button" data-tab="shapes">Shapes</button>
-        <button class="tab-button" data-tab="export">Export/Load</button>
-        <button class="tab-button" data-tab="voxel">Voxelize</button>
-    </div>
-
-    <div class="tab-content active" id="brushes">
-        <label>Brush Size: <input type="range" id="brushSize" min="0.1" max="2" step="0.01" value="0.5"></label>
-        <label>Strength: <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.2"></label>
-        <label>Mode:
-            <select id="brushMode">
-                <option value="inflate">Inflate</option>
-                <option value="deflate">Deflate</option>
-                <option value="flatten">Flatten</option>
-                <option value="smooth">Smooth</option>
-                <option value="grab">Grab</option>
-            </select>
-        </label>
-        <label>Mirror X: <input type="checkbox" id="mirrorX"></label>
-        <label>Mirror Y: <input type="checkbox" id="mirrorY"></label>
-        <label>Mirror Z: <input type="checkbox" id="mirrorZ"></label>
-        <label>Mesh View: <input type="checkbox" id="meshView" checked></label>
-    </div>
-
-    <div class="tab-content" id="shapes">
-        <button id="newCube">New Cube</button>
-        <button id="newSphere">New Sphere</button>
-    </div>
-
-    <div class="tab-content" id="export">
-        <button id="exportGLTF">Export GLTF</button>
-        <input type="file" id="loadGLTF" accept=".gltf,.glb">
-    </div>
-
-    <div class="tab-content" id="voxel">
-        <button id="voxelize">Voxelize</button>
-    </div>
-</div>
-
-<script type="module" src="./main.js"></script>
+<script type="module" src="three/three.module.js"></script>
+<script type="module" src="three/OrbitControls.js"></script>
+<script type="module" src="three/GLTFLoader.js"></script>
+<script type="module" src="three/GLTFExporter.js"></script>
+<script type="module" src="three/lil-gui.esm.min.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
