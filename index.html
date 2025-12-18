@@ -8,45 +8,53 @@
 </head>
 <body>
 
-<!-- Top-right Tabbed Panel -->
-<div id="uiPanel">
-    <div id="tabs">
-        <button class="tabButton active" data-tab="objects">Objects</button>
-        <button class="tabButton" data-tab="sculpt">Sculpt</button>
-        <button class="tabButton" data-tab="export">Export/Import</button>
-        <button class="tabButton" data-tab="voxel">Voxelize</button>
-        <label><input type="checkbox" id="lockCamera"> Lock Camera</label>
+<!-- Top bar -->
+<div id="top-bar">
+    <button id="toggleCameraLock">Camera Lock</button>
+</div>
+
+<!-- Tabbed menu -->
+<div id="menu">
+    <div class="tab-buttons">
+        <button class="tab-button active" data-tab="brushes">Brushes</button>
+        <button class="tab-button" data-tab="shapes">Shapes</button>
+        <button class="tab-button" data-tab="export">Export/Load</button>
+        <button class="tab-button" data-tab="voxel">Voxelize</button>
     </div>
-    <div id="tabContents">
-        <div class="tabContent" id="objects">
-            <button id="newCube">New Cube</button>
-            <button id="newSphere">New Sphere</button>
-            <button id="resetScene">Reset</button>
-        </div>
-        <div class="tabContent hidden" id="sculpt">
-            <label>Brush Size: <input type="range" id="brushSize" min="0.1" max="2" step="0.05" value="0.5"></label>
-            <label>Strength: <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.2"></label>
+
+    <div class="tab-content active" id="brushes">
+        <label>Brush Size: <input type="range" id="brushSize" min="0.1" max="2" step="0.01" value="0.5"></label>
+        <label>Strength: <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.2"></label>
+        <label>Mode:
             <select id="brushMode">
                 <option value="inflate">Inflate</option>
                 <option value="deflate">Deflate</option>
-                <option value="smooth">Smooth</option>
                 <option value="flatten">Flatten</option>
+                <option value="smooth">Smooth</option>
+                <option value="grab">Grab</option>
             </select>
-            <label><input type="checkbox" id="mirrorX"> Mirror X</label>
-            <label><input type="checkbox" id="mirrorY"> Mirror Y</label>
-            <label><input type="checkbox" id="mirrorZ"> Mirror Z</label>
-        </div>
-        <div class="tabContent hidden" id="export">
-            <button id="exportGLTF">Export GLTF</button>
-            <button id="importGLTF">Load GLTF</button>
-            <button id="toggleMeshView">Toggle Mesh View</button>
-        </div>
-        <div class="tabContent hidden" id="voxel">
-            <p>Voxelization tools (coming soon)</p>
-        </div>
+        </label>
+        <label>Mirror X: <input type="checkbox" id="mirrorX"></label>
+        <label>Mirror Y: <input type="checkbox" id="mirrorY"></label>
+        <label>Mirror Z: <input type="checkbox" id="mirrorZ"></label>
+        <label>Mesh View: <input type="checkbox" id="meshView" checked></label>
+    </div>
+
+    <div class="tab-content" id="shapes">
+        <button id="newCube">New Cube</button>
+        <button id="newSphere">New Sphere</button>
+    </div>
+
+    <div class="tab-content" id="export">
+        <button id="exportGLTF">Export GLTF</button>
+        <input type="file" id="loadGLTF" accept=".gltf,.glb">
+    </div>
+
+    <div class="tab-content" id="voxel">
+        <button id="voxelize">Voxelize</button>
     </div>
 </div>
 
-<script type="module" src="main.js"></script>
+<script type="module" src="./main.js"></script>
 </body>
 </html>
