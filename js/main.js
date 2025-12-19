@@ -1,8 +1,8 @@
-import * as THREE from "./three/three.module.js";
-import { OrbitControls } from "./three/OrbitControls.js";
-import { TransformControls } from "./three/TransformControls.js";
-import { GLTFLoader } from "./three/GLTFLoader.js";
-import { GLTFExporter } from "./three/GLTFExporter.js";
+import * as THREE from "../three/three.module.js";
+import { OrbitControls } from "../three/OrbitControls.js";
+import { TransformControls } from "../three/TransformControls.js";
+import { GLTFLoader } from "../three/GLTFLoader.js";
+import { GLTFExporter } from "../three/GLTFExporter.js";
 import { initUI } from "./ui.js";
 
 /* ===============================
@@ -17,7 +17,12 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb0c4de); // light steel blue
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
 camera.position.set(4, 4, 6);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -25,6 +30,33 @@ controls.enableDamping = true;
 
 const transform = new TransformControls(camera, renderer.domElement);
 scene.add(transform);
+
+/* ===============================
+   State
+================================ */
+
+let activeMesh = null;
+let wireframe = false;
+let cameraLocked = false;
+let sculpting = false;
+
+const state = {
+  brush: null,
+  controls,
+  cameraLocked,
+  wireframe,
+  setTool: t => state.brush && state.brush.setTool(t),
+  setRadius: r => state.brush && state.brush.setRadius(r),
+  setStrength: s => state.brush && state.brush.setStrength(s),
+  toggleWireframe: () => {
+    wireframe = !wireframe;
+    if (activeMesh) activeMesh.material.wireframe = wireframe;
+  },
+  createCube,
+  createSphere,
+  exportGLTF,
+  importGLTF
+};
 
 /* ===============================
    Lighting & Helpers
@@ -37,20 +69,14 @@ scene.add(dir);
 scene.add(new THREE.GridHelper(20, 20));
 
 /* ===============================
-   State
+   Resize
 ================================ */
 
-let activeMesh = null;
-let wireframe = false;
-let cameraLocked = false;
-let sculpting = false;
-
-const state = {
-  controls,
-  cameraLocked,
-  wireframe,
-  brush: null
-};
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
 /* ===============================
    Active Mesh Handling
@@ -71,8 +97,9 @@ function setActive(mesh) {
   activeMesh = mesh;
   scene.add(mesh);
   transform.attach(mesh);
-  state.brush = mesh.sculptBrush || null;
-  mesh.material.wireframe = state.wireframe;
+
+  // Initialize brush
+  if (!state.brush) state.brush = new SculptBrush(activeMesh);
 }
 
 /* ===============================
@@ -80,143 +107,28 @@ function setActive(mesh) {
 ================================ */
 
 function createCube() {
-  const geo = new THREE.BoxGeometry(2, 2, 2, 24, 24, 24);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.sculptBrush = new SculptBrush(mesh);
-  setActive(mesh);
+  setActive(
+    new THREE.Mesh(
+      new THREE.BoxGeometry(2, 2, 2, 24, 24, 24),
+      new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe })
+    )
+  );
 }
 
 function createSphere() {
-  const geo = new THREE.SphereGeometry(1.5, 64, 64);
-  const mat = new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.sculptBrush = new SculptBrush(mesh);
-  setActive(mesh);
+  setActive(
+    new THREE.Mesh(
+      new THREE.SphereGeometry(1.5, 64, 64),
+      new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe })
+    )
+  );
 }
 
 /* ===============================
-   Default Mesh
+   GLTF Export / Import
 ================================ */
 
-createCube();
-
-/* ===============================
-   UI Wiring
-================================ */
-
-initUI({
-  ...state,
-  createCube,
-  createSphere,
-  toggleWireframe: () => {
-    state.wireframe = !state.wireframe;
-    if (activeMesh) {
-      activeMesh.material.wireframe = state.wireframe;
-      activeMesh.material.needsUpdate = true;
-    }
-  },
-  toggleCameraLock: () => {
-    state.cameraLocked = !state.cameraLocked;
-    controls.enableRotate = !state.cameraLocked;
-  }
-});
-
-/* ===============================
-   Sculpting
-================================ */
-
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const cursorBrush = document.getElementById("cursorBrush");
-
-// Pointer / touch helpers
-function getPointerPos(e) {
-  if (e.touches) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: ((e.touches[0].clientX - rect.left) / rect.width) * 2 - 1,
-      y: -((e.touches[0].clientY - rect.top) / rect.height) * 2 + 1
-    };
-  } else {
-    return {
-      x: (e.clientX / window.innerWidth) * 2 - 1,
-      y: -(e.clientY / window.innerHeight) * 2 + 1
-    };
-  }
-}
-
-function handleSculpt(e) {
-  if (!sculpting || !activeMesh || !state.brush) return;
-  const pos = getPointerPos(e);
-  mouse.x = pos.x;
-  mouse.y = pos.y;
-
-  raycaster.setFromCamera(mouse, camera);
-  const hits = raycaster.intersectObject(activeMesh);
-  if (!hits.length) return;
-
-  const viewDir = new THREE.Vector3();
-  camera.getWorldDirection(viewDir);
-
-  state.brush.apply(hits[0].point, viewDir);
-}
-
-// Desktop mouse
-canvas.addEventListener("pointerdown", e => { if (e.button === 0) sculpting = true; });
-canvas.addEventListener("pointerup", () => sculpting = false);
-canvas.addEventListener("pointerleave", () => sculpting = false);
-canvas.addEventListener("pointermove", e => {
-  handleSculpt(e);
-  cursorBrush.style.left = e.clientX + "px";
-  cursorBrush.style.top = e.clientY + "px";
-  cursorBrush.style.display = "block";
-});
-canvas.addEventListener("pointerout", () => { cursorBrush.style.display = "none"; });
-
-// Touch
-let touchState = { isSculpt: false, isOrbit: false, lastDistance: 0, lastTouchPos: null };
-
-canvas.addEventListener("touchstart", e => {
-  if (e.touches.length === 1) {
-    sculpting = true;
-    touchState.isSculpt = true;
-  } else if (e.touches.length === 2) {
-    sculpting = false;
-    touchState.isOrbit = true;
-    const dx = e.touches[0].clientX - e.touches[1].clientX;
-    const dy = e.touches[0].clientY - e.touches[1].clientY;
-    touchState.lastDistance = Math.hypot(dx, dy);
-    touchState.lastTouchPos = { x: (e.touches[0].clientX + e.touches[1].clientX)/2, y: (e.touches[0].clientY + e.touches[1].clientY)/2 };
-  }
-});
-
-canvas.addEventListener("touchmove", e => {
-  if (touchState.isSculpt) handleSculpt(e);
-  else if (touchState.isOrbit && e.touches.length === 2) {
-    if (state.cameraLocked) return;
-
-    const dx = (e.touches[0].clientX + e.touches[1].clientX)/2 - touchState.lastTouchPos.x;
-    const dy = (e.touches[0].clientY + e.touches[1].clientY)/2 - touchState.lastTouchPos.y;
-
-    controls.rotateLeft(dx * 0.005);
-    controls.rotateUp(dy * 0.005);
-
-    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    camera.position.multiplyScalar(touchState.lastDistance / dist);
-    touchState.lastDistance = dist;
-
-    touchState.lastTouchPos = { x: (e.touches[0].clientX + e.touches[1].clientX)/2, y: (e.touches[0].clientY + e.touches[1].clientY)/2 };
-  }
-});
-
-canvas.addEventListener("touchend", e => { sculpting = false; touchState.isSculpt = false; touchState.isOrbit = false; });
-
-/* ===============================
-   Export / Import
-================================ */
-
-document.getElementById("exportGLTF").onclick = () => {
+function exportGLTF() {
   if (!activeMesh) return;
   new GLTFExporter().parse(activeMesh, gltf => {
     const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
@@ -225,9 +137,9 @@ document.getElementById("exportGLTF").onclick = () => {
     a.download = "model.gltf";
     a.click();
   });
-};
+}
 
-document.getElementById("importGLTF").onchange = e => {
+function importGLTF(e) {
   const reader = new FileReader();
   reader.onload = () => {
     new GLTFLoader().parse(reader.result, "", gltf => {
@@ -236,17 +148,161 @@ document.getElementById("importGLTF").onchange = e => {
     });
   };
   reader.readAsArrayBuffer(e.target.files[0]);
-};
+}
 
 /* ===============================
-   Resize & Render
+   Cursor Brush
 ================================ */
 
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+const cursorBrush = document.getElementById("cursorBrush");
+
+renderer.domElement.addEventListener("pointermove", e => {
+  cursorBrush.style.left = e.clientX + "px";
+  cursorBrush.style.top = e.clientY + "px";
+  cursorBrush.style.display = "block";
 });
+
+renderer.domElement.addEventListener("pointerleave", () => {
+  cursorBrush.style.display = "none";
+});
+
+/* ===============================
+   Sculpting Core
+================================ */
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+renderer.domElement.addEventListener("pointerdown", e => {
+  if (!activeMesh) return;
+  sculpting = true;
+  transform.detach();
+  applyInflate(e);
+});
+
+renderer.domElement.addEventListener("pointerup", () => {
+  sculpting = false;
+  if (activeMesh) transform.attach(activeMesh);
+});
+
+renderer.domElement.addEventListener("pointermove", e => {
+  if (sculpting) applyInflate(e);
+});
+
+function applyInflate(e) {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(activeMesh)[0];
+  if (!hit) return;
+
+  sculptInflateRegion(hit);
+}
+
+/* ===============================
+   Sculpt Region
+================================ */
+
+function sculptInflateRegion(hit) {
+  const geo = activeMesh.geometry;
+  const pos = geo.attributes.position;
+  const normal = geo.attributes.normal;
+
+  const radius = parseFloat(document.getElementById("brushSize").value);
+  const strength = parseFloat(document.getElementById("brushStrength").value);
+
+  const inv = new THREE.Matrix4().copy(activeMesh.matrixWorld).invert();
+  const center = hit.point.clone().applyMatrix4(inv);
+
+  const region = [];
+  const avgNormal = new THREE.Vector3();
+  const v = new THREE.Vector3();
+  const n = new THREE.Vector3();
+
+  for (let i = 0; i < pos.count; i++) {
+    v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+    if (v.distanceTo(center) > radius) continue;
+
+    region.push(i);
+    n.set(normal.getX(i), normal.getY(i), normal.getZ(i));
+    avgNormal.add(n);
+  }
+
+  if (region.length === 0) return;
+  avgNormal.normalize();
+
+  for (const i of region) {
+    v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+    const dist = v.distanceTo(center);
+    const falloff = Math.exp(-(dist * dist) / (radius * radius));
+    v.addScaledVector(avgNormal, strength * falloff);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+
+  laplacianSmooth(geo, region, 0.45);
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+}
+
+/* ===============================
+   Laplacian Smooth
+================================ */
+
+function laplacianSmooth(geo, region, factor) {
+  if (!geo.index) return;
+
+  const pos = geo.attributes.position;
+  const index = geo.index.array;
+  const neighbors = {};
+  for (const i of region) neighbors[i] = new Set();
+
+  for (let i = 0; i < index.length; i += 3) {
+    const a = index[i],
+      b = index[i + 1],
+      c = index[i + 2];
+    if (neighbors[a]) neighbors[a].add(b).add(c);
+    if (neighbors[b]) neighbors[b].add(a).add(c);
+    if (neighbors[c]) neighbors[c].add(a).add(b);
+  }
+
+  const original = {};
+  const v = new THREE.Vector3();
+  const avg = new THREE.Vector3();
+
+  for (const i of region) {
+    original[i] = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+  }
+
+  for (const i of region) {
+    const neigh = neighbors[i];
+    if (!neigh || neigh.size === 0) continue;
+
+    avg.set(0, 0, 0);
+    neigh.forEach(n =>
+      avg.add(new THREE.Vector3(pos.getX(n), pos.getY(n), pos.getZ(n)))
+    );
+    avg.multiplyScalar(1 / neigh.size);
+    v.copy(original[i]).lerp(avg, factor);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+}
+
+/* ===============================
+   Default Cube
+================================ */
+
+createCube();
+
+/* ===============================
+   UI
+================================ */
+
+initUI(state);
+
+/* ===============================
+   Render Loop
+================================ */
 
 function animate() {
   requestAnimationFrame(animate);
