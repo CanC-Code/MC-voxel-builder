@@ -31,6 +31,8 @@ camera.position.set(3.5, 3.5, 5);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
+controls.enablePan = true;
+controls.enableZoom = true;
 
 // Mouse mapping: right & middle orbit, left reserved for sculpt
 controls.mouseButtons = {
@@ -132,8 +134,6 @@ initUI({
   },
   toggleCameraLock: () => {
     state.cameraLocked = !state.cameraLocked;
-
-    // Lock = disable rotation only
     controls.enableRotate = !state.cameraLocked;
   }
 });
@@ -145,19 +145,29 @@ const mouse = new THREE.Vector2();
 
 let sculpting = false;
 
-canvas.addEventListener("pointerdown", e => {
-  if (e.button !== 0) return; // left mouse only
-  sculpting = true;
-});
+/* ---------- Helper Functions ---------- */
 
-canvas.addEventListener("pointerup", () => sculpting = false);
-canvas.addEventListener("pointerleave", () => sculpting = false);
+function getPointerPos(event) {
+  if (event.touches) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((event.touches[0].clientX - rect.left) / rect.width) * 2 - 1,
+      y: -((event.touches[0].clientY - rect.top) / rect.height) * 2 + 1
+    };
+  } else {
+    return {
+      x: (event.clientX / window.innerWidth) * 2 - 1,
+      y: -(event.clientY / window.innerHeight) * 2 + 1
+    };
+  }
+}
 
-canvas.addEventListener("pointermove", e => {
+function handleSculpt(event) {
   if (!sculpting || !activeMesh || !state.brush) return;
 
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  const pos = getPointerPos(event);
+  mouse.x = pos.x;
+  mouse.y = pos.y;
 
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObject(activeMesh);
@@ -167,6 +177,54 @@ canvas.addEventListener("pointermove", e => {
   camera.getWorldDirection(viewDir);
 
   state.brush.apply(hits[0].point, viewDir);
+}
+
+/* ---------- Pointer Events ---------- */
+
+// Desktop mouse
+canvas.addEventListener("pointerdown", e => {
+  if (e.pointerType === "mouse" && e.button === 0) sculpting = true;
+});
+canvas.addEventListener("pointerup", () => sculpting = false);
+canvas.addEventListener("pointerleave", () => sculpting = false);
+canvas.addEventListener("pointermove", handleSculpt);
+
+// Touch
+let touchState = {
+  isSculpt: false,
+  lastDistance: 0
+};
+
+canvas.addEventListener("touchstart", e => {
+  if (e.touches.length === 1) {
+    sculpting = true;
+    touchState.isSculpt = true;
+  } else if (e.touches.length === 2) {
+    sculpting = false;
+    touchState.isSculpt = false;
+    touchState.lastDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+});
+
+canvas.addEventListener("touchmove", e => {
+  if (touchState.isSculpt) {
+    handleSculpt(e);
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    const zoomFactor = touchState.lastDistance / dist;
+    controls.zoomSpeed = 1;
+    camera.position.multiplyScalar(zoomFactor);
+    touchState.lastDistance = dist;
+  }
+});
+
+canvas.addEventListener("touchend", e => {
+  if (e.touches.length === 0) sculpting = false;
 });
 
 /* ---------- Resize ---------- */
