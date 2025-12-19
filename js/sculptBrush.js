@@ -1,85 +1,110 @@
-import * as THREE from '../three/three.module.js';
+import * as THREE from "../three/three.module.js";
 
 export class SculptBrush {
-  constructor({ camera, canvas, cursor, getMesh, isEnabled, onStrokeStart, onStrokeEnd }) {
-    this.camera = camera;
-    this.canvas = canvas;
-    this.cursor = cursor;
-    this.getMesh = getMesh;
-    this.isEnabled = isEnabled;
-    this.onStrokeStart = onStrokeStart;
-    this.onStrokeEnd = onStrokeEnd;
+  constructor(mesh) {
+    this.mesh = mesh;
+    this.geometry = mesh.geometry;
+    this.position = this.geometry.attributes.position;
+    this.normal = this.geometry.attributes.normal;
 
     this.radius = 1;
-    this.strength = 0.15;
-    this.active = false;
-
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2();
-
-    this._bind();
+    this.strength = 0.3;
+    this.tool = "inflate";
   }
 
-  _bind() {
-    this.canvas.addEventListener('pointerdown', e => this._start(e));
-    this.canvas.addEventListener('pointermove', e => this._move(e));
-    window.addEventListener('pointerup', () => this._end());
+  setTool(tool) {
+    this.tool = tool;
   }
 
-  _start(e) {
-    if (!this.isEnabled() || !this.getMesh()) return;
-    this.active = true;
-    this.onStrokeStart();
-    this.cursor.style.display = 'block';
-    this._update(e);
-    this._sculpt();
+  setRadius(r) {
+    this.radius = r;
   }
 
-  _end() {
-    if (!this.active) return;
-    this.active = false;
-    this.cursor.style.display = 'none';
-    this.onStrokeEnd();
+  setStrength(s) {
+    this.strength = s;
   }
 
-  _move(e) {
-    this._update(e);
-    if (this.active) this._sculpt();
-  }
-
-  _update(e) {
-    const r = this.canvas.getBoundingClientRect();
-    this.mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
-    this.mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
-
-    this.cursor.style.left = e.clientX + 'px';
-    this.cursor.style.top = e.clientY + 'px';
-    this.cursor.style.width = this.radius * 40 + 'px';
-    this.cursor.style.height = this.radius * 40 + 'px';
-  }
-
-  _sculpt() {
-    const mesh = this.getMesh();
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const hit = this.raycaster.intersectObject(mesh);
-    if (!hit.length) return;
-
-    const geo = mesh.geometry;
-    const pos = geo.attributes.position;
-    const normal = hit[0].face.normal.clone();
-    const center = hit[0].point;
+  apply(point, viewDir = null) {
+    const pos = this.position;
+    const norm = this.normal;
+    const center = point;
 
     for (let i = 0; i < pos.count; i++) {
-      const v = new THREE.Vector3().fromBufferAttribute(pos, i);
-      mesh.localToWorld(v);
-      const d = v.distanceTo(center);
-      if (d > this.radius) continue;
-      v.addScaledVector(normal, this.strength * (1 - d / this.radius));
-      mesh.worldToLocal(v);
-      pos.setXYZ(i, v.x, v.y, v.z);
+      const vx = pos.getX(i);
+      const vy = pos.getY(i);
+      const vz = pos.getZ(i);
+
+      const dx = vx - center.x;
+      const dy = vy - center.y;
+      const dz = vz - center.z;
+
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist > this.radius) continue;
+
+      const falloff = Math.pow(1 - dist / this.radius, 2);
+      const influence = falloff * this.strength;
+
+      const nx = norm.getX(i);
+      const ny = norm.getY(i);
+      const nz = norm.getZ(i);
+
+      let ox = 0, oy = 0, oz = 0;
+
+      switch (this.tool) {
+        case "inflate":
+          ox = nx * influence;
+          oy = ny * influence;
+          oz = nz * influence;
+          break;
+
+        case "deflate":
+          ox = -nx * influence;
+          oy = -ny * influence;
+          oz = -nz * influence;
+          break;
+
+        case "smooth":
+          ox = -dx * influence * 0.2;
+          oy = -dy * influence * 0.2;
+          oz = -dz * influence * 0.2;
+          break;
+
+        case "grab":
+          if (!viewDir) break;
+          ox = viewDir.x * influence;
+          oy = viewDir.y * influence;
+          oz = viewDir.z * influence;
+          break;
+
+        case "flatten":
+          ox = -nx * dist * influence;
+          oy = -ny * dist * influence;
+          oz = -nz * dist * influence;
+          break;
+
+        case "pinch":
+          ox = -dx * influence;
+          oy = -dy * influence;
+          oz = -dz * influence;
+          break;
+
+        case "clay":
+          ox = nx * influence * 0.6;
+          oy = ny * influence * 0.6;
+          oz = nz * influence * 0.6;
+          break;
+
+        case "scrape":
+          ox = -nx * influence * 0.8;
+          oy = -ny * influence * 0.8;
+          oz = -nz * influence * 0.8;
+          break;
+      }
+
+      pos.setXYZ(i, vx + ox, vy + oy, vz + oz);
     }
 
     pos.needsUpdate = true;
-    geo.computeVertexNormals();
+    this.geometry.computeVertexNormals();
   }
 }
