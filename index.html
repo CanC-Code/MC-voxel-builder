@@ -1,53 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MC Voxel Builder</title>
-<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="./css/style.css" />
 </head>
+
 <body>
+  <div id="topbar">
+    <button id="toggleMenu">☰</button>
+    <button id="lockCamera">Camera Free</button>
+    <button id="toggleWire">▦ Wire</button>
+  </div>
 
-<div id="topbar">
-  <button id="toggleMenu">☰</button>
-  <button id="lockCamera">Camera Free</button>
-  <button id="toggleWire">▦ Wire</button>
-</div>
+  <div id="menu" class="collapsed">
+    <h3>Model</h3>
+    <button id="newCube">New Cube</button>
+    <button id="newSphere">New Sphere</button>
 
-<div id="menu" class="collapsed">
-  <h3>Model</h3>
-  <button id="newCube">New Cube</button>
-  <button id="newSphere">New Sphere</button>
+    <h3>File</h3>
+    <button id="exportGLTF">Export GLTF</button>
+    <input type="file" id="importGLTF" accept=".gltf,.glb" />
 
-  <h3>Tools</h3>
-  <div id="toolContainer">
+    <h3>Sculpt</h3>
+    <label>Brush Size</label>
+    <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1" />
+    <label>Brush Strength</label>
+    <input type="range" id="brushStrength" min="0.01" max="0.5" step="0.01" value="0.08" />
     <button id="toolInflate">Inflate</button>
     <button id="toolDeflate">Deflate</button>
     <button id="toolSmooth">Smooth</button>
     <button id="toolFlatten">Flatten</button>
+    <button id="toolPinch">Pinch</button>
   </div>
 
-  <h3>Symmetry</h3>
-  <div id="symContainer">
-    <button id="symX">X</button>
-    <button id="symY">Y</button>
-    <button id="symZ">Z</button>
-  </div>
+  <div id="cursorBrush"></div>
+  <canvas id="viewport"></canvas>
 
-  <h3>Brush</h3>
-  <label>Size</label>
-  <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1">
-  <label>Strength</label>
-  <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.3">
-
-  <h3>File</h3>
-  <button id="exportGLTF">Export GLTF</button>
-  <input type="file" id="importGLTF" accept=".gltf,.glb">
-</div>
-
-<div id="cursorBrush"></div>
-<canvas id="viewport"></canvas>
-
-<script type="module" src="./main.js"></script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
