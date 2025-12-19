@@ -1,85 +1,64 @@
-import * as THREE from "../three/three.module.js";
-import { OrbitControls } from "../three/OrbitControls.js";
-import { SculptBrush } from "./sculptBrush.js";
+import * as THREE from "./three/three.module.js";
+import { OrbitControls } from "./three/OrbitControls.js";
+import { TransformControls } from "./three/TransformControls.js";
+import { GLTFLoader } from "./three/GLTFLoader.js";
+import { GLTFExporter } from "./three/GLTFExporter.js";
 import { initUI } from "./ui.js";
 
-/* ---------- Renderer / Scene ---------- */
+/* ===============================
+   Core Setup
+================================ */
 
 const canvas = document.getElementById("viewport");
-
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true
-});
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb0c4de); // light steel blue
 
-/* ---------- Camera ---------- */
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(4, 4, 6);
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  100
-);
-camera.position.set(3.5, 3.5, 5);
-
-/* ---------- Orbit Controls ---------- */
-
-const controls = new OrbitControls(camera, canvas);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.enablePan = true;
-controls.enableZoom = true;
-controls.enableRotate = true;
 
-// Mouse mapping
-controls.mouseButtons = {
-  LEFT: null,
-  MIDDLE: THREE.MOUSE.DOLLY,
-  RIGHT: THREE.MOUSE.ROTATE
-};
+const transform = new TransformControls(camera, renderer.domElement);
+scene.add(transform);
 
-/* ---------- Lighting ---------- */
+/* ===============================
+   Lighting & Helpers
+================================ */
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+scene.add(new THREE.GridHelper(20, 20));
 
-const key = new THREE.DirectionalLight(0xffffff, 0.9);
-key.position.set(6, 10, 4);
-scene.add(key);
-
-const rim = new THREE.DirectionalLight(0xffffff, 0.4);
-rim.position.set(-6, 4, -6);
-scene.add(rim);
-
-/* ---------- Grid ---------- */
-
-const grid = new THREE.GridHelper(10, 10, 0x444444, 0x888888);
-grid.position.y = -1.5;
-scene.add(grid);
-
-/* ---------- State ---------- */
+/* ===============================
+   State
+================================ */
 
 let activeMesh = null;
+let wireframe = false;
+let cameraLocked = false;
+let sculpting = false;
 
 const state = {
-  cameraLocked: false,
-  wireframe: false,
-  brush: null,
-  controls, // make controls accessible to UI
-
-  setTool: t => state.brush && state.brush.setTool(t),
-  setRadius: r => state.brush && state.brush.setRadius(r),
-  setStrength: s => state.brush && state.brush.setStrength(s)
+  controls,
+  cameraLocked,
+  wireframe,
+  brush: null
 };
 
-/* ---------- Mesh Helpers ---------- */
+/* ===============================
+   Active Mesh Handling
+================================ */
 
-function clearMesh() {
+function clearActiveMesh() {
   if (!activeMesh) return;
-
+  transform.detach();
   scene.remove(activeMesh);
   activeMesh.geometry.dispose();
   activeMesh.material.dispose();
@@ -87,42 +66,44 @@ function clearMesh() {
   state.brush = null;
 }
 
-function setMesh(mesh) {
-  clearMesh();
+function setActive(mesh) {
+  clearActiveMesh();
   activeMesh = mesh;
-  mesh.material.wireframe = state.wireframe;
   scene.add(mesh);
-  state.brush = new SculptBrush(mesh);
+  transform.attach(mesh);
+  state.brush = mesh.sculptBrush || null;
+  mesh.material.wireframe = state.wireframe;
 }
 
-/* ---------- Material ---------- */
-
-function createClayMaterial() {
-  return new THREE.MeshStandardMaterial({
-    color: 0xd8bfa3,
-    roughness: 0.75,
-    metalness: 0,
-    wireframe: state.wireframe
-  });
-}
-
-/* ---------- Primitives ---------- */
+/* ===============================
+   Mesh Creation
+================================ */
 
 function createCube() {
-  const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5, 24, 24, 24);
-  setMesh(new THREE.Mesh(geo, createClayMaterial()));
+  const geo = new THREE.BoxGeometry(2, 2, 2, 24, 24, 24);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.sculptBrush = new SculptBrush(mesh);
+  setActive(mesh);
 }
 
 function createSphere() {
-  const geo = new THREE.SphereGeometry(1.2, 48, 48);
-  setMesh(new THREE.Mesh(geo, createClayMaterial()));
+  const geo = new THREE.SphereGeometry(1.5, 64, 64);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.sculptBrush = new SculptBrush(mesh);
+  setActive(mesh);
 }
 
-/* ---------- Default ---------- */
+/* ===============================
+   Default Mesh
+================================ */
 
 createCube();
 
-/* ---------- UI Wiring ---------- */
+/* ===============================
+   UI Wiring
+================================ */
 
 initUI({
   ...state,
@@ -141,30 +122,33 @@ initUI({
   }
 });
 
-/* ---------- Sculpt Interaction ---------- */
+/* ===============================
+   Sculpting
+================================ */
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let sculpting = false;
+const cursorBrush = document.getElementById("cursorBrush");
 
-function getPointerPos(event) {
-  if (event.touches) {
+// Pointer / touch helpers
+function getPointerPos(e) {
+  if (e.touches) {
     const rect = canvas.getBoundingClientRect();
     return {
-      x: ((event.touches[0].clientX - rect.left) / rect.width) * 2 - 1,
-      y: -((event.touches[0].clientY - rect.top) / rect.height) * 2 + 1
+      x: ((e.touches[0].clientX - rect.left) / rect.width) * 2 - 1,
+      y: -((e.touches[0].clientY - rect.top) / rect.height) * 2 + 1
     };
   } else {
     return {
-      x: (event.clientX / window.innerWidth) * 2 - 1,
-      y: -(event.clientY / window.innerHeight) * 2 + 1
+      x: (e.clientX / window.innerWidth) * 2 - 1,
+      y: -(e.clientY / window.innerHeight) * 2 + 1
     };
   }
 }
 
-function handleSculpt(event) {
+function handleSculpt(e) {
   if (!sculpting || !activeMesh || !state.brush) return;
-  const pos = getPointerPos(event);
+  const pos = getPointerPos(e);
   mouse.x = pos.x;
   mouse.y = pos.y;
 
@@ -178,78 +162,85 @@ function handleSculpt(event) {
   state.brush.apply(hits[0].point, viewDir);
 }
 
-/* ---------- Pointer / Touch Events ---------- */
-
 // Desktop mouse
-canvas.addEventListener("pointerdown", e => {
-  if (e.pointerType === "mouse" && e.button === 0) sculpting = true;
-});
+canvas.addEventListener("pointerdown", e => { if (e.button === 0) sculpting = true; });
 canvas.addEventListener("pointerup", () => sculpting = false);
 canvas.addEventListener("pointerleave", () => sculpting = false);
-canvas.addEventListener("pointermove", handleSculpt);
+canvas.addEventListener("pointermove", e => {
+  handleSculpt(e);
+  cursorBrush.style.left = e.clientX + "px";
+  cursorBrush.style.top = e.clientY + "px";
+  cursorBrush.style.display = "block";
+});
+canvas.addEventListener("pointerout", () => { cursorBrush.style.display = "none"; });
 
 // Touch
-let touchState = {
-  isSculpt: false,
-  isOrbit: false,
-  lastDistance: 0,
-  lastTouchPos: null
-};
+let touchState = { isSculpt: false, isOrbit: false, lastDistance: 0, lastTouchPos: null };
 
 canvas.addEventListener("touchstart", e => {
   if (e.touches.length === 1) {
     sculpting = true;
     touchState.isSculpt = true;
-    touchState.isOrbit = false;
   } else if (e.touches.length === 2) {
     sculpting = false;
-    touchState.isSculpt = false;
     touchState.isOrbit = true;
-
     const dx = e.touches[0].clientX - e.touches[1].clientX;
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     touchState.lastDistance = Math.hypot(dx, dy);
-    touchState.lastTouchPos = {
-      x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-      y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-    };
+    touchState.lastTouchPos = { x: (e.touches[0].clientX + e.touches[1].clientX)/2, y: (e.touches[0].clientY + e.touches[1].clientY)/2 };
   }
 });
 
 canvas.addEventListener("touchmove", e => {
   if (touchState.isSculpt) handleSculpt(e);
   else if (touchState.isOrbit && e.touches.length === 2) {
-    if (state.cameraLocked) return; // respect camera lock
+    if (state.cameraLocked) return;
 
-    const dx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - touchState.lastTouchPos.x;
-    const dy = (e.touches[0].clientY + e.touches[1].clientY) / 2 - touchState.lastTouchPos.y;
+    const dx = (e.touches[0].clientX + e.touches[1].clientX)/2 - touchState.lastTouchPos.x;
+    const dy = (e.touches[0].clientY + e.touches[1].clientY)/2 - touchState.lastTouchPos.y;
 
     controls.rotateLeft(dx * 0.005);
     controls.rotateUp(dy * 0.005);
 
-    // Pinch zoom
-    const dist = Math.hypot(
-      e.touches[0].clientX - e.touches[1].clientX,
-      e.touches[0].clientY - e.touches[1].clientY
-    );
-    const zoomFactor = touchState.lastDistance / dist;
-    camera.position.multiplyScalar(zoomFactor);
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    camera.position.multiplyScalar(touchState.lastDistance / dist);
     touchState.lastDistance = dist;
 
-    touchState.lastTouchPos = {
-      x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
-      y: (e.touches[0].clientY + e.touches[1].clientY) / 2
-    };
+    touchState.lastTouchPos = { x: (e.touches[0].clientX + e.touches[1].clientX)/2, y: (e.touches[0].clientY + e.touches[1].clientY)/2 };
   }
 });
 
-canvas.addEventListener("touchend", e => {
-  if (e.touches.length === 0) sculpting = false;
-  touchState.isSculpt = false;
-  touchState.isOrbit = false;
-});
+canvas.addEventListener("touchend", e => { sculpting = false; touchState.isSculpt = false; touchState.isOrbit = false; });
 
-/* ---------- Resize ---------- */
+/* ===============================
+   Export / Import
+================================ */
+
+document.getElementById("exportGLTF").onclick = () => {
+  if (!activeMesh) return;
+  new GLTFExporter().parse(activeMesh, gltf => {
+    const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "model.gltf";
+    a.click();
+  });
+};
+
+document.getElementById("importGLTF").onchange = e => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    new GLTFLoader().parse(reader.result, "", gltf => {
+      const mesh = gltf.scene.getObjectByProperty("type", "Mesh");
+      if (mesh) setActive(mesh);
+    });
+  };
+  reader.readAsArrayBuffer(e.target.files[0]);
+};
+
+/* ===============================
+   Resize & Render
+================================ */
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -257,11 +248,10 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* ---------- Loop ---------- */
-
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
   renderer.render(scene, camera);
 }
+
 animate();
