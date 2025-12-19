@@ -1,13 +1,14 @@
 import * as THREE from '../three/three.module.js';
 
 export class SculptBrush {
-  constructor({ scene, camera, canvas, cursor, getMesh, onStart, onEnd }) {
+  constructor({ camera, canvas, cursor, getMesh, isEnabled, onStrokeStart, onStrokeEnd }) {
     this.camera = camera;
     this.canvas = canvas;
     this.cursor = cursor;
     this.getMesh = getMesh;
-    this.onStart = onStart;
-    this.onEnd = onEnd;
+    this.isEnabled = isEnabled;
+    this.onStrokeStart = onStrokeStart;
+    this.onStrokeEnd = onStrokeEnd;
 
     this.radius = 1;
     this.strength = 0.15;
@@ -26,9 +27,9 @@ export class SculptBrush {
   }
 
   _start(e) {
-    if (!this.getMesh()) return;
+    if (!this.isEnabled() || !this.getMesh()) return;
     this.active = true;
-    this.onStart();
+    this.onStrokeStart();
     this.cursor.style.display = 'block';
     this._update(e);
     this._sculpt();
@@ -38,7 +39,7 @@ export class SculptBrush {
     if (!this.active) return;
     this.active = false;
     this.cursor.style.display = 'none';
-    this.onEnd();
+    this.onStrokeEnd();
   }
 
   _move(e) {
