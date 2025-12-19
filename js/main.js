@@ -29,12 +29,21 @@ camera.position.set(3.5, 3.5, 5);
 
 /* ---------- Controls ---------- */
 
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.enablePan = true;
-controls.enableRotate = true;
+let controls = null;
 
-/* ---------- Lighting (sculpt-friendly) ---------- */
+function enableControls() {
+  if (controls) return;
+  controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+}
+
+function disableControls() {
+  if (!controls) return;
+  controls.dispose();
+  controls = null;
+}
+
+/* ---------- Lighting ---------- */
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
@@ -70,7 +79,6 @@ const state = {
 
 function clearMesh() {
   if (!activeMesh) return;
-
   scene.remove(activeMesh);
   activeMesh.geometry.dispose();
   activeMesh.material.dispose();
@@ -85,13 +93,13 @@ function setMesh(mesh) {
   state.brush = new SculptBrush(mesh);
 }
 
-/* ---------- Materials ---------- */
+/* ---------- Material ---------- */
 
 function createClayMaterial() {
   return new THREE.MeshStandardMaterial({
     color: 0xd8bfa3,
     roughness: 0.75,
-    metalness: 0.0,
+    metalness: 0,
     wireframe: state.wireframe
   });
 }
@@ -111,6 +119,7 @@ function createSphere() {
 /* ---------- Default ---------- */
 
 createCube();
+enableControls();
 
 /* ---------- UI Wiring ---------- */
 
@@ -124,35 +133,35 @@ initUI({
       activeMesh.material.wireframe = state.wireframe;
       activeMesh.material.needsUpdate = true;
     }
+  },
+  toggleCameraLock: () => {
+    state.cameraLocked = !state.cameraLocked;
+
+    if (state.cameraLocked) {
+      disableControls();
+    } else {
+      enableControls();
+    }
   }
 });
 
-/* ---------- Sculpt Interaction ---------- */
+/* ---------- Sculpt Interaction (ONLY when locked) ---------- */
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-
 let sculpting = false;
-let orbiting = false;
 
 canvas.addEventListener("pointerdown", e => {
-  if (e.button === 0 && !orbiting) sculpting = true;
+  if (!state.cameraLocked) return;
+  if (e.button !== 0) return;
+  sculpting = true;
 });
 
 canvas.addEventListener("pointerup", () => sculpting = false);
 canvas.addEventListener("pointerleave", () => sculpting = false);
 
-controls.addEventListener("start", () => {
-  orbiting = true;
-  sculpting = false;
-});
-
-controls.addEventListener("end", () => {
-  orbiting = false;
-});
-
 canvas.addEventListener("pointermove", e => {
-  if (!sculpting || !activeMesh || !state.brush) return;
+  if (!sculpting || !state.cameraLocked || !state.brush || !activeMesh) return;
 
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -179,8 +188,7 @@ window.addEventListener("resize", () => {
 
 function animate() {
   requestAnimationFrame(animate);
-  controls.enabled = !state.cameraLocked;
-  controls.update();
+  if (controls) controls.update();
   renderer.render(scene, camera);
 }
 animate();
