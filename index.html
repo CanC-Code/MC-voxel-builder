@@ -1,43 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MC Voxel Builder</title>
-<link rel="stylesheet" href="./css/style.css">
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no"
+  />
+  <title>MC Voxel Sculpt</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
+  <!-- Top Bar -->
   <div id="topbar">
     <button id="toggleMenu">☰</button>
-    <button id="lockCamera">Camera Free</button>
-    <button id="toggleWire">▦ Wire</button>
+
+    <div class="tool-group">
+      <button id="toolSculpt" class="tool active">Sculpt</button>
+      <button id="toolMove" class="tool">Move</button>
+      <button id="toolRotate" class="tool">Rotate</button>
+      <button id="toolScale" class="tool">Scale</button>
+    </div>
+
+    <button id="toggleWire">▦</button>
   </div>
 
+  <!-- Side Menu -->
   <div id="menu" class="collapsed">
     <h3>Model</h3>
     <button id="newCube">New Cube</button>
     <button id="newSphere">New Sphere</button>
 
-    <h3>Sculpt Tools</h3>
+    <h3>Sculpt</h3>
+    <label>Brush Size</label>
+    <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1" />
+
+    <label>Strength</label>
+    <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.3" />
+
+    <h3>Tools</h3>
     <button id="toolInflate">Inflate</button>
     <button id="toolDeflate">Deflate</button>
     <button id="toolSmooth">Smooth</button>
     <button id="toolFlatten">Flatten</button>
     <button id="toolPinch">Pinch</button>
-    <button id="toolClay">Clay</button>
-    <button id="toolScrape">Scrape</button>
-    <button id="toggleSymmetry">Symmetry Off</button>
-
-    <h3>Brush</h3>
-    <label>Size</label>
-    <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1">
-    <label>Strength</label>
-    <input type="range" id="brushStrength" min="0.01" max="0.5" step="0.01" value="0.3">
 
     <h3>File</h3>
     <button id="exportGLTF">Export GLTF</button>
-    <input type="file" id="importGLTF" accept=".gltf,.glb">
+    <input type="file" id="importGLTF" accept=".gltf,.glb" />
   </div>
 
   <div id="cursorBrush"></div>
