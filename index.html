@@ -3,13 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Model Editor</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <title>MC Voxel Builder</title>
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
+
 <body>
-  <div id="gui"></div>
+  <div id="topbar">
+    <button id="toggleMenu">☰</button>
+    <button id="lockCamera">Camera Free</button>
+    <button id="toggleWire">▦ Wire</button>
+  </div>
+
+  <div id="menu" class="collapsed">
+    <h3>Model</h3>
+    <button id="newCube">New Cube</button>
+    <button id="newSphere">New Sphere</button>
+
+    <h3>File</h3>
+    <button id="exportGLTF">Export GLTF</button>
+    <input type="file" id="importGLTF" accept=".gltf,.glb" />
+
+    <h3>Sculpt</h3>
+    <label>Brush Size</label>
+    <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1" />
+  </div>
+
+  <div id="cursorBrush"></div>
+
   <canvas id="viewport"></canvas>
 
-  <script type="module" src="js/main.js"></script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
