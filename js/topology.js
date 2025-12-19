@@ -1,98 +1,144 @@
 import * as THREE from "../three/three.module.js";
+import { getNeighbors, updateNormals } from "./topology.js";
 
-/**
- * Ensure geometry has proper normals
- */
-export function ensureTopology(geometry) {
-  geometry.computeVertexNormals();
-}
+export class SculptBrush {
+  constructor(mesh) {
+    this.mesh = mesh;
+    this.geometry = mesh.geometry;
+    this.position = this.geometry.attributes.position;
+    this.normal = this.geometry.attributes.normal;
 
-/**
- * Builds a neighbor map for each vertex in the geometry.
- * Returns an object mapping vertex index → Set of neighbor indices.
- */
-export function getNeighbors(geometry) {
-  const neighbors = {};
-  const pos = geometry.attributes.position;
-  const index = geometry.index ? geometry.index.array : null;
+    this.radius = 1;
+    this.strength = 0.3;
+    this.tool = "inflate";
+    this.symmetry = { x: false, y: false, z: false };
 
-  for (let i = 0; i < pos.count; i++) {
-    neighbors[i] = new Set();
+    // Precompute neighbors for smoothing & local operations
+    this.neighbors = getNeighbors(this.geometry);
   }
 
-  if (!index) return neighbors;
-
-  for (let i = 0; i < index.length; i += 3) {
-    const a = index[i], b = index[i + 1], c = index[i + 2];
-    neighbors[a].add(b).add(c);
-    neighbors[b].add(a).add(c);
-    neighbors[c].add(a).add(b);
+  setTool(tool) {
+    this.tool = tool;
   }
 
-  return neighbors;
-}
-
-/**
- * Recomputes normals for a given geometry.
- * Optionally only updates normals for a set of vertex indices.
- */
-export function updateNormals(geometry, vertices = null) {
-  if (!geometry.attributes.normal) {
-    geometry.computeVertexNormals();
-    return;
+  setRadius(r) {
+    this.radius = r;
   }
 
-  if (!vertices || vertices.length === 0) {
-    geometry.computeVertexNormals();
-    return;
+  setStrength(s) {
+    this.strength = s;
   }
 
-  const pos = geometry.attributes.position;
-  const normal = geometry.attributes.normal;
-  const index = geometry.index ? geometry.index.array : null;
-
-  if (!index) {
-    geometry.computeVertexNormals();
-    return;
+  setSymmetry(sym) {
+    this.symmetry = sym; // {x: true, y: false, z: false}
   }
 
-  for (const vi of vertices) normal.setXYZ(vi, 0, 0, 0);
+  apply(point, viewDir = null) {
+    const pos = this.position;
+    const norm = this.normal;
+    const center = point;
 
-  const tempVec = new THREE.Vector3();
+    const region = [];
+    const avgNormal = new THREE.Vector3();
+    const v = new THREE.Vector3();
+    const n = new THREE.Vector3();
 
-  for (let i = 0; i < index.length; i += 3) {
-    const a = index[i], b = index[i + 1], c = index[i + 2];
-    if (!vertices.includes(a) && !vertices.includes(b) && !vertices.includes(c)) continue;
+    // Collect affected vertices
+    for (let i = 0; i < pos.count; i++) {
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
 
-    const vA = new THREE.Vector3(pos.getX(a), pos.getY(a), pos.getZ(a));
-    const vB = new THREE.Vector3(pos.getX(b), pos.getY(b), pos.getZ(b));
-    const vC = new THREE.Vector3(pos.getX(c), pos.getY(c), pos.getZ(c));
+      // Apply symmetry by mirroring the center
+      const mirrored = [
+        v.clone(),
+        this.symmetry.x ? new THREE.Vector3(-v.x, v.y, v.z) : null,
+        this.symmetry.y ? new THREE.Vector3(v.x, -v.y, v.z) : null,
+        this.symmetry.z ? new THREE.Vector3(v.x, v.y, -v.z) : null,
+      ].filter(Boolean);
 
-    const cb = new THREE.Vector3().subVectors(vC, vB);
-    const ab = new THREE.Vector3().subVectors(vA, vB);
-    const faceNormal = cb.cross(ab);
+      let include = false;
+      for (const mv of mirrored) {
+        if (mv.distanceTo(center) <= this.radius) include = true;
+      }
 
-    normal.setXYZ(a,
-      normal.getX(a) + faceNormal.x,
-      normal.getY(a) + faceNormal.y,
-      normal.getZ(a) + faceNormal.z
-    );
-    normal.setXYZ(b,
-      normal.getX(b) + faceNormal.x,
-      normal.getY(b) + faceNormal.y,
-      normal.getZ(b) + faceNormal.z
-    );
-    normal.setXYZ(c,
-      normal.getX(c) + faceNormal.x,
-      normal.getY(c) + faceNormal.y,
-      normal.getZ(c) + faceNormal.z
-    );
+      if (!include) continue;
+
+      region.push(i);
+      n.set(norm.getX(i), norm.getY(i), norm.getZ(i));
+      avgNormal.add(n);
+    }
+
+    if (region.length === 0) return;
+    avgNormal.normalize();
+
+    // Apply tool effects
+    for (const i of region) {
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+      const dist = v.distanceTo(center);
+      const falloff = Math.pow(1 - dist / this.radius, 2);
+      const influence = falloff * this.strength;
+
+      let ox = 0, oy = 0, oz = 0;
+
+      switch (this.tool) {
+        case "inflate":
+          ox = avgNormal.x * influence;
+          oy = avgNormal.y * influence;
+          oz = avgNormal.z * influence;
+          break;
+        case "deflate":
+          ox = -avgNormal.x * influence;
+          oy = -avgNormal.y * influence;
+          oz = -avgNormal.z * influence;
+          break;
+        case "smooth":
+          // Laplacian-like smoothing
+          const neigh = Array.from(this.neighbors[i] || []);
+          if (neigh.length === 0) break;
+          const avg = new THREE.Vector3();
+          neigh.forEach(nIdx => {
+            avg.x += pos.getX(nIdx);
+            avg.y += pos.getY(nIdx);
+            avg.z += pos.getZ(nIdx);
+          });
+          avg.multiplyScalar(1 / neigh.length);
+          ox = (avg.x - v.x) * 0.5 * influence;
+          oy = (avg.y - v.y) * 0.5 * influence;
+          oz = (avg.z - v.z) * 0.5 * influence;
+          break;
+        case "flatten":
+          ox = -avgNormal.x * dist * influence;
+          oy = -avgNormal.y * dist * influence;
+          oz = -avgNormal.z * dist * influence;
+          break;
+        case "grab":
+          if (viewDir) {
+            ox = viewDir.x * influence;
+            oy = viewDir.y * influence;
+            oz = viewDir.z * influence;
+          }
+          break;
+        case "pinch":
+          ox = -avgNormal.x * influence * 0.7;
+          oy = -avgNormal.y * influence * 0.7;
+          oz = -avgNormal.z * influence * 0.7;
+          break;
+        case "clay":
+          ox = avgNormal.x * influence * 0.6;
+          oy = avgNormal.y * influence * 0.6;
+          oz = avgNormal.z * influence * 0.6;
+          break;
+        case "scrape":
+          ox = -avgNormal.x * influence * 0.8;
+          oy = -avgNormal.y * influence * 0.8;
+          oz = -avgNormal.z * influence * 0.8;
+          break;
+      }
+
+      pos.setXYZ(i, v.x + ox, v.y + oy, v.z + oz);
+    }
+
+    // Update normals using our topology helper
+    updateNormals(this.geometry, region);
+    pos.needsUpdate = true;
   }
-
-  for (const vi of vertices) {
-    tempVec.set(normal.getX(vi), normal.getY(vi), normal.getZ(vi)).normalize();
-    normal.setXYZ(vi, tempVec.x, tempVec.y, tempVec.z);
-  }
-
-  normal.needsUpdate = true;
 }
