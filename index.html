@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MC Voxel Builder</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
-<body>
 
+<body>
   <!-- Top Bar -->
   <div id="topbar">
     <button id="toggleMenu">☰</button>
@@ -21,27 +21,42 @@
     <button id="newCube">New Cube</button>
     <button id="newSphere">New Sphere</button>
 
-    <h3>Sculpt</h3>
-    <button id="toolInflate">Inflate</button>
-    <button id="toolSmooth">Smooth</button>
-    <button id="toolFlatten">Flatten</button>
-    <label>Brush Size</label>
-    <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1" />
-    <label>Brush Strength</label>
-    <input type="range" id="brushStrength" min="0.01" max="0.2" step="0.01" value="0.08" />
-
     <h3>File</h3>
     <button id="exportGLTF">Export GLTF</button>
     <input type="file" id="importGLTF" accept=".gltf,.glb" />
+
+    <h3>Sculpt</h3>
+    <button id="toolInflate">Inflate</button>
+    <button id="toolDeflate">Deflate</button>
+    <button id="toolSmooth">Smooth</button>
+    <button id="toolFlatten">Flatten</button>
+
+    <label>Brush Size</label>
+    <input type="range" id="brushSize" min="0.2" max="3" step="0.1" value="1" />
+
+    <label>Brush Strength</label>
+    <input type="range" id="brushStrength" min="0.01" max="1" step="0.01" value="0.3" />
+
+    <h3>Symmetry</h3>
+    <label><input type="checkbox" id="symX" /> Symmetry X</label>
+    <label><input type="checkbox" id="symY" /> Symmetry Y</label>
+    <label><input type="checkbox" id="symZ" /> Symmetry Z</label>
+
+    <h3>Falloff</h3>
+    <select id="falloffType">
+      <option value="linear">Linear</option>
+      <option value="smooth" selected>Smooth</option>
+      <option value="sphere">Sphere</option>
+    </select>
   </div>
 
   <!-- Cursor Brush -->
   <div id="cursorBrush"></div>
 
-  <!-- WebGL Canvas -->
+  <!-- Viewport -->
   <canvas id="viewport"></canvas>
 
   <!-- Main Script -->
-  <script type="module" src="./js/main.js"></script>
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
