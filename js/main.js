@@ -4,7 +4,8 @@ import { TransformControls } from "../three/TransformControls.js";
 import { GLTFLoader } from "../three/GLTFLoader.js";
 import { GLTFExporter } from "../three/GLTFExporter.js";
 import { initUI } from "./ui.js";
-import { SculptBrush } from "./sculptBrush.js"; // <--- Added import
+import { mergeVertices } from "../three/examples/jsm/utils/BufferGeometryUtils.js";
+import { SculptBrush } from "./sculptBrush.js";
 
 /* ===============================
    Core Setup
@@ -108,20 +109,18 @@ function setActive(mesh) {
 ================================ */
 
 function createCube() {
+  const geo = new THREE.BoxGeometry(2, 2, 2, 24, 24, 24);
+  mergeVertices(geo);
   setActive(
-    new THREE.Mesh(
-      new THREE.BoxGeometry(2, 2, 2, 24, 24, 24),
-      new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe })
-    )
+    new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe }))
   );
 }
 
 function createSphere() {
+  const geo = new THREE.SphereGeometry(1.5, 64, 64);
+  mergeVertices(geo);
   setActive(
-    new THREE.Mesh(
-      new THREE.SphereGeometry(1.5, 64, 64),
-      new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe })
-    )
+    new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe }))
   );
 }
 
