@@ -5,7 +5,7 @@ import { GLTFLoader } from "../three/GLTFLoader.js";
 import { GLTFExporter } from "../three/GLTFExporter.js";
 import { initUI } from "./ui.js";
 import { SculptBrush } from "./sculptBrush.js";
-import { mergeVertices } from "../three/BufferGeometryUtils.js";
+import { ensureTopology, getNeighbors, updateNormals } from "./topology.js";
 
 /* ===============================
    Core Setup
@@ -47,11 +47,13 @@ const state = {
   controls,
   cameraLocked,
   wireframe,
-  symmetry: { x: false, y: false, z: false },
-  setTool: t => state.brush && state.brush.setTool(t),
-  setRadius: r => state.brush && state.brush.setRadius(r),
-  setStrength: s => state.brush && state.brush.setStrength(s),
-  setSymmetry: (axis, enabled) => state.brush && state.brush.setSymmetry(axis, enabled),
+  setTool: (t) => state.brush && state.brush.setTool(t),
+  setRadius: (r) => state.brush && state.brush.setRadius(r),
+  setStrength: (s) => state.brush && state.brush.setStrength(s),
+  setSymmetry: (axis) =>
+    state.brush && typeof state.brush.setSymmetry === "function"
+      ? state.brush.setSymmetry(axis)
+      : null,
   toggleWireframe: () => {
     wireframe = !wireframe;
     if (activeMesh) activeMesh.material.wireframe = wireframe;
@@ -59,7 +61,7 @@ const state = {
   createCube,
   createSphere,
   exportGLTF,
-  importGLTF
+  importGLTF,
 };
 
 /* ===============================
@@ -99,15 +101,15 @@ function clearActiveMesh() {
 function setActive(mesh) {
   clearActiveMesh();
   activeMesh = mesh;
+
+  // Ensure proper topology
+  activeMesh.geometry = ensureTopology(activeMesh.geometry);
+
   scene.add(mesh);
   transform.attach(mesh);
 
-  // Preserve connectivity
-  mergeVertices(activeMesh.geometry);
-  activeMesh.geometry.computeVertexNormals();
-
   // Initialize brush
-  if (!state.brush) state.brush = new SculptBrush(activeMesh);
+  state.brush = new SculptBrush(activeMesh);
 }
 
 /* ===============================
@@ -138,7 +140,7 @@ function createSphere() {
 
 function exportGLTF() {
   if (!activeMesh) return;
-  new GLTFExporter().parse(activeMesh, gltf => {
+  new GLTFExporter().parse(activeMesh, (gltf) => {
     const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -150,7 +152,7 @@ function exportGLTF() {
 function importGLTF(e) {
   const reader = new FileReader();
   reader.onload = () => {
-    new GLTFLoader().parse(reader.result, "", gltf => {
+    new GLTFLoader().parse(reader.result, "", (gltf) => {
       const mesh = gltf.scene.getObjectByProperty("type", "Mesh");
       if (mesh) setActive(mesh);
     });
@@ -164,7 +166,7 @@ function importGLTF(e) {
 
 const cursorBrush = document.getElementById("cursorBrush");
 
-renderer.domElement.addEventListener("pointermove", e => {
+renderer.domElement.addEventListener("pointermove", (e) => {
   cursorBrush.style.left = e.clientX + "px";
   cursorBrush.style.top = e.clientY + "px";
   cursorBrush.style.display = "block";
@@ -181,11 +183,11 @@ renderer.domElement.addEventListener("pointerleave", () => {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-renderer.domElement.addEventListener("pointerdown", e => {
+renderer.domElement.addEventListener("pointerdown", (e) => {
   if (!activeMesh) return;
   sculpting = true;
   transform.detach();
-  applySculpt(e);
+  applyBrush(e);
 });
 
 renderer.domElement.addEventListener("pointerup", () => {
@@ -193,11 +195,11 @@ renderer.domElement.addEventListener("pointerup", () => {
   if (activeMesh) transform.attach(activeMesh);
 });
 
-renderer.domElement.addEventListener("pointermove", e => {
-  if (sculpting) applySculpt(e);
+renderer.domElement.addEventListener("pointermove", (e) => {
+  if (sculpting) applyBrush(e);
 });
 
-function applySculpt(e) {
+function applyBrush(e) {
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
@@ -205,7 +207,7 @@ function applySculpt(e) {
   const hit = raycaster.intersectObject(activeMesh)[0];
   if (!hit) return;
 
-  state.brush.apply(hit.point, state.symmetry);
+  state.brush.apply(hit.point, camera);
 }
 
 /* ===============================
