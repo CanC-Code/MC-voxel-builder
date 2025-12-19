@@ -13,7 +13,6 @@ export function initUI(state) {
     lockCameraBtn.textContent = state.cameraLocked
       ? "Camera Locked"
       : "Camera Free";
-
     lockCameraBtn.classList.toggle("active", state.cameraLocked);
     lockCameraBtn.classList.toggle("inactive", !state.cameraLocked);
     if (state.controls) state.controls.enabled = !state.cameraLocked;
@@ -36,61 +35,57 @@ export function initUI(state) {
   };
 
   /* ---------- Sculpt Tools ---------- */
-  const inflateBtn = document.getElementById("toolInflate");
-  if (inflateBtn) inflateBtn.onclick = () => state.setTool("inflate");
+  const tools = [
+    "inflate",
+    "deflate",
+    "smooth",
+    "flatten",
+    "pinch",
+    "clay",
+    "scrape",
+  ];
 
-  const smoothBtn = document.getElementById("toolSmooth");
-  if (smoothBtn) smoothBtn.onclick = () => state.setTool("smooth");
+  tools.forEach(tool => {
+    const btn = document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
+    if (btn) {
+      btn.onclick = () => state.setTool(tool);
+    }
+  });
 
-  const flattenBtn = document.getElementById("toolFlatten");
-  if (flattenBtn) flattenBtn.onclick = () => state.setTool("flatten");
+  /* ---------- Symmetry ---------- */
+  const symmetryX = document.getElementById("symX");
+  const symmetryY = document.getElementById("symY");
+  const symmetryZ = document.getElementById("symZ");
 
-  const deflateBtn = document.getElementById("toolDeflate");
-  if (deflateBtn) deflateBtn.onclick = () => state.setTool("deflate");
+  if (symmetryX)
+    symmetryX.onchange = e =>
+      state.brush && state.brush.setSymmetry("x", e.target.checked);
+  if (symmetryY)
+    symmetryY.onchange = e =>
+      state.brush && state.brush.setSymmetry("y", e.target.checked);
+  if (symmetryZ)
+    symmetryZ.onchange = e =>
+      state.brush && state.brush.setSymmetry("z", e.target.checked);
 
   /* ---------- Sliders ---------- */
   const sizeSlider = document.getElementById("brushSize");
   if (sizeSlider) {
-    sizeSlider.oninput = (e) => state.setRadius(parseFloat(e.target.value));
+    sizeSlider.oninput = e => state.setRadius(parseFloat(e.target.value));
   }
 
   const strengthSlider = document.getElementById("brushStrength");
   if (strengthSlider) {
-    strengthSlider.oninput = (e) => state.setStrength(parseFloat(e.target.value));
-  }
-
-  /* ---------- Symmetry ---------- */
-  const symX = document.getElementById("symX");
-  const symY = document.getElementById("symY");
-  const symZ = document.getElementById("symZ");
-
-  function updateSymmetry() {
-    if (state.brush) {
-      state.brush.setSymmetry({
-        x: symX.checked,
-        y: symY.checked,
-        z: symZ.checked,
-      });
-    }
-  }
-
-  if (symX) symX.onchange = updateSymmetry;
-  if (symY) symY.onchange = updateSymmetry;
-  if (symZ) symZ.onchange = updateSymmetry;
-
-  /* ---------- Falloff ---------- */
-  const falloffSelect = document.getElementById("falloffType");
-  if (falloffSelect) {
-    falloffSelect.onchange = () => {
-      if (state.brush) state.brush.setFalloff(falloffSelect.value);
-    };
+    strengthSlider.oninput = e => state.setStrength(parseFloat(e.target.value));
   }
 
   /* ---------- File ---------- */
   const exportBtn = document.getElementById("exportGLTF");
-  if (exportBtn && state.exportGLTF) exportBtn.onclick = state.exportGLTF;
+  if (exportBtn && state.exportGLTF) {
+    exportBtn.onclick = state.exportGLTF;
+  }
 
   const importInput = document.getElementById("importGLTF");
-  if (importInput && state.importGLTF)
+  if (importInput && state.importGLTF) {
     importInput.onchange = state.importGLTF;
+  }
 }
