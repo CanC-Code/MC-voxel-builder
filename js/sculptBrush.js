@@ -1,14 +1,18 @@
 import * as THREE from "../three/three.module.js";
+import { mergeVertices } from "../three/BufferGeometryUtils.js";
 import { getNeighbors, updateNormals } from "./topology.js";
 
 export class SculptBrush {
   constructor(mesh) {
     this.mesh = mesh;
-    this.geometry = mesh.geometry;
 
-    // Ensure indexed geometry for neighbor calculations
-    if (!this.geometry.index) {
-      this.geometry = THREE.BufferGeometryUtils.mergeVertices(this.geometry);
+    // Ensure indexed geometry for proper neighbor calculations
+    if (!mesh.geometry.index) {
+      this.geometry = mergeVertices(mesh.geometry);
+      mesh.geometry.dispose();
+      mesh.geometry = this.geometry;
+    } else {
+      this.geometry = mesh.geometry;
     }
 
     this.position = this.geometry.attributes.position;
@@ -19,7 +23,7 @@ export class SculptBrush {
     this.tool = "inflate";
     this.symmetry = null; // 'x', 'y', 'z' or null
 
-    // Build neighbor map once
+    // Build neighbor map
     this.neighbors = getNeighbors(this.geometry);
   }
 
@@ -36,92 +40,116 @@ export class SculptBrush {
   }
 
   setSymmetry(axis) {
-    this.symmetry = axis; // e.g., 'x', 'y', 'z'
+    // Accept 'x', 'y', 'z', or null
+    this.symmetry = axis;
   }
 
   apply(point, viewDir = null) {
     const pos = this.position;
     const norm = this.normal;
-    const center = point;
 
-    const temp = new THREE.Vector3();
-    const tempNormal = new THREE.Vector3();
-    const affected = [];
+    const affectedVertices = [];
 
     for (let i = 0; i < pos.count; i++) {
-      temp.set(pos.getX(i), pos.getY(i), pos.getZ(i));
+      const vx = pos.getX(i);
+      const vy = pos.getY(i);
+      const vz = pos.getZ(i);
 
-      // Symmetry check
-      if (this.symmetry) {
-        const coord = temp[this.symmetry];
-        const mirrored = 2 * center[this.symmetry] - coord;
-        if (Math.abs(coord - center[this.symmetry]) > this.radius &&
-            Math.abs(mirrored - center[this.symmetry]) > this.radius) continue;
-      } else if (temp.distanceTo(center) > this.radius) continue;
+      const dx = vx - point.x;
+      const dy = vy - point.y;
+      const dz = vz - point.z;
 
-      affected.push(i);
-    }
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist > this.radius) continue;
 
-    for (const i of affected) {
-      temp.set(pos.getX(i), pos.getY(i), pos.getZ(i));
-      tempNormal.set(norm.getX(i), norm.getY(i), norm.getZ(i));
-
-      const dist = temp.distanceTo(center);
       const falloff = Math.pow(1 - dist / this.radius, 2);
       const influence = falloff * this.strength;
 
-      let offset = new THREE.Vector3();
+      const nx = norm.getX(i);
+      const ny = norm.getY(i);
+      const nz = norm.getZ(i);
+
+      let ox = 0, oy = 0, oz = 0;
 
       switch (this.tool) {
         case "inflate":
-          offset.copy(tempNormal).multiplyScalar(influence);
+          ox = nx * influence;
+          oy = ny * influence;
+          oz = nz * influence;
           break;
+
         case "deflate":
-          offset.copy(tempNormal).multiplyScalar(-influence);
+          ox = -nx * influence;
+          oy = -ny * influence;
+          oz = -nz * influence;
           break;
+
         case "smooth":
-          offset.set(0, 0, 0);
+          // Average neighbors displacement
+          let avg = new THREE.Vector3();
           const neigh = this.neighbors[i];
-          if (neigh) {
-            for (const n of neigh) {
-              offset.add(
-                new THREE.Vector3(pos.getX(n), pos.getY(n), pos.getZ(n))
-              );
-            }
-            offset.multiplyScalar(1 / neigh.size);
-            offset.sub(temp).multiplyScalar(influence);
+          if (neigh && neigh.size > 0) {
+            neigh.forEach(n => {
+              avg.add(new THREE.Vector3(
+                pos.getX(n),
+                pos.getY(n),
+                pos.getZ(n)
+              ));
+            });
+            avg.multiplyScalar(1 / neigh.size);
+            ox = (avg.x - vx) * influence;
+            oy = (avg.y - vy) * influence;
+            oz = (avg.z - vz) * influence;
           }
           break;
+
         case "grab":
-          if (viewDir) offset.copy(viewDir).multiplyScalar(influence);
+          if (!viewDir) break;
+          ox = viewDir.x * influence;
+          oy = viewDir.y * influence;
+          oz = viewDir.z * influence;
           break;
+
         case "flatten":
-          offset.copy(tempNormal).multiplyScalar(-dist * influence);
+          ox = -nx * dist * influence;
+          oy = -ny * dist * influence;
+          oz = -nz * dist * influence;
           break;
+
         case "pinch":
-          offset.subVectors(center, temp).multiplyScalar(influence);
+          ox = -dx * influence;
+          oy = -dy * influence;
+          oz = -dz * influence;
           break;
+
         case "clay":
-          offset.copy(tempNormal).multiplyScalar(influence * 0.6);
+          ox = nx * influence * 0.6;
+          oy = ny * influence * 0.6;
+          oz = nz * influence * 0.6;
           break;
+
         case "scrape":
-          offset.copy(tempNormal).multiplyScalar(-influence * 0.8);
+          ox = -nx * influence * 0.8;
+          oy = -ny * influence * 0.8;
+          oz = -nz * influence * 0.8;
           break;
       }
 
-      temp.add(offset);
-      pos.setXYZ(i, temp.x, temp.y, temp.z);
+      pos.setXYZ(i, vx + ox, vy + oy, vz + oz);
+      affectedVertices.push(i);
 
-      // Apply symmetry
+      // Apply symmetry if set
       if (this.symmetry) {
-        const mirrored = new THREE.Vector3().copy(temp);
-        mirrored[this.symmetry] =
-          2 * center[this.symmetry] - mirrored[this.symmetry];
-        pos.setXYZ(i, mirrored.x, mirrored.y, mirrored.z);
+        let sx = vx, sy = vy, sz = vz;
+        if (this.symmetry === "x") sx = -vx;
+        if (this.symmetry === "y") sy = -vy;
+        if (this.symmetry === "z") sz = -vz;
+
+        pos.setXYZ(i, sx + ox, sy + oy, sz + oz);
       }
     }
 
-    updateNormals(this.geometry, this.neighbors, affected);
     pos.needsUpdate = true;
+    updateNormals(this.geometry, affectedVertices);
   }
 }
