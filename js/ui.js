@@ -1,19 +1,34 @@
-import * as THREE from "../three/three.module.js";
-
 export function initUI(state) {
-
   /* ---------- Top Bar ---------- */
   const toggleMenuBtn = document.getElementById("toggleMenu");
   const menu = document.getElementById("menu");
-  toggleMenuBtn.onclick = () => menu.classList.toggle("collapsed");
+  toggleMenuBtn.onclick = () => {
+    if (menu.classList.contains("collapsed")) {
+      menu.classList.remove("collapsed");
+      menu.style.opacity = 0;
+      menu.style.display = "block";
+      requestAnimationFrame(() => {
+        menu.style.transition = "opacity 0.2s";
+        menu.style.opacity = 1;
+      });
+    } else {
+      menu.style.transition = "opacity 0.2s";
+      menu.style.opacity = 0;
+      menu.addEventListener("transitionend", function hide() {
+        menu.style.display = "none";
+        menu.classList.add("collapsed");
+        menu.removeEventListener("transitionend", hide);
+      });
+    }
+  };
 
   const lockCameraBtn = document.getElementById("lockCamera");
   lockCameraBtn.onclick = () => {
     state.cameraLocked = !state.cameraLocked;
-    state.controls.enabled = !state.cameraLocked;
     lockCameraBtn.textContent = state.cameraLocked ? "Camera Locked" : "Camera Free";
     lockCameraBtn.classList.toggle("active", state.cameraLocked);
     lockCameraBtn.classList.toggle("inactive", !state.cameraLocked);
+    state.controls.enabled = !state.cameraLocked;
   };
 
   const wireBtn = document.getElementById("toggleWire");
@@ -32,27 +47,18 @@ export function initUI(state) {
     if (state.createSphere) state.createSphere();
   };
 
-  /* ---------- Tools ---------- */
-  const tools = ["inflate", "deflate", "smooth", "flatten"];
-  tools.forEach(tool => {
-    const btn = document.getElementById(`tool${tool[0].toUpperCase() + tool.slice(1)}`);
-    if (btn) btn.onclick = () => {
-      state.setTool(tool);
-      tools.forEach(t => {
-        const b = document.getElementById(`tool${t[0].toUpperCase() + t.slice(1)}`);
-        if (b) b.classList.toggle("active", t === tool);
-      });
-    };
-  });
+  /* ---------- Sculpt Tools ---------- */
+  const toolMapping = {
+    toolInflate: "inflate",
+    toolDeflate: "deflate",
+    toolSmooth: "smooth",
+    toolFlatten: "flatten",
+    toolPinch: "pinch"
+  };
 
-  /* ---------- Symmetry ---------- */
-  const axes = ["X", "Y", "Z"];
-  axes.forEach(ax => {
-    const btn = document.getElementById(`sym${ax}`);
-    if (btn) btn.onclick = () => {
-      if (state.brush && state.brush.setSymmetry) state.brush.setSymmetry(ax);
-      btn.classList.toggle("active");
-    };
+  Object.entries(toolMapping).forEach(([id, tool]) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.onclick = () => state.setTool(tool);
   });
 
   /* ---------- Sliders ---------- */
@@ -68,5 +74,4 @@ export function initUI(state) {
 
   const importInput = document.getElementById("importGLTF");
   if (importInput && state.importGLTF) importInput.onchange = state.importGLTF;
-
 }
