@@ -2,40 +2,77 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #111;
-  font-family: system-ui, sans-serif;
+  background: #b0c4de; /* light steel blue for better visibility */
+  font-family: sans-serif;
 }
 
-#c {
-  width: 100vw;
-  height: 100vh;
+#viewport {
+  position: fixed;
+  inset: 0;
   display: block;
 }
 
-#ui {
+#topbar {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 8px;
+  right: 8px;
   display: flex;
-  flex-direction: column;
   gap: 6px;
   z-index: 10;
 }
 
-#ui button {
-  background: #2c2c2c;
-  color: #eee;
-  border: 1px solid #555;
-  padding: 8px 12px;
-  cursor: pointer;
+#topbar button {
+  padding: 6px 10px;
+  background: #444;
+  color: white;
+  border: none;
   border-radius: 4px;
+  cursor: pointer;
+}
+
+#lockCamera.active {
+  background-color: #4a8cff;
+  border: 1px solid #7fb0ff;
+}
+
+#menu {
+  position: fixed;
+  top: 48px;
+  left: 8px;
+  width: 200px;
+  background: rgba(30,30,30,0.95);
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+#menu.collapsed { display: none; }
+
+#menu h3 {
+  margin: 10px 0 5px;
   font-size: 14px;
 }
 
-#ui button:hover {
-  background: #3a3a3a;
+#menu button,
+#menu input {
+  width: 100%;
+  margin-bottom: 6px;
 }
 
-#ui button:active {
-  background: #555;
+#cursorBrush {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(255,255,255,0.9);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 15;
+  display: none;
+}
+
+#menu button.active {
+  background-color: #4a8cff;
+  border: 1px solid #7fb0ff;
 }
