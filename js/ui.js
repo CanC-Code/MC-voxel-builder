@@ -1,91 +1,74 @@
 export function initUI(state) {
-  /* ---------- Top Bar ---------- */
-  const toggleMenuBtn = document.getElementById("toggleMenu");
   const menu = document.getElementById("menu");
 
-  toggleMenuBtn.onclick = () => {
-    menu.classList.toggle("collapsed");
-  };
-
-  const lockCameraBtn = document.getElementById("lockCamera");
-  lockCameraBtn.onclick = () => {
-    state.cameraLocked = !state.cameraLocked;
-    lockCameraBtn.textContent = state.cameraLocked
-      ? "Camera Locked"
-      : "Camera Free";
-    lockCameraBtn.classList.toggle("active", state.cameraLocked);
-    lockCameraBtn.classList.toggle("inactive", !state.cameraLocked);
-    if (state.controls) state.controls.enabled = !state.cameraLocked;
-  };
-
-  const wireBtn = document.getElementById("toggleWire");
-  wireBtn.onclick = () => {
-    if (state.toggleWireframe) state.toggleWireframe();
-  };
-
-  /* ---------- Model ---------- */
-  const cubeBtn = document.getElementById("newCube");
-  cubeBtn.onclick = () => {
-    if (state.createCube) state.createCube();
-  };
-
-  const sphereBtn = document.getElementById("newSphere");
-  sphereBtn.onclick = () => {
-    if (state.createSphere) state.createSphere();
-  };
-
-  /* ---------- Sculpt Tools ---------- */
-  const tools = [
-    "inflate",
-    "deflate",
-    "smooth",
-    "flatten",
-    "pinch",
-    "clay",
-    "scrape",
-  ];
+  // Tool buttons
+  const tools = ["inflate", "deflate", "smooth", "flatten", "pinch", "grab", "clay", "scrape"];
+  const toolContainer = document.createElement("div");
+  toolContainer.id = "toolContainer";
+  toolContainer.style.display = "flex";
+  toolContainer.style.flexWrap = "wrap";
+  toolContainer.style.gap = "4px";
+  menu.appendChild(toolContainer);
 
   tools.forEach(tool => {
-    const btn = document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
-    if (btn) {
-      btn.onclick = () => state.setTool(tool);
-    }
+    const btn = document.createElement("button");
+    btn.textContent = tool[0].toUpperCase() + tool.slice(1);
+    btn.onclick = () => {
+      state.setTool(tool);
+      document.querySelectorAll("#toolContainer button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+    };
+    toolContainer.appendChild(btn);
   });
 
-  /* ---------- Symmetry ---------- */
-  const symmetryX = document.getElementById("symX");
-  const symmetryY = document.getElementById("symY");
-  const symmetryZ = document.getElementById("symZ");
+  // Symmetry toggles
+  const symContainer = document.createElement("div");
+  symContainer.id = "symContainer";
+  symContainer.style.display = "flex";
+  symContainer.style.gap = "4px";
+  menu.appendChild(symContainer);
 
-  if (symmetryX)
-    symmetryX.onchange = e =>
-      state.brush && state.brush.setSymmetry("x", e.target.checked);
-  if (symmetryY)
-    symmetryY.onchange = e =>
-      state.brush && state.brush.setSymmetry("y", e.target.checked);
-  if (symmetryZ)
-    symmetryZ.onchange = e =>
-      state.brush && state.brush.setSymmetry("z", e.target.checked);
+  ["x", "y", "z"].forEach(axis => {
+    const btn = document.createElement("button");
+    btn.textContent = axis.toUpperCase();
+    btn.onclick = () => {
+      state.symmetry[axis] = !state.symmetry[axis];
+      state.setSymmetry({ ...state.symmetry });
+      btn.classList.toggle("active", state.symmetry[axis]);
+    };
+    symContainer.appendChild(btn);
+  });
 
-  /* ---------- Sliders ---------- */
-  const sizeSlider = document.getElementById("brushSize");
-  if (sizeSlider) {
-    sizeSlider.oninput = e => state.setRadius(parseFloat(e.target.value));
-  }
+  // Brush size slider
+  const brushSizeLabel = document.createElement("label");
+  brushSizeLabel.textContent = "Brush Size";
+  const brushSize = document.createElement("input");
+  brushSize.type = "range";
+  brushSize.min = 0.2;
+  brushSize.max = 3;
+  brushSize.step = 0.1;
+  brushSize.value = 1;
+  brushSize.oninput = () => state.setRadius(parseFloat(brushSize.value));
+  menu.appendChild(brushSizeLabel);
+  menu.appendChild(brushSize);
 
-  const strengthSlider = document.getElementById("brushStrength");
-  if (strengthSlider) {
-    strengthSlider.oninput = e => state.setStrength(parseFloat(e.target.value));
-  }
+  // Brush strength slider
+  const brushStrengthLabel = document.createElement("label");
+  brushStrengthLabel.textContent = "Brush Strength";
+  const brushStrength = document.createElement("input");
+  brushStrength.type = "range";
+  brushStrength.min = 0.01;
+  brushStrength.max = 1;
+  brushStrength.step = 0.01;
+  brushStrength.value = 0.08;
+  brushStrength.oninput = () => state.setStrength(parseFloat(brushStrength.value));
+  menu.appendChild(brushStrengthLabel);
+  menu.appendChild(brushStrength);
 
-  /* ---------- File ---------- */
-  const exportBtn = document.getElementById("exportGLTF");
-  if (exportBtn && state.exportGLTF) {
-    exportBtn.onclick = state.exportGLTF;
-  }
-
-  const importInput = document.getElementById("importGLTF");
-  if (importInput && state.importGLTF) {
-    importInput.onchange = state.importGLTF;
-  }
+  // Wireframe toggle
+  const wireBtn = document.getElementById("toggleWire");
+  wireBtn.onclick = () => {
+    state.toggleWireframe();
+    wireBtn.classList.toggle("active", state.wireframe);
+  };
 }
