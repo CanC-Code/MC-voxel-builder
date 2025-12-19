@@ -67,11 +67,13 @@ export function initUI(state) {
 
   const sizeSlider = document.getElementById("brushSize");
   if (sizeSlider) {
+    sizeSlider.value = state.brush ? state.brush.radius : 1;
     sizeSlider.oninput = e => state.setRadius(parseFloat(e.target.value));
   }
 
   const strengthSlider = document.getElementById("brushStrength");
   if (strengthSlider) {
+    strengthSlider.value = state.brush ? state.brush.strength : 0.5;
     strengthSlider.oninput = e => state.setStrength(parseFloat(e.target.value));
   }
 
@@ -82,4 +84,18 @@ export function initUI(state) {
     exportBtn.onclick = state.exportGLTF;
   }
 
+  /* ---------- Initialize UI state ---------- */
+
+  // Camera lock button
+  if (lockCameraBtn) {
+    lockCameraBtn.textContent = state.cameraLocked ? "Camera Locked" : "Camera Free";
+    lockCameraBtn.classList.toggle("active", state.cameraLocked);
+    lockCameraBtn.classList.toggle("inactive", !state.cameraLocked);
+  }
+
+  // Highlight default tool if any
+  tools.forEach(t => {
+    const b = document.getElementById(`tool${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (b) b.classList.toggle("active", false);
+  });
 }
