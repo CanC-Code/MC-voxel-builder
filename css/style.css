@@ -91,3 +91,8 @@ html, body {
   display: none;
   z-index: 9;
 }
+
+button.active {
+  background: #4caf50;
+  color: #fff;
+}
