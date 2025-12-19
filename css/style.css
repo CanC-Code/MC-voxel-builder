@@ -45,13 +45,10 @@ html, body {
   padding: 10px;
   border-radius: 6px;
   z-index: 10;
-  opacity: 1;
-  transition: opacity 0.2s;
 }
 
 #menu.collapsed {
   display: none;
-  opacity: 0;
 }
 
 #menu h3 {
@@ -75,4 +72,9 @@ html, body {
   transform: translate(-50%, -50%);
   z-index: 15;
   display: none;
+}
+
+button.active {
+  background-color: #4a8cff;
+  border: 1px solid #7fb0ff;
 }
