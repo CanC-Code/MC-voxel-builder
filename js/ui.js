@@ -11,6 +11,7 @@ export function initUI(state) {
 
   const lockCameraBtn = document.getElementById("lockCamera");
   lockCameraBtn.onclick = () => {
+    if (!state.controls) return;
     state.cameraLocked = !state.cameraLocked;
 
     lockCameraBtn.textContent = state.cameraLocked
@@ -20,30 +21,21 @@ export function initUI(state) {
     lockCameraBtn.classList.toggle("active", state.cameraLocked);
     lockCameraBtn.classList.toggle("inactive", !state.cameraLocked);
 
-    // Sync with OrbitControls
-    if (state.controls) {
-      state.controls.enableRotate = !state.cameraLocked;
-    }
+    state.controls.enableRotate = !state.cameraLocked;
   };
 
   const wireBtn = document.getElementById("toggleWire");
   wireBtn.onclick = () => {
-    if (state.toggleWireframe) {
-      state.toggleWireframe();
-    }
+    if (state.toggleWireframe) state.toggleWireframe();
   };
 
-  /* ---------- Model ---------- */
+  /* ---------- Model Buttons ---------- */
 
   const cubeBtn = document.getElementById("newCube");
-  cubeBtn.onclick = () => {
-    if (state.createCube) state.createCube();
-  };
+  cubeBtn.onclick = () => { if (state.createCube) state.createCube(); };
 
   const sphereBtn = document.getElementById("newSphere");
-  sphereBtn.onclick = () => {
-    if (state.createSphere) state.createSphere();
-  };
+  sphereBtn.onclick = () => { if (state.createSphere) state.createSphere(); };
 
   /* ---------- Sculpt Tools ---------- */
 
@@ -52,6 +44,7 @@ export function initUI(state) {
     const btn = document.getElementById(`tool${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
     if (btn) {
       btn.onclick = () => {
+        if (!state.brush) return;
         state.setTool(tool);
 
         // Highlight active tool
@@ -77,25 +70,29 @@ export function initUI(state) {
     strengthSlider.oninput = e => state.setStrength(parseFloat(e.target.value));
   }
 
-  /* ---------- File ---------- */
+  /* ---------- File Export / Import ---------- */
 
   const exportBtn = document.getElementById("exportGLTF");
   if (exportBtn && state.exportGLTF) {
     exportBtn.onclick = state.exportGLTF;
   }
 
-  /* ---------- Initialize UI state ---------- */
+  const importInput = document.getElementById("importGLTF");
+  if (importInput && state.importGLTF) {
+    importInput.onchange = e => state.importGLTF(e);
+  }
 
-  // Camera lock button
+  /* ---------- Initialize UI State ---------- */
+
   if (lockCameraBtn) {
     lockCameraBtn.textContent = state.cameraLocked ? "Camera Locked" : "Camera Free";
     lockCameraBtn.classList.toggle("active", state.cameraLocked);
     lockCameraBtn.classList.toggle("inactive", !state.cameraLocked);
   }
 
-  // Highlight default tool if any
+  // Clear tool highlights
   tools.forEach(t => {
     const b = document.getElementById(`tool${t.charAt(0).toUpperCase() + t.slice(1)}`);
-    if (b) b.classList.toggle("active", false);
+    if (b) b.classList.remove("active");
   });
 }
