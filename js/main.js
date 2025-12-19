@@ -15,7 +15,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x4a4a4a);
+scene.background = new THREE.Color(0x2e2e2e);
 
 /* ---------- Camera ---------- */
 
@@ -31,22 +31,25 @@ camera.position.set(3.5, 3.5, 5);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
+controls.enablePan = true;
+controls.enableRotate = true;
 
-/* ---------- Lighting (studio-style) ---------- */
+/* ---------- Lighting (sculpt-friendly) ---------- */
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-const key = new THREE.DirectionalLight(0xffffff, 0.6);
-key.position.set(5, 10, 5);
+const key = new THREE.DirectionalLight(0xffffff, 0.9);
+key.position.set(6, 10, 4);
 scene.add(key);
 
-const fill = new THREE.DirectionalLight(0xffffff, 0.3);
-fill.position.set(-5, 5, -5);
-scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 0.4);
+rim.position.set(-6, 4, -6);
+scene.add(rim);
 
 /* ---------- Grid ---------- */
 
-const grid = new THREE.GridHelper(10, 10, 0x666666, 0x444444);
+const grid = new THREE.GridHelper(10, 10, 0x555555, 0x333333);
+grid.position.y = -1.5;
 scene.add(grid);
 
 /* ---------- State ---------- */
@@ -82,28 +85,27 @@ function setMesh(mesh) {
   state.brush = new SculptBrush(mesh);
 }
 
+/* ---------- Materials ---------- */
+
+function createClayMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: 0xd8bfa3,
+    roughness: 0.75,
+    metalness: 0.0,
+    wireframe: state.wireframe
+  });
+}
+
 /* ---------- Primitives ---------- */
 
 function createCube() {
   const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5, 24, 24, 24);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xbfdfff,
-    roughness: 0.6,
-    metalness: 0,
-    wireframe: state.wireframe
-  });
-  setMesh(new THREE.Mesh(geo, mat));
+  setMesh(new THREE.Mesh(geo, createClayMaterial()));
 }
 
 function createSphere() {
   const geo = new THREE.SphereGeometry(1.2, 48, 48);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xbfffd0,
-    roughness: 0.6,
-    metalness: 0,
-    wireframe: state.wireframe
-  });
-  setMesh(new THREE.Mesh(geo, mat));
+  setMesh(new THREE.Mesh(geo, createClayMaterial()));
 }
 
 /* ---------- Default ---------- */
@@ -129,11 +131,25 @@ initUI({
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let sculpting = false;
 
-canvas.addEventListener("pointerdown", () => sculpting = true);
+let sculpting = false;
+let orbiting = false;
+
+canvas.addEventListener("pointerdown", e => {
+  if (e.button === 0 && !orbiting) sculpting = true;
+});
+
 canvas.addEventListener("pointerup", () => sculpting = false);
 canvas.addEventListener("pointerleave", () => sculpting = false);
+
+controls.addEventListener("start", () => {
+  orbiting = true;
+  sculpting = false;
+});
+
+controls.addEventListener("end", () => {
+  orbiting = false;
+});
 
 canvas.addEventListener("pointermove", e => {
   if (!sculpting || !activeMesh || !state.brush) return;
