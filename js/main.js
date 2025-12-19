@@ -3,8 +3,9 @@ import { OrbitControls } from "../three/OrbitControls.js";
 import { TransformControls } from "../three/TransformControls.js";
 import { GLTFLoader } from "../three/GLTFLoader.js";
 import { GLTFExporter } from "../three/GLTFExporter.js";
-import { SculptBrush } from "./sculptBrush.js";
 import { initUI } from "./ui.js";
+import { SculptBrush } from "./sculptBrush.js";
+import { mergeVertices } from "../three/BufferGeometryUtils.js";
 
 /* ===============================
    Core Setup
@@ -46,6 +47,7 @@ const state = {
   controls,
   cameraLocked,
   wireframe,
+  symmetry: { x: false, y: false, z: false },
   setTool: t => state.brush && state.brush.setTool(t),
   setRadius: r => state.brush && state.brush.setRadius(r),
   setStrength: s => state.brush && state.brush.setStrength(s),
@@ -99,6 +101,10 @@ function setActive(mesh) {
   activeMesh = mesh;
   scene.add(mesh);
   transform.attach(mesh);
+
+  // Preserve connectivity
+  mergeVertices(activeMesh.geometry);
+  activeMesh.geometry.computeVertexNormals();
 
   // Initialize brush
   if (!state.brush) state.brush = new SculptBrush(activeMesh);
@@ -199,7 +205,7 @@ function applySculpt(e) {
   const hit = raycaster.intersectObject(activeMesh)[0];
   if (!hit) return;
 
-  state.brush.apply(hit.point);
+  state.brush.apply(hit.point, state.symmetry);
 }
 
 /* ===============================
