@@ -1,133 +1,122 @@
 import * as THREE from "../three/three.module.js";
 import { OrbitControls } from "../three/OrbitControls.js";
 import { TransformControls } from "../three/TransformControls.js";
-import { GLTFExporter } from "../three/GLTFExporter.js";
-import { GLTFLoader } from "../three/GLTFLoader.js";
-import { SculptBrush } from "./sculptBrush.js";
-import { initUI } from "./ui.js";
-import { ViewCube } from "./viewCube.js";
 
-/* Core */
+/* ---------------- Renderer ---------------- */
+
 const canvas = document.getElementById("viewport");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(devicePixelRatio);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.autoClear = false;
+
+/* ---------------- Main Scene ---------------- */
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xbfd1e5);
+scene.background = new THREE.Color(0x1e1e1e);
 
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 1000);
-camera.position.set(4, 4, 6);
+const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(3, 3, 3);
 
-/* Controls */
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
-controls.mouseButtons.LEFT = null;
+/* ---------------- Orbit Controls ---------------- */
 
-const transform = new TransformControls(camera, canvas);
-transform.enabled = false;
-scene.add(transform);
-
-/* Lights */
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-dir.position.set(5, 10, 7);
-scene.add(dir);
-
-/* State */
-let activeMesh = null;
-let brush = null;
-let wireframe = false;
-
-const state = {
-  setTool: t => brush && brush.setTool(t),
-  setRadius: r => brush && brush.setRadius(r),
-  setStrength: s => brush && brush.setStrength(s),
-
-  setTransformMode(mode) {
-    if (mode === "sculpt") {
-      transform.enabled = false;
-      controls.enabled = true;
-    } else {
-      transform.enabled = true;
-      transform.setMode(mode);
-    }
-  },
-
-  toggleWireframe() {
-    wireframe = !wireframe;
-    if (activeMesh) activeMesh.material.wireframe = wireframe;
-  },
-
-  createCube,
-  createSphere,
-  exportGLTF,
-  importGLTF
+const orbit = new OrbitControls(camera, canvas);
+orbit.enableDamping = true;
+orbit.mouseButtons = {
+  LEFT: null,
+  MIDDLE: THREE.MOUSE.DOLLY,
+  RIGHT: THREE.MOUSE.ROTATE
+};
+orbit.touches = {
+  ONE: null,
+  TWO: THREE.TOUCH.ROTATE
 };
 
-/* Mesh */
-function setActive(mesh) {
-  if (activeMesh) scene.remove(activeMesh);
-  activeMesh = mesh;
-  scene.add(mesh);
-  transform.attach(mesh);
-  brush = new SculptBrush(mesh);
-}
+/* ---------------- Lights ---------------- */
 
-function createCube() {
-  setActive(
-    new THREE.Mesh(
-      new THREE.BoxGeometry(2, 2, 2, 24, 24, 24),
-      new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe })
-    )
-  );
-}
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+dir.position.set(5, 5, 5);
+scene.add(dir);
 
-function createSphere() {
-  setActive(
-    new THREE.Mesh(
-      new THREE.SphereGeometry(1.5, 64, 64),
-      new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe })
-    )
-  );
-}
+/* ---------------- Mesh ---------------- */
 
-/* Sculpt input */
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let sculpting = false;
+let activeMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(1, 64, 64),
+  new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+);
+scene.add(activeMesh);
 
-canvas.addEventListener("pointerdown", e => {
-  if (e.pointerType === "touch" && e.touches?.length > 1) return;
-  sculpting = true;
+/* ---------------- Transform Controls ---------------- */
+
+const transform = new TransformControls(camera, canvas);
+transform.attach(activeMesh);
+transform.visible = true;
+scene.add(transform);
+
+transform.addEventListener("dragging-changed", e => {
+  orbit.enabled = !e.value;
 });
 
-canvas.addEventListener("pointerup", () => sculpting = false);
+/* ---------------- View Cube ---------------- */
 
-canvas.addEventListener("pointermove", e => {
-  if (!sculpting || !brush) return;
+const viewScene = new THREE.Scene();
+const viewCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+viewCamera.position.set(2, 2, 2);
+viewCamera.lookAt(0, 0, 0);
 
-  mouse.x = (e.clientX / innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+const cube = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshNormalMaterial()
+);
+viewScene.add(cube);
 
-  raycaster.setFromCamera(mouse, camera);
-  const hit = raycaster.intersectObject(activeMesh)[0];
-  if (hit) brush.apply(hit.point, camera.getWorldDirection(new THREE.Vector3()));
-});
+/* ---------------- Render Loop ---------------- */
 
-/* View Cube */
-const viewCube = new ViewCube(camera, renderer);
+function render() {
+  requestAnimationFrame(render);
 
-/* UI */
-initUI(state);
-createCube();
+  orbit.update();
 
-/* Loop */
-function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
+  renderer.clear();
+
+  // Main scene
+  renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+  renderer.setScissorTest(false);
   renderer.render(scene, camera);
-  viewCube.render();
+
+  // View cube (top-right)
+  const size = 120;
+  renderer.setScissorTest(true);
+  renderer.setScissor(
+    window.innerWidth - size - 10,
+    window.innerHeight - size - 10,
+    size,
+    size
+  );
+  renderer.setViewport(
+    window.innerWidth - size - 10,
+    window.innerHeight - size - 10,
+    size,
+    size
+  );
+
+  viewCamera.quaternion.copy(camera.quaternion);
+  renderer.render(viewScene, viewCamera);
+  renderer.setScissorTest(false);
 }
-animate();
+
+render();
+
+/* ---------------- Resize ---------------- */
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
