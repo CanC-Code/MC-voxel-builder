@@ -21,7 +21,7 @@ renderer.setClearColor(0x1e1e1e);
 const scene = new THREE.Scene();
 
 /* ===============================
-   Camera & Controls
+   Camera & Navigation
 ================================ */
 
 const camera = new THREE.PerspectiveCamera(
@@ -35,7 +35,7 @@ camera.position.set(3, 3, 3);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 
-// Blender-style camera rules
+// Sculpt-friendly camera rules
 controls.mouseButtons.LEFT = null;
 controls.mouseButtons.RIGHT = THREE.MOUSE.ROTATE;
 controls.touches.ONE = THREE.TOUCH.NONE;
@@ -52,7 +52,15 @@ dir.position.set(5, 10, 7);
 scene.add(dir);
 
 /* ===============================
-   Active Mesh + Brush
+   Transform Gizmo (Object)
+================================ */
+
+const transform = new TransformControls(camera, canvas);
+transform.size = 0.9;
+scene.add(transform);
+
+/* ===============================
+   Active Mesh & Brush
 ================================ */
 
 let activeMesh = null;
@@ -68,7 +76,7 @@ function setActiveMesh(mesh) {
   transform.attach(activeMesh);
 }
 
-/* Default cube */
+/* Default mesh */
 setActiveMesh(
   new THREE.Mesh(
     new THREE.BoxGeometry(1, 1, 1, 32, 32, 32),
@@ -81,18 +89,7 @@ setActiveMesh(
 );
 
 /* ===============================
-   Transform Gizmo (Object)
-================================ */
-
-const transform = new TransformControls(camera, canvas);
-transform.size = 0.9;
-scene.add(transform);
-
-let gizmoVisible = true;
-transform.visible = gizmoVisible;
-
-/* ===============================
-   Sculpt Input
+   Sculpt Interaction
 ================================ */
 
 const raycaster = new THREE.Raycaster();
@@ -114,12 +111,13 @@ canvas.addEventListener("pointerdown", e => {
 });
 
 /* ===============================
-   State (UI API)
+   Application State (SAFE)
 ================================ */
+
+let gizmoVisible = true;
 
 const state = {
   mode: "sculpt",
-  brush,
 
   setMode(mode) {
     this.mode = mode;
@@ -128,7 +126,6 @@ const state = {
     if (mode === "rotate") transform.setMode("rotate");
     if (mode === "scale") transform.setMode("scale");
 
-    // Sculpt locks camera
     controls.enabled = mode !== "sculpt";
   },
 
@@ -142,6 +139,18 @@ const state = {
       activeMesh.material.wireframe =
         !activeMesh.material.wireframe;
     }
+  },
+
+  setTool(t) {
+    if (brush) brush.setTool(t);
+  },
+
+  setRadius(r) {
+    if (brush) brush.setRadius(r);
+  },
+
+  setStrength(s) {
+    if (brush) brush.setStrength(s);
   },
 
   createCube() {
@@ -163,14 +172,9 @@ const state = {
   },
 
   exportGLTF() {
-    console.warn("GLTF export hook present");
+    console.warn("GLTF export placeholder");
   }
 };
-
-/* Important: rebind brush reference */
-Object.defineProperty(state, "brush", {
-  get: () => brush
-});
 
 initUI(state);
 
