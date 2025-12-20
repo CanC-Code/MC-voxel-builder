@@ -2,7 +2,7 @@ import * as THREE from "../three/three.module.js";
 import { OrbitControls } from "../three/OrbitControls.js";
 import { TransformControls } from "../three/TransformControls.js";
 
-/* ---------------- Renderer ---------------- */
+/* ================= Renderer ================= */
 
 const canvas = document.getElementById("viewport");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -10,7 +10,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.autoClear = false;
 
-/* ---------------- Main Scene ---------------- */
+/* ================= Main Scene ================= */
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1e1e1e);
@@ -23,7 +23,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(3, 3, 3);
 
-/* ---------------- Orbit Controls ---------------- */
+/* ================= Orbit Controls ================= */
 
 const orbit = new OrbitControls(camera, canvas);
 orbit.enableDamping = true;
@@ -37,22 +37,22 @@ orbit.touches = {
   TWO: THREE.TOUCH.ROTATE
 };
 
-/* ---------------- Lights ---------------- */
+/* ================= Lighting ================= */
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 const dir = new THREE.DirectionalLight(0xffffff, 0.8);
 dir.position.set(5, 5, 5);
 scene.add(dir);
 
-/* ---------------- Mesh ---------------- */
+/* ================= Active Mesh ================= */
 
 let activeMesh = new THREE.Mesh(
   new THREE.SphereGeometry(1, 64, 64),
-  new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+  new THREE.MeshStandardMaterial({ color: 0xb0b0b0 })
 );
 scene.add(activeMesh);
 
-/* ---------------- Transform Controls ---------------- */
+/* ================= Transform Gizmo ================= */
 
 const transform = new TransformControls(camera, canvas);
 transform.attach(activeMesh);
@@ -63,20 +63,30 @@ transform.addEventListener("dragging-changed", e => {
   orbit.enabled = !e.value;
 });
 
-/* ---------------- View Cube ---------------- */
+/* ================= View Cube ================= */
 
 const viewScene = new THREE.Scene();
+
 const viewCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
 viewCamera.position.set(2, 2, 2);
 viewCamera.lookAt(0, 0, 0);
 
-const cube = new THREE.Mesh(
+const viewCube = new THREE.Mesh(
   new THREE.BoxGeometry(1, 1, 1),
   new THREE.MeshNormalMaterial()
 );
-viewScene.add(cube);
+viewScene.add(viewCube);
 
-/* ---------------- Render Loop ---------------- */
+/* ================= UI Bindings ================= */
+
+const toggleGizmoBtn = document.getElementById("toggleGizmo");
+if (toggleGizmoBtn) {
+  toggleGizmoBtn.onclick = () => {
+    transform.visible = !transform.visible;
+  };
+}
+
+/* ================= Render Loop ================= */
 
 function render() {
   requestAnimationFrame(render);
@@ -85,23 +95,25 @@ function render() {
 
   renderer.clear();
 
-  // Main scene
+  // Main Scene
   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
   renderer.setScissorTest(false);
   renderer.render(scene, camera);
 
-  // View cube (top-right)
+  // View Cube (Top Right)
   const size = 120;
+  const margin = 12;
+
   renderer.setScissorTest(true);
   renderer.setScissor(
-    window.innerWidth - size - 10,
-    window.innerHeight - size - 10,
+    window.innerWidth - size - margin,
+    window.innerHeight - size - margin,
     size,
     size
   );
   renderer.setViewport(
-    window.innerWidth - size - 10,
-    window.innerHeight - size - 10,
+    window.innerWidth - size - margin,
+    window.innerHeight - size - margin,
     size,
     size
   );
@@ -113,7 +125,7 @@ function render() {
 
 render();
 
-/* ---------------- Resize ---------------- */
+/* ================= Resize ================= */
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
