@@ -1,134 +1,203 @@
 import * as THREE from "../three/three.module.js";
 import { OrbitControls } from "../three/OrbitControls.js";
 import { TransformControls } from "../three/TransformControls.js";
+import { GLTFLoader } from "../three/GLTFLoader.js";
+import { GLTFExporter } from "../three/GLTFExporter.js";
+import { SculptBrush } from "./sculptBrush.js";
+import { initUI } from "./ui.js";
 
-/* ================= Renderer ================= */
-
+/* ===============================
+   Core Setup
+================================ */
 const canvas = document.getElementById("viewport");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.autoClear = false;
-
-/* ================= Main Scene ================= */
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1e1e1e);
+scene.background = new THREE.Color(0xb0c4de);
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera.position.set(3, 3, 3);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(4, 4, 6);
 
-/* ================= Orbit Controls ================= */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
 
-const orbit = new OrbitControls(camera, canvas);
-orbit.enableDamping = true;
-orbit.mouseButtons = {
-  LEFT: null,
-  MIDDLE: THREE.MOUSE.DOLLY,
-  RIGHT: THREE.MOUSE.ROTATE
-};
-orbit.touches = {
-  ONE: null,
-  TWO: THREE.TOUCH.ROTATE
-};
-
-/* ================= Lighting ================= */
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-dir.position.set(5, 5, 5);
-scene.add(dir);
-
-/* ================= Active Mesh ================= */
-
-let activeMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(1, 64, 64),
-  new THREE.MeshStandardMaterial({ color: 0xb0b0b0 })
-);
-scene.add(activeMesh);
-
-/* ================= Transform Gizmo ================= */
-
-const transform = new TransformControls(camera, canvas);
-transform.attach(activeMesh);
-transform.visible = true;
+// Transform Gizmo
+const transform = new TransformControls(camera, renderer.domElement);
 scene.add(transform);
 
-transform.addEventListener("dragging-changed", e => {
-  orbit.enabled = !e.value;
+/* ===============================
+   Lighting & Helpers
+================================ */
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+dir.position.set(5, 10, 7);
+scene.add(dir);
+scene.add(new THREE.GridHelper(20, 20));
+
+/* ===============================
+   App State
+================================ */
+const state = {
+  mode: "sculpt",
+  activeMesh: null,
+  brush: null,
+  wireframe: false,
+  controls,
+  transform,
+  setMode(m) {
+    this.mode = m;
+    if (m === "sculpt") {
+      this.transform.detach();
+      controls.enabled = true;
+    } else {
+      if (this.activeMesh) this.transform.attach(this.activeMesh);
+      controls.enabled = m !== "move";
+    }
+  },
+  toggleWireframe() {
+    this.wireframe = !this.wireframe;
+    if (this.activeMesh) this.activeMesh.material.wireframe = this.wireframe;
+  },
+  createCube() {
+    clearActiveMesh();
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 2, 2, 24, 24, 24),
+      new THREE.MeshStandardMaterial({ color: 0x88ccff, wireframe: this.wireframe })
+    );
+    setActiveMesh(mesh);
+  },
+  createSphere() {
+    clearActiveMesh();
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1.5, 64, 64),
+      new THREE.MeshStandardMaterial({ color: 0x88ff88, wireframe: this.wireframe })
+    );
+    setActiveMesh(mesh);
+  },
+  setTool(t) {
+    if (this.brush) this.brush.setTool(t);
+  },
+  setRadius(r) {
+    if (this.brush) this.brush.setRadius(r);
+  },
+  setStrength(s) {
+    if (this.brush) this.brush.setStrength(s);
+  },
+  exportGLTF() {
+    if (!this.activeMesh) return;
+    new GLTFExporter().parse(this.activeMesh, gltf => {
+      const blob = new Blob([JSON.stringify(gltf)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "model.gltf";
+      a.click();
+    });
+  },
+  importGLTF(e) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      new GLTFLoader().parse(reader.result, "", gltf => {
+        const mesh = gltf.scene.getObjectByProperty("type", "Mesh");
+        if (mesh) setActiveMesh(mesh);
+      });
+    };
+    reader.readAsArrayBuffer(e.target.files[0]);
+  }
+};
+
+/* ===============================
+   Active Mesh Handling
+================================ */
+function clearActiveMesh() {
+  if (!state.activeMesh) return;
+  transform.detach();
+  scene.remove(state.activeMesh);
+  state.activeMesh.geometry.dispose();
+  state.activeMesh.material.dispose();
+  state.activeMesh = null;
+  state.brush = null;
+}
+
+function setActiveMesh(mesh) {
+  state.activeMesh = mesh;
+  scene.add(mesh);
+  transform.attach(mesh);
+  state.brush = new SculptBrush(mesh);
+}
+
+/* ===============================
+   Sculpting Core
+================================ */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let sculpting = false;
+
+renderer.domElement.addEventListener("pointerdown", e => {
+  if (state.mode !== "sculpt" || !state.activeMesh) return;
+  sculpting = true;
+  transform.detach();
+  sculptAtPointer(e);
 });
 
-/* ================= View Cube ================= */
+renderer.domElement.addEventListener("pointerup", () => {
+  sculpting = false;
+  if (state.activeMesh && state.mode !== "sculpt") transform.attach(state.activeMesh);
+});
 
-const viewScene = new THREE.Scene();
+renderer.domElement.addEventListener("pointermove", e => {
+  if (sculpting) sculptAtPointer(e);
+});
 
-const viewCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
-viewCamera.position.set(2, 2, 2);
-viewCamera.lookAt(0, 0, 0);
-
-const viewCube = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshNormalMaterial()
-);
-viewScene.add(viewCube);
-
-/* ================= UI Bindings ================= */
-
-const toggleGizmoBtn = document.getElementById("toggleGizmo");
-if (toggleGizmoBtn) {
-  toggleGizmoBtn.onclick = () => {
-    transform.visible = !transform.visible;
-  };
+function sculptAtPointer(e) {
+  if (!state.activeMesh) return;
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObject(state.activeMesh)[0];
+  if (!hit) return;
+  state.brush.apply(hit.point);
 }
 
-/* ================= Render Loop ================= */
+/* ===============================
+   Cursor Brush
+================================ */
+const cursorBrush = document.getElementById("cursorBrush");
+renderer.domElement.addEventListener("pointermove", e => {
+  cursorBrush.style.left = e.clientX + "px";
+  cursorBrush.style.top = e.clientY + "px";
+  cursorBrush.style.display = "block";
+});
+renderer.domElement.addEventListener("pointerleave", () => {
+  cursorBrush.style.display = "none";
+});
 
-function render() {
-  requestAnimationFrame(render);
-
-  orbit.update();
-
-  renderer.clear();
-
-  // Main Scene
-  renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
-  renderer.setScissorTest(false);
-  renderer.render(scene, camera);
-
-  // View Cube (Top Right)
-  const size = 120;
-  const margin = 12;
-
-  renderer.setScissorTest(true);
-  renderer.setScissor(
-    window.innerWidth - size - margin,
-    window.innerHeight - size - margin,
-    size,
-    size
-  );
-  renderer.setViewport(
-    window.innerWidth - size - margin,
-    window.innerHeight - size - margin,
-    size,
-    size
-  );
-
-  viewCamera.quaternion.copy(camera.quaternion);
-  renderer.render(viewScene, viewCamera);
-  renderer.setScissorTest(false);
-}
-
-render();
-
-/* ================= Resize ================= */
-
+/* ===============================
+   Resize
+================================ */
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+/* ===============================
+   Default Cube
+================================ */
+state.createCube();
+
+/* ===============================
+   UI
+================================ */
+initUI(state);
+
+/* ===============================
+   Render Loop
+================================ */
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
